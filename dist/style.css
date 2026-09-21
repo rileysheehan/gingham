@@ -1,0 +1,352 @@
+/*
+  The frame — "Daylight".
+  One bold thing: the Today panel is a window of the household's sky, painted by app.js from the real
+  sunrise, sunset and cloud cover. Everything to its right stays quiet.
+
+  Built for a 1920×1080 kitchen wall read from across the room, and for an old Android WebView:
+  flexbox without `gap`, no grid, no clamp()/min(). Every size is in rem, and 1rem is 1/120 of the
+  frame width, so the layout is drawn once and scales whole.
+*/
+@font-face{font-family:"Bricolage Grotesque";src:url(/fonts/bricolage-grotesque-var.woff2) format("woff2");font-weight:200 800;font-display:swap}
+/* Inter 4.1 from rsms/inter's own release: Google Fonts' build drops the cv05/cv08 alternates used below. */
+@font-face{font-family:"Inter";src:url(/fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
+
+:root{
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",Roboto,sans-serif;
+  --text:"Inter","Helvetica Neue",Roboto,Arial,sans-serif;
+  /* Sky defaults; app.js overwrites these every minute. */
+  --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;
+  --sun:#ffc94d;--rain:#4a97e8;
+}
+.theme-light{--selected:#ffffff;--surface:#f3f6f9;--card:#ffffff;--ink:#10263f;--ink-2:#51647a;--line:#d6dfe7;--accent:#1b66c9;--on-accent:#ffffff;--press:#e6ecf2;--shade:rgba(16,38,63,.14)}
+/* The selected segment is the lighter pill in both themes, as in Apple's segmented controls. */
+.theme-dark{--selected:#35425f;--surface:#0c111d;--card:#151c2c;--ink:#dfe4ef;--ink-2:#8f9bb3;--line:#273047;--accent:#8db8ff;--on-accent:#0c1a33;--press:#1e2740;--shade:rgba(0,0,0,.5)}
+
+html{font-size:calc(100vw / 120)}
+@media (min-aspect-ratio:16/9){html{font-size:calc(100vh / 67.5)}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+/* Inter's legibility alternates: cv05 tails the lowercase l and cv08 serifs the capital I, so "Il1" stay distinct
+   from across the kitchen. The display face has no such features and ignores them. */
+body{margin:0;background:var(--surface);color:var(--ink);font:400 1.5rem/1.35 var(--text);font-feature-settings:"cv05" 1,"cv08" 1;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow:hidden}
+p,h1,h2,h3{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;touch-action:manipulation}
+button:disabled{cursor:default}
+/* Eyebrows label a section the way Apple's apps do: small, uppercase, tracked, in the secondary color. */
+.eyebrow{display:block;font:600 1.15rem/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.today .eyebrow{color:inherit;opacity:.7}
+button:focus-visible,a:focus-visible{outline:.2rem solid var(--accent);outline-offset:.2rem}
+a{color:inherit}
+svg{display:block}
+
+.frame{display:flex;height:100vh}
+
+/* ---------- Today: the sky window ---------- */
+.today{flex:0 0 33%;display:flex;flex-direction:column;padding:3rem 3.25rem 2.5rem;color:var(--sky-ink);background-color:var(--sky-bottom);background-image:linear-gradient(to bottom,var(--sky-top),var(--sky-bottom));overflow:hidden}
+/* Weather in the sky window, behind everything and faint. app.js moves it once a second; nothing here animates. */
+.today{position:relative}
+.today>*{position:relative;z-index:1}
+.today>.sky-fx{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;overflow:hidden;pointer-events:none}
+.sky-fx div{position:absolute}
+.sky-fx.day{--cloud:rgba(255,255,255,.62)}
+.sky-fx.night{--cloud:rgba(196,206,236,.16)}
+.sky-fx .sun{top:-16rem;right:-14rem;width:44rem;height:44rem;background:radial-gradient(closest-side,rgba(255,246,220,.75),rgba(255,246,220,0))}
+.sky-fx .star{width:.22rem;height:.22rem;border-radius:50%;background:#fff;opacity:.3}
+.sky-fx .cloud{left:0;height:15rem;background-image:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;transform:translate3d(-100%,0,0)}
+.sky-fx .fog{left:-20%;width:140%;height:14rem;background:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));opacity:.7}
+.sky-fx .rain{top:0;left:0;right:0;bottom:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg stroke='%23fff' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M12 4l-2 16M52 34l-2 16M92 14l-2 16M32 74l-2 16M72 64l-2 16M108 94l-2 16M20 100l-2 16M84 102l-2 16M60 2l-2 14'/%3E%3C/g%3E%3C/svg%3E")}
+.sky-fx .rain.near{background-size:12rem 12rem;opacity:.2}
+.sky-fx .rain.far{background-size:8rem 8rem;background-position:3rem 5rem;opacity:.12}
+.sky-fx.night .rain.near{opacity:.1}
+.sky-fx.night .rain.far{opacity:.06}
+.sky-fx .snow{left:0;right:0;bottom:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='%23fff'%3E%3Ccircle cx='14' cy='10' r='2'/%3E%3Ccircle cx='70' cy='30' r='1.6'/%3E%3Ccircle cx='100' cy='72' r='2.2'/%3E%3Ccircle cx='40' cy='60' r='1.4'/%3E%3Ccircle cx='24' cy='100' r='1.8'/%3E%3Ccircle cx='86' cy='110' r='1.5'/%3E%3C/svg%3E")}
+.sky-fx .snow.near{top:-12rem;background-size:12rem 12rem;opacity:.5}
+.sky-fx .snow.far{top:-8rem;background-size:8rem 8rem;opacity:.3}
+.today-weekday{font:600 5.25rem/1 var(--display);letter-spacing:-.03em}
+.today-date{font:400 2.5rem/1.2 var(--display);letter-spacing:-.01em;opacity:.78;margin-top:.5rem}
+.clock{font:300 11.5rem/1 var(--display);letter-spacing:-.045em;margin:2.25rem 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ampm{font-size:2.5rem;font-weight:500;letter-spacing:0;margin-left:.8rem;opacity:.78}
+.now{display:flex;align-items:center;margin-top:1.75rem}
+.wx-icon{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.wx-icon .sun{fill:var(--sun);stroke:var(--sun)}
+.wx-icon .moon{fill:#f1e6c3;stroke:#f1e6c3;stroke-width:1}
+.wx-icon .bolt{fill:var(--sun);stroke:none}
+.wx-icon .drop{stroke:var(--rain)}
+.now .wx-icon{width:5rem;height:5rem;flex:none;margin-right:1.1rem}
+.now-temp{font:500 4.5rem/1 var(--display);letter-spacing:-.04em;margin-right:1.4rem}
+.now-text{font-size:1.75rem;line-height:1.3;font-weight:600}
+.now-detail{font-weight:400;font-size:1.4rem;opacity:.78}
+
+.countdown{flex:none;margin-top:auto;padding-top:1.25rem;font:600 1.75rem/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.countdown:not([hidden])+.sun-line{margin-top:0;padding-top:.7rem}
+.sun-line{flex:none;font:500 1.4rem/1 var(--text);font-variant-numeric:tabular-nums;opacity:.78;margin-top:auto;padding-top:1.25rem}
+/* Today takes the room it needs and tomorrow gets the rest (flex-basis 0), so a busy today squeezes tomorrow, never
+   the other way round. app.js fits whole items into each and ends with "and N more". */
+.today-label{flex:none;margin-top:2.25rem;padding-top:1.5rem;border-top:.125rem solid rgba(127,127,127,.35);margin-bottom:1.1rem}
+.today-list{flex:0 1 auto;min-height:0;overflow:hidden}
+.tomorrow{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-top:1.5rem;padding-top:1.4rem;border-top:.125rem solid rgba(127,127,127,.35)}
+.tomorrow h2{flex:none;margin-bottom:1.1rem}
+.tomorrow-list{flex:1;min-height:0;overflow:hidden}
+.today .tomorrow .item{margin-bottom:1.1rem}
+.today .tomorrow .item-title{font-size:1.9rem}
+.today .tomorrow .item-meta{font-size:1.3rem}
+.today .tomorrow .check{width:2.2rem;height:2.2rem}
+.today-empty{font:400 2.25rem/1.2 var(--text);letter-spacing:-.01em;opacity:.75}
+.today .item{margin-bottom:1.5rem}
+.today .item-title{font-size:2.25rem;line-height:1.2}
+.today .item-meta{font-size:1.5rem}
+/* Today is read at a distance: one line of time and place, at most two of title. The full text is a tap away. */
+.today .item-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.today .item:not(.allday) .item-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* What is happening now reads first. */
+.item.happening .item-meta{opacity:1;font-weight:600}
+.item.happening:before{width:.45rem}
+.item.busy .item-title{font-weight:500;color:var(--rail)}
+.today .check{width:2.5rem;height:2.5rem;margin-top:.1rem}
+
+/* ---------- Items: events carry a calendar-colored rail, chores a tappable circle ---------- */
+.item{display:flex;width:100%;align-items:flex-start;position:relative;overflow-wrap:break-word;word-wrap:break-word}
+.item-body{flex:1;min-width:0}
+.item-title{display:block;font-weight:600;font-size:1.55rem;line-height:1.22;letter-spacing:-.005em}
+/* All-day and multi-day events frame the day rather than fill it: one line, a lighter weight, and on days after the
+   first a quieter tone that reads as "still going". */
+.item.allday .item-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.item.allday.continues{opacity:.62}
+/* The week's narrow columns give all-day titles two lines instead of one, so "Sam in …" keeps its meaning. */
+.day .item.allday .item-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.item-note{font-weight:400;opacity:.75}
+.more{display:block;font:500 1.3rem/1.3 var(--text);opacity:.75;padding:.1rem 0 0;text-align:left}
+button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:underline;text-decoration-color:rgba(127,127,127,.5);text-underline-offset:.2em}
+.today .more{font-size:1.5rem}
+/* Times and dates use the display face, like every other number on the frame. */
+/* The type rule: Bricolage only for the big time-and-date type (weekday, date, clock, current temperature, the week's
+   day numbers); every word you read is Inter, with fixed-width digits where times line up. */
+.item-meta,.later-row .when,.later-row .time{font-weight:500;font-variant-numeric:tabular-nums}
+.item-meta{display:block;font-size:1.3rem;line-height:1.3;opacity:.75}
+.item.event{padding-left:1rem}
+.item.event:before{content:"";position:absolute;left:0;top:.2rem;bottom:.2rem;width:.3rem;border-radius:.3rem;background:var(--rail)}
+.check{flex:none;width:1.9rem;height:1.9rem;margin:.05rem .7rem 0 0;border:.16rem solid var(--tick,currentColor);border-radius:50%;opacity:.6;position:relative}
+.item.done .check{opacity:1;background:var(--tick,currentColor)}
+.item.done .check:after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--card);border-width:0 .2rem .2rem 0;-webkit-transform:rotate(42deg);transform:rotate(42deg)}
+.today .item.done .check:after{border-color:var(--sky-bottom)}
+.item.done .item-title{text-decoration:line-through;opacity:.55}
+.item.overdue .item-meta{opacity:1;font-weight:600}
+
+/* ---------- The days ahead ---------- */
+.ahead{flex:1;min-width:0;display:flex;flex-direction:column;padding:2.25rem 2.75rem 1.5rem;position:relative}
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+/* Every view on the right opens with the same header: a title, what it shows, and paging on the right. */
+.ahead-head,.list-head{display:flex;align-items:center;height:3.5rem;margin-bottom:1.5rem}
+.ahead-head h1,.list-head h1{font:600 2.5rem/1 var(--text);letter-spacing:-.02em;margin-right:2.5rem;white-space:nowrap}
+.list-head h1{display:flex;align-items:center}
+.list-head .glyph{width:2.6rem;height:2.6rem;margin-right:1rem;color:var(--ink-2);stroke-width:1.8}
+.list-head .avatar{width:3.2rem;height:3.2rem;margin-right:1rem;font-size:1.7rem}
+.list-head p,.view-note{flex:1;font-size:1.35rem;color:var(--ink-2)}
+/* Resting on photos: the dock and the arrows are near-field controls, so the photo takes the whole side until a touch.
+   When the photo was taken stays, as a quiet caption on the photo itself, the one thing worth reading from the couch. */
+/* The chrome gets out of the way slowly and comes back at once. */
+.dock,.photo-view .pager{-webkit-transition:opacity .55s ease;transition:opacity .55s ease}
+body[data-rest] .dock,body[data-rest] .photo-view .pager{opacity:0;pointer-events:none}
+body[data-rest] .dock{position:absolute;left:0;right:0;bottom:0;margin:0}
+body[data-rest] .photo-view .ahead-head{position:absolute;left:2.6rem;bottom:2.1rem;z-index:2;height:auto;margin:0}
+body[data-rest] .photo-view .ahead-head h1{font:500 1.6rem/1.2 var(--text);letter-spacing:0;color:#fff;opacity:.9;text-shadow:0 .1rem .7rem rgba(0,0,0,.7)}
+body[data-rest] .ahead{padding:0}
+body[data-rest] .photo-card{border-radius:0}
+/* Night: the panel is backlit, so the whole screen is knocked down rather than switched off. A touch clears it. */
+.nightfall{position:fixed;top:0;right:0;bottom:0;left:0;background:#000;opacity:0;pointer-events:none;z-index:20;-webkit-transition:opacity 3s ease;transition:opacity 3s ease}
+.no-calendar .legend,.no-calendar .pager{visibility:hidden}
+.legend{display:flex;flex:1;font-size:1.3rem;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;margin-right:1.75rem}
+.legend i{width:.85rem;height:.85rem;border-radius:50%;margin-right:.55rem}
+.pager{display:flex;align-items:center}
+.arrow,.icon-button{width:3.5rem;height:3.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.arrow svg,.icon-button svg{width:1.9rem;height:1.9rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.arrow:disabled{opacity:.25}
+.arrow:active,.icon-button:active,.quiet:active{background:var(--press)}
+.quiet{font-size:1.3rem;font-weight:600;color:var(--accent);height:3.5rem;padding:0 1.25rem;border-radius:1.75rem;margin-right:.5rem}
+
+.strip{flex:1;min-height:0;display:flex;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);overflow:hidden}
+.loading{padding:2.5rem;font:400 1.6rem/1.35 var(--text);color:var(--ink-2);max-width:48rem}
+.pairing{max-width:none}
+.pair-code{font:600 9rem/1 var(--text);letter-spacing:.06em;color:var(--ink);margin:2.5rem 0 1.5rem;font-variant-numeric:tabular-nums}
+.pair-host{font-size:1.5rem;color:var(--ink-2)}
+.pair-address{font:600 2.6rem/1.2 var(--text);letter-spacing:-.01em;color:var(--ink);margin-top:1.6rem}
+.pair-address+.pair-code,.pair-or+.pair-code{margin-top:1.4rem}
+.pair-or{font-size:1.5rem;color:var(--ink-2);margin-top:.4rem;font-variant-numeric:tabular-nums}
+.loading-title{font:600 2.1rem/1.3 var(--text);letter-spacing:-.01em;color:var(--ink);margin-bottom:.3rem}
+.day{flex:1 1 0;min-width:0;display:flex;flex-direction:column;padding:1.4rem 1.1rem 1rem;border-left:.0625rem solid var(--line)}
+.day:first-child{border-left:0}
+.day.weekend{background-color:var(--tint)}
+.theme-light{--tint:rgba(16,38,63,.028)}.theme-dark{--tint:rgba(255,255,255,.025)}
+.day-name{display:flex;flex-direction:column;align-items:flex-start;font-family:var(--display);line-height:1}
+.day-name .eyebrow{margin-bottom:.45rem}
+.day-name b{font-weight:600;font-size:2.75rem;letter-spacing:-.04em}
+.forecast{display:flex;align-items:center;height:3.2rem;margin:.7rem 0 1.1rem;padding-bottom:1rem;box-sizing:content-box;border-bottom:.0625rem solid var(--line);font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.forecast .wx{flex:none;width:2.6rem;margin-right:.6rem;display:flex;flex-direction:column;align-items:center}
+.forecast .wx-icon{width:2.4rem;height:2.4rem;color:var(--ink-2)}
+.forecast small{font-size:1.05rem;line-height:1;font-weight:600;color:var(--rain);margin-top:-.1rem}
+.forecast b{color:var(--ink);font-weight:600;margin-right:.45rem}
+.day-items{flex:1;min-height:0;overflow:hidden}
+.day .item{margin-bottom:1.15rem}
+button.item:active{opacity:.6}
+
+.later{flex:none;display:flex;padding:1.5rem .5rem 0 1.1rem}
+.later h2{flex:0 0 7rem;line-height:2.4rem}
+.later-rows{flex:1;min-width:0}
+.later-row{display:flex;align-items:center;width:100%;height:2.4rem;font-size:1.45rem}
+.later-row .when{flex:0 0 9.5rem;color:var(--ink-2);white-space:nowrap}
+.later-row .time{flex:0 0 8rem;color:var(--ink-2);white-space:nowrap}
+.later-row .what{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.later-row i{flex:none;width:.8rem;height:.8rem;border-radius:50%;margin-right:.8rem}
+.later-row i.ring{background:none;border:.14rem solid var(--ink-2)}
+.later-row .owner{color:var(--ink-2);font-weight:400}
+.later-note{font-size:1.35rem;line-height:2.4rem;color:var(--ink-2)}
+
+/* ---------- A list (one Todoist project) ---------- */
+.list-body{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);padding:1.75rem 2.25rem}
+.list-body::-webkit-scrollbar{display:none}
+.list-body.has-more,.settings-card.has-more,.day-sheet-list.has-more{-webkit-mask-image:linear-gradient(to bottom,#000 82%,transparent);mask-image:linear-gradient(to bottom,#000 82%,transparent)}
+.list-columns{max-width:60rem}
+.list-columns.two,.list-columns.three{max-width:none;-webkit-column-count:2;column-count:2;-webkit-column-gap:3.5rem;column-gap:3.5rem;-webkit-column-rule:.0625rem solid var(--line);column-rule:.0625rem solid var(--line)}
+.list-columns.three{-webkit-column-count:3;column-count:3;-webkit-column-gap:2.75rem;column-gap:2.75rem}
+/* A named section stays together; an unsectioned list flows across both columns. */
+.group{padding-bottom:1.25rem}
+.group.named,.list-body .item{-webkit-column-break-inside:avoid;break-inside:avoid}
+.group h3{font:600 1.15rem/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);padding:.7rem 0 .55rem}
+.list-body .item{min-height:3.6rem;padding:.7rem 0;align-items:center;border-bottom:.0625rem solid var(--line)}
+.list-body .group .item:last-child,.list-body .item.column-end{border-bottom:0}
+.list-body .item-title{font-size:1.8rem;font-weight:400}
+.list-body .item-meta{font-size:1.25rem}
+.list-body .check{width:2.4rem;height:2.4rem;margin-right:1.1rem}
+/* A five-year-old's list: rows he can hit, a picture he can read, and a moment when he checks one off. */
+.list-body.kid .item{min-height:5.6rem;padding:1.1rem 0}
+.list-body.kid .check{width:3.2rem;height:3.2rem;margin-right:1.3rem}
+.list-body.kid .item-title{font-size:2.6rem}
+.kid-emoji{flex:none;font-size:3.2rem;line-height:1;margin:0 1rem 0 .2rem;order:-1}
+.cheer{position:fixed;left:50%;top:50%;font-size:14rem;line-height:1;opacity:0;pointer-events:none;z-index:30;-webkit-transform:translate(-50%,-50%) scale(.4);transform:translate(-50%,-50%) scale(.4);-webkit-transition:opacity .35s ease,-webkit-transform .5s cubic-bezier(.2,1.5,.45,1);transition:opacity .35s ease,transform .5s cubic-bezier(.2,1.5,.45,1)}
+.cheer.on{opacity:1;-webkit-transform:translate(-50%,-50%) scale(1);transform:translate(-50%,-50%) scale(1)}
+.list-empty{font:400 2.1rem/1.3 var(--text);color:var(--ink-2);padding:.5rem 0;-webkit-column-span:all;column-span:all}
+.list-empty-hint{display:block;max-width:44rem;margin-top:.7rem;font-size:1.5rem;line-height:1.4;opacity:.8}
+
+/* ---------- Dock ---------- */
+.notice{flex:none;margin-top:1rem;padding:.7rem 1.1rem;border-radius:.8rem;font-size:1.3rem;background:var(--press);color:var(--ink)}
+.dock{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem;height:4rem}
+.tabs{display:flex;background:var(--press);border-radius:2rem;padding:.3rem}
+.tabs button{display:flex;align-items:center;height:3.4rem;padding:0 1.4rem;border-radius:1.7rem;font-size:1.4rem;font-weight:600;color:var(--ink-2);white-space:nowrap}
+/* A list's mark: a glyph for a household list, a monogram in the person's color for a person's list. */
+.glyph{flex:none;width:1.75rem;height:1.75rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ink-2);color:#fff;font:700 1.05rem/1 var(--text);letter-spacing:0}
+.tabs .glyph,.tabs .avatar{margin-right:.6rem}
+.item-title .avatar{display:inline-flex;width:1.7rem;height:1.7rem;font-size:.95rem;margin-left:.6rem;vertical-align:.1em}
+.today .item-title .avatar,.list-body .item-title .avatar{width:2rem;height:2rem;font-size:1.1rem}
+.tabs.compact .marked:not([aria-pressed=true]) .label{display:none}
+.tabs.compact .marked:not([aria-pressed=true]) b{margin-left:0}
+.tabs button b{font:600 1.45rem/1 var(--text);font-variant-numeric:tabular-nums;margin-left:.55rem;color:var(--ink)}
+.tabs button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
+.dock-end{display:flex;align-items:center}
+.icon-button{color:var(--ink-2)}
+.icon-button circle{fill:var(--surface)}
+.icon-button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
+.icon-button[aria-pressed=true] circle{fill:var(--selected)}
+
+/* ---------- Settings: a card like the others, sized for a finger at the wall ---------- */
+.settings-card{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);padding:.3rem 2.25rem}
+.settings-card::-webkit-scrollbar{display:none}
+.setting-group{padding:.62rem 0;border-top:.0625rem solid var(--line)}
+.setting-group:first-child{border-top:0}
+.setting-group h2{margin-bottom:.55rem}
+.setting{display:flex;align-items:center;min-height:4.4rem}
+.setting p{flex:0 0 24rem;font-size:1.6rem;font-weight:500;padding-right:1.5rem}
+.choices{display:flex;background:var(--press);border-radius:1.05rem;padding:.25rem}
+.choices button{min-width:8.5rem;height:3.2rem;padding:0 1.5rem;border-radius:.9rem;font-size:1.45rem;font-weight:600;color:var(--ink-2);text-align:center;white-space:nowrap}
+.choices button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
+.setting-note{font-size:1.3rem;color:var(--ink-2);margin:.2rem 0 0 24rem}
+.setting-hint{margin-left:1.5rem;font-size:1.3rem;color:var(--ink-2)}
+/* Status is four short facts, so it sits two by two and Settings fits on one screen. */
+.status-rows{margin:0;display:flex;flex-wrap:wrap}
+.status-rows div{flex:0 0 50%;display:flex;align-items:baseline;padding:.3rem 1.5rem .3rem 0}
+.status-rows dt{flex:0 0 10rem;font-size:1.45rem;font-weight:500}
+.status-rows dd{margin:0;font-size:1.45rem;color:var(--ink-2)}
+
+.wide{display:block;width:100%;height:3.4rem;margin-top:.9rem;border-radius:.9rem;text-align:center;font-weight:600;font-size:1.3rem;background:var(--press);color:var(--ink)}
+
+/* ---------- Toast and dialogs ---------- */
+.toast{position:fixed;z-index:30;left:66.5%;bottom:6.75rem;-webkit-transform:translateX(-50%);transform:translateX(-50%);display:flex;align-items:center;max-width:70rem;padding:.5rem .6rem .5rem 1.75rem;border-radius:2.5rem;background:var(--ink);color:var(--surface);font-size:1.5rem;box-shadow:0 .75rem 2.5rem var(--shade)}
+.toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:.9rem 0}
+.toast button{flex:none;margin-left:1.5rem;height:3.4rem;padding:0 1.6rem;border-radius:1.7rem;font-weight:600;background:var(--surface);color:var(--ink)}
+
+.modal{position:fixed;z-index:20;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:2rem;background:rgba(8,16,30,.55)}
+.dialog{width:44rem;max-width:100%;padding:2.75rem;background:var(--card);border-radius:1.75rem;box-shadow:0 1.5rem 5rem rgba(0,0,0,.35)}
+.dialog-calendar{display:flex;align-items:center}
+.dialog-calendar i{width:.9rem;height:.9rem;border-radius:50%;margin-right:.6rem}
+.dialog h2{font:600 2.7rem/1.15 var(--text);letter-spacing:-.02em;margin:.9rem 0 1.1rem}
+.dialog h2.long{font-size:2.25rem;line-height:1.18}
+.day-sheet{width:52rem;max-height:90vh;display:flex;flex-direction:column}
+#day-eyebrow{margin-bottom:.6rem}
+.day-sheet h2{flex:none;margin-top:0}
+.day-sheet-list{flex:1;min-height:0;overflow-y:auto}
+.day-sheet-list .item{margin-bottom:1.3rem}
+.day-sheet-list .item-title{font-size:1.9rem}
+.day-sheet-list .item-meta{font-size:1.35rem}
+.day-sheet-list .check{width:2.4rem;height:2.4rem}
+.day-sheet .wide{flex:none}
+.dialog p{font-size:1.75rem;line-height:1.4}
+#event-location{color:var(--ink-2);margin-top:.4rem;white-space:pre-line}
+/* Adding to a list: at the top, clear of the keyboard. */
+.list-head .quiet{flex:none;height:3rem;padding:0 1.6rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
+.modal.top{align-items:flex-start;padding-top:3rem}
+.dialog.add h2{font-size:2.1rem;margin:0 0 1.2rem}
+.add-row{display:flex;align-items:center}
+.add-row input{flex:1;min-width:0;height:5.2rem;padding:0 1.4rem;border:.12rem solid var(--line);border-radius:1.3rem;background:var(--surface);color:var(--ink);font:400 2.1rem/1 var(--text)}
+.add-row input:focus{outline:none;border-color:var(--accent)}
+.add-row .key{flex:0 0 9rem;margin:0 0 0 1rem}
+.dialog.add p{min-height:2rem;margin-top:.9rem;font-size:1.4rem;color:var(--ink-2)}
+.dialog.add .wide{margin-top:1.2rem}
+/* Manage from a phone: a PIN pad drawn by the page, so no system keyboard slides up over the wall. */
+.ahead-head .quiet{flex:none;height:3rem;padding:0 1.4rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
+.dialog.manage{width:34rem;text-align:center}
+.dialog.manage h2{font-size:2.1rem;margin:.6rem 0 .5rem}
+.dialog.manage p{font-size:1.4rem;color:var(--ink-2)}
+.dialog.manage .eyebrow{font-size:1.15rem}
+.pin-dots{height:2.4rem;margin-top:1.2rem;font-size:1.6rem;letter-spacing:.5em;color:var(--ink)}
+.keypad{display:flex;flex-wrap:wrap;justify-content:center;margin:1rem auto 0;width:24rem}
+.key{display:flex;align-items:center;justify-content:center;text-align:center;flex:0 0 6.6rem;height:5.2rem;margin:.45rem;border-radius:1.3rem;background:var(--press);color:var(--ink);font:500 2.3rem/1 var(--text);font-variant-numeric:tabular-nums}
+.key:active{background:var(--line)}
+.key.go{background:var(--accent);color:var(--on-accent);font-size:1.7rem;font-weight:600}
+.dialog.manage .pair-code{font-size:6rem;margin:2rem 0 .5rem;color:var(--ink)}
+.dialog .wide{margin-top:2.25rem;height:4rem;font-size:1.5rem}
+
+/* Photos is a card like the week and the lists: the photo whole, over a blurred copy of itself. */
+.photo-card{flex:1;min-height:0;position:relative;overflow:hidden;border-radius:1.5rem;background:#000;box-shadow:0 .1rem .2rem var(--shade);cursor:pointer}
+.slide-fill{position:absolute;top:-4rem;right:-4rem;bottom:-4rem;left:-4rem;background-size:cover;background-position:center;-webkit-filter:blur(3rem) brightness(.55);filter:blur(3rem) brightness(.55)}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:0;-webkit-transition:opacity 1.2s ease;transition:opacity 1.2s ease}
+.slide.on{opacity:1}
+/* A big bright photo is glare in a dark kitchen. */
+.theme-dark .slide{-webkit-filter:brightness(.68);filter:brightness(.68)}
+.theme-dark .slide-fill{-webkit-filter:blur(3rem) brightness(.3);filter:blur(3rem) brightness(.3)}
+
+@media (prefers-reduced-motion:reduce){.slide{-webkit-transition:none;transition:none}}
+
+/* ---------- Phones and portrait: a stacked agenda for checking from the couch ---------- */
+@media (max-width:900px),(max-aspect-ratio:1/1){
+  html{font-size:10px}
+  body{overflow:auto}
+  .frame{display:block;height:auto}
+  .today{padding:2.4rem 2rem}
+  .today-weekday{font-size:4rem}.today-date{font-size:2rem}.clock{font-size:8rem;margin-top:1.5rem}
+  .today-list{overflow:visible}
+  .ahead{padding:2rem 1.6rem 9rem;min-height:60vh}
+  .legend{display:none}.ahead-head h1{flex:1}
+  .strip{display:block;overflow:visible}
+  .day{border-left:0;border-top:.0625rem solid var(--line);padding:1.6rem}
+  .day:first-child{border-top:0}
+  .forecast{border-bottom:0;padding-bottom:0;margin-bottom:.6rem}
+  .day-items{overflow:visible}
+  .item-title{font-size:1.8rem}.item-meta{font-size:1.4rem}
+  .later{display:block;padding:2rem .4rem 0}
+  .later-row{height:auto;padding:.5rem 0;font-size:1.6rem}.later-row .when{flex-basis:11rem}.later-row .time{display:none}
+  .list-body{-webkit-column-count:1;column-count:1;overflow:visible;padding:1.2rem 1.6rem}
+  .dock{position:fixed;left:0;right:0;bottom:0;margin:0;height:auto;padding:1rem 1.2rem;background:var(--surface);border-top:.0625rem solid var(--line);z-index:7}
+  .tabs{overflow-x:auto;max-width:calc(100% - 5rem)}
+  .toast{left:50%;bottom:8rem;max-width:calc(100% - 2.4rem);font-size:1.5rem}
+}

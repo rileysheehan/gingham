@@ -1,0 +1,9 @@
+data/
+node_modules/
+.env
+.DS_Store
+kiosk/.gradle/
+kiosk/app/build/
+kiosk/app/libnode/
+kiosk/app/.cxx/
+kiosk/local.properties

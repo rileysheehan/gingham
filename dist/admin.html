@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Households</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body>
+  <main id="app" hidden>
+    <header class="top">
+      <p class="eyebrow">This deployment</p>
+      <h1>Households</h1>
+    </header>
+
+    <section class="card">
+      <h2 class="eyebrow">Households</h2>
+      <ul class="rows" id="list" data-empty="No households yet."></ul>
+    </section>
+
+    <section class="card" id="made" hidden>
+      <h2 class="eyebrow" id="made-title">Send this link</h2>
+      <p class="note" id="made-note"></p>
+      <p class="address" id="made-link"></p>
+      <button class="primary" id="made-copy">Copy link</button>
+      <p class="note">It works once, for three days, and is shown only now. Whoever opens it looks after that household from then on.</p>
+    </section>
+
+    <section class="card">
+      <h2 class="eyebrow">A new household</h2>
+      <label>Its name, as the family would say it<input id="n-name" maxlength="40" autocomplete="off" placeholder="The Garcias"></label>
+      <label>Who the link is for<input id="n-whose" maxlength="60" autocomplete="off" placeholder="Maria’s phone"></label>
+      <button class="primary" id="n-add">Make household</button>
+      <p class="error" data-for="household-add"></p>
+      <p class="error" data-for="owner-link"></p>
+    </section>
+  </main>
+
+  <main id="locked" hidden>
+    <header class="top"><p class="eyebrow">Households</p><h1>This device isn’t an admin</h1></header>
+    <section class="card">
+      <p class="note">This page is for whoever runs the server. From a shell on it:</p>
+      <p class="address">node admin.js admin link</p>
+      <p class="note">Open the link it prints on this device. To change one household, use its <a href="/setup">setup page</a>.</p>
+    </section>
+  </main>
+
+  <p id="toast" role="status" hidden></p>
+  <script src="/admin-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Gingham setup</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body>
+  <main id="app" hidden>
+    <header class="top">
+      <p class="eyebrow">Setup</p>
+      <h1 id="title">Your household</h1>
+    </header>
+
+    <section class="card" id="household">
+      <h2 class="eyebrow">Household</h2>
+      <label>Name<input id="h-name" maxlength="40" autocomplete="off"></label>
+      <label>Where you live<input id="h-place" maxlength="60" autocomplete="off" placeholder="Start typing a town or city"></label>
+      <ul class="results" id="h-results" hidden></ul>
+      <p class="note" id="h-zone"></p>
+      <button class="primary" id="h-save">Save</button>
+      <p class="error" data-for="household"></p>
+    </section>
+
+    <section class="card" id="calendars">
+      <h2 class="eyebrow">Calendars</h2>
+      <ul class="rows" id="c-list"></ul>
+      <p class="error" data-for="calendar-edit"></p>
+      <details>
+        <summary>Add a calendar</summary>
+        <label>Whose calendar, or what it is for<input id="c-name" maxlength="40" autocomplete="off" placeholder="Sam, Family, School"></label>
+        <label>Its subscription link<input id="c-link" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https:// or webcal://"></label>
+        <button class="primary" id="c-add">Add calendar</button>
+        <p class="error" data-for="calendar-add"></p>
+        <div class="help">
+          <p><b>Google Calendar</b>, on a computer: Settings, pick the calendar, then copy "Secret address in iCal format".</p>
+          <p><b>Apple Calendar</b>: tap the ⓘ beside the calendar, turn on Public Calendar, then Share Link.</p>
+          <p><b>Outlook</b>: Settings, Calendar, Shared calendars, Publish a calendar, then copy the ICS link.</p>
+          <p>Anyone with the link can read that calendar, so it is kept as a secret here and never shown again.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="lists">
+      <h2 class="eyebrow">Lists</h2>
+      <p class="note" id="l-state"></p>
+      <p class="note"><a href="/lists">Open your lists on this phone</a>, to add to them and check things off away from the frame.</p>
+      <ul class="rows" id="l-list"></ul>
+      <details id="l-new">
+        <summary>Make a list here</summary>
+        <p class="note">Kept on your frame’s server, with no other account. Add to it at the frame or here.</p>
+        <label>What it is called<input id="ln-name" maxlength="40" autocomplete="off" placeholder="Groceries, Packing, Sam"></label>
+        <div class="chips" id="ln-kind"><button class="chip" data-kind="household" aria-pressed="true">A household list</button><button class="chip" data-kind="person" aria-pressed="false">A person’s list</button><button class="chip" data-kind="kid" aria-pressed="false">A young child’s list</button></div>
+        <div class="chips" id="ln-icons"></div>
+        <button class="primary" id="ln-add">Make list</button>
+        <p class="error" data-for="list-add"></p>
+      </details>
+      <details id="l-connect">
+        <summary>Connect Todoist</summary>
+        <label>Todoist API token<input id="l-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <button class="primary" id="l-save-token">Connect</button>
+        <p class="error" data-for="todoist"></p>
+        <div class="help"><p>In Todoist: Settings, Integrations, Developer, then copy your API token. It lets the frame show your lists and check things off.</p></div>
+      </details>
+      <details id="l-google" hidden>
+        <summary id="gt-summary">Connect Google Tasks</summary>
+        <div id="gt-idle">
+          <p class="note" id="gt-note">You’ll sign in at Google and come straight back. Gingham asks only for your task lists.</p>
+          <button class="primary" id="gt-start">Sign in with Google</button>
+        </div>
+        <div id="gt-connected" hidden>
+          <p class="note" id="gt-account"></p>
+          <button class="quiet" id="gt-choose">Choose Google lists</button>
+          <button class="quiet" id="gt-disconnect">Disconnect</button>
+        </div>
+        <p class="error" data-for="googletasks-start"></p>
+        <p class="error" data-for="googletasks-lists"></p>
+        <p class="error" data-for="googletasks-disconnect"></p>
+      </details>
+      <details id="l-microsoft" hidden>
+        <summary id="ms-summary">Connect Microsoft To Do</summary>
+        <div id="ms-idle">
+          <p class="note" id="ms-idle-note">You’ll get a short code. Enter it on Microsoft’s page and sign in there; your password never comes here.</p>
+          <button class="primary" id="ms-start">Get a code</button>
+        </div>
+        <div id="ms-code" hidden>
+          <p class="note">Open Microsoft’s page, enter this code, and sign in.</p>
+          <p class="big-code" id="ms-code-text"></p>
+          <a class="button primary" id="ms-open" target="_blank" rel="noopener">Open Microsoft’s page</a>
+          <button class="quiet" id="ms-copy">Copy the code</button>
+          <p class="note" id="ms-wait">Waiting for Microsoft…</p>
+        </div>
+        <div id="ms-connected" hidden>
+          <p class="note" id="ms-account"></p>
+          <button class="quiet" id="ms-choose">Choose Microsoft lists</button>
+          <button class="quiet" id="ms-disconnect">Disconnect</button>
+          <p class="note small">Disconnecting forgets the sign-in here. To take back Gingham’s access at Microsoft too, use <a href="https://account.live.com/consent/Manage" target="_blank" rel="noopener">Microsoft’s app access page</a>; a work account’s administrator manages it there.</p>
+        </div>
+        <p class="error" data-for="microsoft-start"></p>
+        <p class="error" data-for="microsoft-lists"></p>
+        <p class="error" data-for="microsoft-disconnect"></p>
+      </details>
+      <details id="l-caldav">
+        <summary id="cd-summary">Connect Nextcloud or Fastmail</summary>
+        <div id="cd-form">
+          <label>Server address<input id="cd-url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://cloud.example.com"></label>
+          <label>Username<input id="cd-user" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          <label>App password<input id="cd-pass" type="password" autocomplete="off"></label>
+          <button class="primary" id="cd-connect">Connect</button>
+          <div class="help">
+            <p><b>Nextcloud</b>: your Nextcloud address, and an app password made in Settings, Security.</p>
+            <p><b>Fastmail</b>: https://caldav.fastmail.com, your email address, and an app password with calendar access, made in Settings, Privacy &amp; Security.</p>
+            <p><b>Synology</b>: the address the Calendar app shows under CalDAV account. Any other server that speaks CalDAV works the same way.</p>
+            <p>Use an app password rather than your main one. It is kept sealed on this server and never shown again.</p>
+          </div>
+        </div>
+        <div id="cd-connected" hidden>
+          <p class="note" id="cd-account"></p>
+          <button class="quiet" id="cd-choose">Choose lists</button>
+          <button class="quiet" id="cd-disconnect">Disconnect</button>
+        </div>
+        <p class="error" data-for="caldav"></p>
+        <p class="error" data-for="caldav-lists"></p>
+        <p class="error" data-for="caldav-disconnect"></p>
+      </details>
+      <details id="l-ha">
+        <summary id="ha-summary">Connect Home Assistant</summary>
+        <div id="ha-form">
+          <label>Home Assistant’s address<input id="ha-url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://homeassistant.local:8123"></label>
+          <label>Long-lived access token<input id="ha-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          <button class="primary" id="ha-connect">Connect</button>
+          <div class="help">
+            <p>In Home Assistant, open your profile, then Security, and create a long-lived access token at the bottom. Its to-do lists come here, and so do the ones it gets from other apps.</p>
+            <p>If homeassistant.local doesn’t work, use its number address, like http://192.168.1.20:8123. A frame on a hosted server needs Home Assistant’s remote address instead.</p>
+          </div>
+        </div>
+        <div id="ha-connected" hidden>
+          <p class="note" id="ha-account"></p>
+          <button class="quiet" id="ha-choose">Choose lists</button>
+          <button class="quiet" id="ha-disconnect">Disconnect</button>
+        </div>
+        <p class="error" data-for="homeassistant"></p>
+        <p class="error" data-for="homeassistant-lists"></p>
+        <p class="error" data-for="homeassistant-disconnect"></p>
+      </details>
+      <div id="l-picker" hidden>
+        <p class="note">Choose the lists to show, in the order you want them.</p>
+        <ul class="rows picks" id="l-projects"></ul>
+        <button class="primary" id="l-save">Save lists</button>
+        <p class="error" data-for="lists"></p>
+      </div>
+      <button class="quiet" id="l-choose" hidden>Choose lists</button>
+    </section>
+
+    <section class="card" id="countdowns">
+      <h2 class="eyebrow">Countdowns</h2>
+      <p class="note" id="cd-state"></p>
+      <ul class="rows" id="cd-list"></ul>
+      <details id="cd-new">
+        <summary>Add a countdown</summary>
+        <label>What you are counting down to<input id="cd-name" maxlength="40" autocomplete="off" placeholder="Sam’s birthday, The beach, Last day of school"></label>
+        <label>Its date<input id="cd-date" type="date"></label>
+        <div class="chips" id="cd-yearly"><button class="chip" data-yearly="" aria-pressed="true">Just this once</button><button class="chip" data-yearly="1" aria-pressed="false">Every year</button></div>
+        <div class="chips" id="cd-word"><button class="chip" data-word="sleeps" aria-pressed="true">Count in sleeps</button><button class="chip" data-word="days" aria-pressed="false">Count in days</button></div>
+        <button class="primary" id="cd-add">Add countdown</button>
+        <p class="error" data-for="countdown-add"></p>
+      </details>
+    </section>
+
+    <section class="card" id="photos">
+      <h2 class="eyebrow">Photos</h2>
+      <p class="note" id="p-state"></p>
+      <p class="note" id="p-folder"></p>
+      <p class="note"><a href="/photos">Add photos from this phone</a>, with or without a shared album.</p>
+      <details>
+        <summary id="p-summary">Connect an album</summary>
+        <label>iCloud shared album link<input id="p-link" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://www.icloud.com/sharedalbum/…"></label>
+        <button class="primary" id="p-save">Save album</button>
+        <p class="error" data-for="photos"></p>
+        <div class="help"><p>In Photos, open a shared album, tap the people icon, turn on Public Website, then Share Link. New photos added to the album appear on the frame within fifteen minutes.</p></div>
+      </details>
+    </section>
+
+    <section class="card" id="frames">
+      <h2 class="eyebrow">Frames</h2>
+      <ul class="rows" id="f-list"></ul>
+      <details>
+        <summary>Pair a frame</summary>
+        <p class="note">Open this address on the frame. It shows a six-character code.</p>
+        <p class="address" id="f-address"></p>
+        <label>The code on the screen<input id="f-code" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-123" class="code"></label>
+        <label>Where this frame is<input id="f-name" maxlength="60" autocomplete="off" placeholder="Kitchen"></label>
+        <button class="primary" id="f-pair">Pair</button>
+        <p class="error" data-for="frame-pair"></p>
+      </details>
+    </section>
+
+    <section class="card" id="pin">
+      <h2 class="eyebrow">Frame PIN</h2>
+      <p class="note" id="pin-state"></p>
+      <details>
+        <summary id="pin-summary">Set a PIN</summary>
+        <label>Four to eight digits<input id="pin-value" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"></label>
+        <button class="primary" id="pin-save">Save PIN</button>
+        <button class="quiet" id="pin-remove" hidden>Remove the PIN</button>
+        <p class="error" data-for="pin"></p>
+      </details>
+    </section>
+
+    <section class="card" id="devices">
+      <h2 class="eyebrow">Who can change this</h2>
+      <ul class="rows" id="d-list"></ul>
+      <button class="quiet" id="d-add">Add another device</button>
+      <div id="d-link" hidden>
+        <p class="note">Open this on the other device within three days. It works once.</p>
+        <p class="address" id="d-url"></p>
+        <button class="quiet" id="d-share">Share</button>
+      </div>
+      <p class="error" data-for="link"></p>
+    </section>
+  </main>
+
+  <main id="locked" hidden>
+    <header class="top"><p class="eyebrow">Setup</p><h1>Open your setup link</h1></header>
+    <section class="card">
+      <h2 class="eyebrow">From your frame</h2>
+      <p class="note">On the frame, open Settings, tap "Manage from a phone" and enter your household PIN. It shows a code.</p>
+      <label>The code on the frame<input id="claim-code" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-123" class="code"></label>
+      <button class="primary" id="claim-go">Continue</button>
+      <p class="error" data-for="claim"></p>
+    </section>
+    <section class="card"><h2 class="eyebrow">Or by link</h2><p class="note">Open the setup link you were sent on this device, or ask someone who is already set up to add you from their "Who can change this".</p></section>
+  </main>
+  <p id="toast" role="status" hidden></p>
+  <script src="/setup-page.js"></script>
+</body>
+</html>

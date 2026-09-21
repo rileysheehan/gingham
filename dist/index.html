@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10263f">
+  <meta name="description" content="A household's calendar, lists and photos, on the wall.">
+  <title>Gingham</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236fb4ee'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23ffd36a'/%3E%3C/svg%3E">
+  <link rel="preload" href="/fonts/bricolage-grotesque-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/inter-4.1-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="theme-light">
+  <div class="frame">
+    <aside class="today" id="today" aria-label="Today">
+      <div class="sky-fx" id="sky-fx" aria-hidden="true"></div>
+      <p class="today-weekday" id="today-weekday"></p>
+      <p class="today-date" id="today-date"></p>
+      <p class="clock"><span id="clock"></span><span class="ampm" id="ampm"></span></p>
+      <div class="now" id="now" hidden>
+        <svg class="wx-icon" id="now-icon" viewBox="0 0 64 64" aria-hidden="true"></svg>
+        <p class="now-temp" id="now-temp"></p>
+        <div class="now-text"><p id="now-summary"></p><p class="now-detail" id="now-detail"></p></div>
+      </div>
+      <p class="eyebrow today-label" id="today-label">Today</p>
+      <div class="today-list" id="today-list" aria-live="polite"></div>
+      <div class="tomorrow" id="tomorrow" hidden><h2 class="eyebrow" id="tomorrow-label">Tomorrow</h2><div class="tomorrow-list" id="tomorrow-list"></div></div>
+      <p class="countdown" id="countdown" hidden></p>
+      <p class="sun-line" id="sun-line"></p>
+    </aside>
+
+    <main class="ahead">
+      <section class="view" id="view-calendar" aria-label="The days ahead">
+        <header class="ahead-head">
+          <h1 id="month"></h1>
+          <div class="legend" id="legend"></div>
+          <div class="pager">
+            <button id="back-today" class="quiet" hidden>Today</button>
+            <button id="previous" class="arrow" aria-label="Earlier days" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button id="next" class="arrow" aria-label="Later days"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+        </header>
+        <div class="strip" id="strip"><p class="loading">Loading the calendar…</p></div>
+        <div class="later" id="later" hidden><h2 class="eyebrow">Later</h2><div class="later-rows" id="later-rows"></div></div>
+      </section>
+
+      <section class="view list-view" id="view-list" hidden aria-label="List">
+        <header class="list-head"><h1 id="list-title"></h1><p id="list-status"></p><button id="list-add" class="quiet">Add</button></header>
+        <div class="list-body" id="list-body"></div>
+      </section>
+
+      <section class="view photo-view" id="view-photos" hidden aria-label="Family photos">
+        <header class="ahead-head">
+          <h1 id="photo-when"></h1>
+          <div class="pager">
+            <button id="photo-prev" class="arrow" aria-label="Previous photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button id="photo-next" class="arrow" aria-label="Next photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+        </header>
+        <div class="photo-card" id="photo-card"><div class="slide-fill" id="slide-fill"></div><img id="slide-a" class="slide" alt=""><img id="slide-b" class="slide" alt=""></div>
+      </section>
+
+      <section class="view settings-view" id="view-settings" hidden aria-label="Settings">
+        <header class="ahead-head"><h1>Settings</h1><p class="view-note">Changes take effect right away.</p><button id="manage-button" class="quiet">Manage from a phone</button></header>
+        <div class="settings-card">
+          <section class="setting-group">
+            <h2 class="eyebrow">When no one is using it</h2>
+            <div class="setting"><p>Show</p><div class="choices" data-setting="rest"></div></div>
+            <div class="setting"><p>Start after</p><div class="choices" data-setting="restAfter"></div></div>
+            <div class="setting"><p>Mornings</p><div class="choices" data-setting="mornings"></div></div>
+            <p class="setting-note">Shows the week instead of photos from 4 AM until the time you pick.</p>
+          </section>
+          <section class="setting-group">
+            <h2 class="eyebrow">Photos</h2>
+            <div class="setting"><p>Change every</p><div class="choices" data-setting="photoEvery"></div></div>
+          </section>
+          <section class="setting-group">
+            <h2 class="eyebrow">Appearance</h2>
+            <div class="setting"><p>Theme</p><div class="choices" data-setting="appearance"></div></div>
+            <div class="setting"><p>Brightness</p><div class="choices" data-setting="screen"></div></div>
+            <p class="setting-note" id="sun-note">Both follow sunrise and sunset; brightness lifts at a touch.</p>
+          </section>
+          <section class="setting-group status" aria-live="polite">
+            <h2 class="eyebrow">Status</h2>
+            <dl class="status-rows">
+              <div><dt>Calendar</dt><dd id="status-calendar"></dd></div>
+              <div><dt>Lists</dt><dd id="status-tasks"></dd></div>
+              <div><dt>Photos</dt><dd id="status-photos"></dd></div>
+              <div><dt>Weather</dt><dd id="status-weather"></dd></div>
+            </dl>
+            <div class="setting"><p>Having trouble</p><div class="choices" id="repair"></div><span class="setting-hint" id="repair-note"></span></div>
+          </section>
+        </div>
+      </section>
+
+      <p class="notice" id="notice" role="status" hidden></p>
+
+      <nav class="dock" aria-label="Views">
+        <div class="tabs" id="tabs"><button id="tab-calendar" aria-pressed="true">Calendar</button></div>
+        <div class="dock-end">
+          <button id="settings-button" class="icon-button" aria-label="Settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6"/><circle cx="15" cy="17" r="2.6"/></svg></button>
+        </div>
+      </nav>
+
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button id="toast-undo">Undo</button></div>
+
+  <div id="day-dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="day-title" hidden>
+    <div class="dialog day-sheet">
+      <p class="eyebrow" id="day-eyebrow"></p>
+      <h2 id="day-title"></h2>
+      <div class="day-sheet-list" id="day-list"></div>
+      <button id="close-day" class="wide">Close</button>
+    </div>
+  </div>
+
+  <div id="add-dialog" class="modal top" role="dialog" aria-modal="true" aria-labelledby="add-title" hidden>
+    <div class="dialog add">
+      <h2 id="add-title">Add</h2>
+      <div class="add-row"><input id="add-input" type="text" maxlength="200" autocomplete="off" autocapitalize="sentences" enterkeyhint="done"><button id="add-go" class="key go">Add</button></div>
+      <p id="add-note"></p>
+      <button id="close-add" class="wide quiet">Done</button>
+    </div>
+  </div>
+
+  <div id="manage-dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="manage-title" hidden>
+    <div class="dialog manage">
+      <p class="eyebrow" id="manage-eyebrow">Manage from a phone</p>
+      <h2 id="manage-title">Enter the household PIN</h2>
+      <p id="manage-note"></p>
+      <p class="pin-dots" id="pin-dots" aria-hidden="true"></p>
+      <div class="keypad" id="keypad"></div>
+      <p class="pair-code" id="manage-code" hidden></p>
+      <button id="close-manage" class="wide quiet">Close</button>
+    </div>
+  </div>
+
+  <div id="event-dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="event-title" hidden>
+    <div class="dialog">
+      <p id="event-calendar" class="eyebrow dialog-calendar"></p>
+      <h2 id="event-title"></h2>
+      <p id="event-time"></p>
+      <p id="event-location"></p>
+      <button id="close-dialog" class="wide">Close</button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+<div class="nightfall" id="nightfall" aria-hidden="true"></div>
+<div class="cheer" id="cheer" aria-hidden="true"></div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "account": "you@example.com",
+  "calendars": [
+    {
+      "id": "you@example.com",
+      "name": "Family",
+      "color": "#4793e0"
+    }
+  ],
+  "projects": [
+    {
+      "id": "YOUR_TODOIST_PROJECT_ID",
+      "name": "Family",
+      "icon": "home"
+    },
+    {
+      "id": "A_PERSONS_TODOIST_PROJECT_ID",
+      "name": "June",
+      "person": true,
+      "color": "#e0823d"
+    }
+  ]
+}

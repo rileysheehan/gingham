@@ -1,0 +1,64 @@
+// Gingham's kiosk shell: one activity, a WebView, no libraries.
+plugins { id 'com.android.application' }
+
+def keystore = System.getenv('KIOSK_KEYSTORE')
+// The server that can run inside the app is this repository's own: the top-level .js files and dist/, copied into
+// the APK's assets at build time so there is one copy of the code, not two.
+def serverAssets = layout.buildDirectory.dir('generated/serverAssets')
+tasks.register('copyServer', Copy) {
+    from('../..') { include '*.js', 'package.json', 'dist/**'; exclude 'admin.js' }
+    into serverAssets.map { it.dir('server') }
+}
+// Node itself (libnode.so, ~76 MB per chip family) comes from nodejs-mobile's releases into app/libnode/; without it
+// the app still builds, as the plain kiosk browser it was.
+def hasNode = file('libnode/bin').isDirectory()
+// What the product is called on a home network: <this>.local. One word, lower case. Changes with the product's name.
+def networkName = 'gingham'
+android {
+    namespace 'co.rileysheehan.gingham'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'co.rileysheehan.gingham'
+        minSdk 26          // Android 8.0: the Frameo runs 8.1
+        targetSdk 34
+        versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int)
+        versionName '0.' + (System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        if (hasNode) {
+            externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_shared'; abiFilters 'armeabi-v7a', 'arm64-v8a' } }
+        }
+        buildConfigField 'boolean', 'HAS_NODE', String.valueOf(hasNode)
+        buildConfigField 'String', 'NETWORK_NAME', '"' + networkName + '"'
+    }
+    buildFeatures { buildConfig true }
+    if (hasNode) {
+        ndkVersion project.findProperty('ndkVer') ?: '27.0.12077973'
+        externalNativeBuild { cmake { path 'CMakeLists.txt' } }
+        sourceSets.main.jniLibs.srcDirs += 'libnode/bin'
+        sourceSets.main.assets.srcDirs += serverAssets
+        // Node is most of the download, and a tablet needs only its own chip's copy: one APK per chip family at
+        // about half the size, plus one that carries both for whoever does not know which they have.
+        splits { abi { enable true; reset(); include 'armeabi-v7a', 'arm64-v8a'; universalApk true } }
+        // Compressed in the APK and unpacked at install: a far smaller download, which is what matters here.
+        packagingOptions { jniLibs { useLegacyPackaging true } }
+    }
+    signingConfigs {
+        release {
+            if (keystore) {
+                storeFile file(keystore)
+                storeType 'pkcs12'
+                storePassword System.getenv('KIOSK_KEYSTORE_PASSWORD')
+                keyAlias 'frame'
+                keyPassword System.getenv('KIOSK_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystore) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError false }
+}
+if (hasNode) { afterEvaluate { tasks.named('preBuild') { dependsOn 'copyServer' } } }

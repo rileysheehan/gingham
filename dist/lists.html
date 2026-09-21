@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Lists">
+  <title>Lists</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body class="lists-page">
+  <main id="app" hidden>
+    <header class="top">
+      <p class="eyebrow" id="household">Your household</p>
+      <h1>Lists</h1>
+    </header>
+    <nav class="chips scroll" id="tabs" aria-label="Lists"></nav>
+    <form class="add-bar" id="add" autocomplete="off">
+      <input id="add-input" maxlength="200" enterkeyhint="done" autocapitalize="sentences" aria-label="Add an item">
+      <button class="primary" id="add-go">Add</button>
+    </form>
+    <p class="error" id="problem"></p>
+    <section class="card" id="items"></section>
+    <p class="note foot"><a href="/setup">Set up calendars, lists and frames</a></p>
+  </main>
+
+  <main id="empty" hidden>
+    <header class="top"><p class="eyebrow">Lists</p><h1>No lists yet</h1></header>
+    <section class="card"><p class="note">Make a list, or connect Todoist, on the setup page. It shows up here and on your frame.</p><a class="button primary" href="/setup">Open setup</a></section>
+  </main>
+
+  <main id="locked" hidden>
+    <header class="top"><p class="eyebrow">Lists</p><h1>This phone isn’t let in yet</h1></header>
+    <section class="card"><p class="note">Open the setup page and get in from your frame or with a link. Then come back here.</p><a class="button primary" href="/setup">Open setup</a></section>
+  </main>
+
+  <p id="toast" role="status" hidden></p>
+  <script src="/lists-page.js"></script>
+</body>
+</html>

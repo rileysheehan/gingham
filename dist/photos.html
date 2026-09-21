@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Photos</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body class="photos-page">
+  <main id="app" hidden>
+    <header class="top">
+      <p class="eyebrow" id="household">Your household</p>
+      <h1>Photos</h1>
+    </header>
+    <section class="card">
+      <p class="note" id="state"></p>
+      <input id="pick" type="file" accept="image/*" multiple hidden>
+      <button class="primary" id="add">Add photos</button>
+      <p class="note" id="progress" hidden></p>
+      <p class="error" id="problem"></p>
+      <p class="note small">Pictures are made smaller before they are sent, and where they were taken is left behind on your phone.</p>
+    </section>
+    <section class="card" id="added-card" hidden>
+      <h2 class="eyebrow">Added from a phone</h2>
+      <div class="grid" id="grid"></div>
+    </section>
+    <p class="note foot"><a href="/setup">Set up calendars, lists and frames</a></p>
+  </main>
+
+  <main id="locked" hidden>
+    <header class="top"><p class="eyebrow">Photos</p><h1>This phone isn’t let in yet</h1></header>
+    <section class="card"><p class="note">Open the setup page and get in from your frame or with a link. Then come back here.</p><a class="button primary" href="/setup">Open setup</a></section>
+  </main>
+
+  <p id="toast" role="status" hidden></p>
+  <script src="/photos-page.js"></script>
+</body>
+</html>

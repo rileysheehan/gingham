@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- The Gingham mark: a four-by-four check made the way gingham is, by two translucent bands crossing.
+       Where they overlap the colour doubles. One colour, butter, gives all three tones. -->
+  <rect width="128" height="128" rx="28" fill="#ffffff"/>
+  <g fill="#f2be3c" fill-opacity=".55">
+    <rect x="0" y="0" width="32" height="128"/><rect x="64" y="0" width="32" height="128"/>
+    <rect x="0" y="0" width="128" height="32"/><rect x="0" y="64" width="128" height="32"/>
+  </g>
+</svg>

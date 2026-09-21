@@ -1,0 +1,323 @@
+/*
+  Gingham, a family wall display — product site. Static, no build step.
+  Fonts are the product's own, self-hosted under fonts/ with their OFL licences.
+
+  The page is white, ink and hairlines; the only colour on it is the product (its sky) and the
+  mark. The mark is a gingham made the way gingham is: two translucent bands crossing, so one
+  colour, butter, gives the pale check, the deep check and the white.
+*/
+@font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-grotesque-var.woff2) format("woff2");font-weight:200 800;font-display:swap}
+@font-face{font-family:"Inter";src:url(fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
+
+:root{
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",Roboto,sans-serif;
+  --text:"Inter","Helvetica Neue",Roboto,Arial,sans-serif;
+
+  --ground:#ffffff;
+  --band:#f2f4f7;
+  --ink:#10263f;
+  --ink-2:#5b6b7d;
+  --line:#dfe4ea;
+  --butter:#f2be3c;
+  --check:rgba(242,190,60,.55);
+  --button:#10263f;
+  --button-ink:#ffffff;
+  --bezel:#141a24;
+  --edge:rgba(16,38,63,.14);
+
+  /* The wall screen's own palette, from the product's stylesheet. The screen is an object in the
+     room; by day it is light whatever the page does. */
+  --s-surface:#f3f6f9;--s-card:#ffffff;--s-ink:#10263f;--s-ink-2:#51647a;--s-line:#d6dfe7;--s-accent:#1b66c9;
+  --s-press:#e6ecf2;--s-selected:#ffffff;--s-shade:rgba(16,38,63,.14);--s-tint:rgba(16,38,63,.028);
+  --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;--sun:#ffc94d;--rain:#4a97e8;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e141f;--band:#151d2b;--ink:#e6eaf2;--ink-2:#9aa6b8;--line:#243047;
+    --button:#e6eaf2;--button-ink:#0e141f;--bezel:#05080d;--edge:rgba(255,255,255,.12);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e141f;--band:#151d2b;--ink:#e6eaf2;--ink-2:#9aa6b8;--line:#243047;
+  --button:#e6eaf2;--button-ink:#0e141f;--bezel:#05080d;--edge:rgba(255,255,255,.12);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font:400 17px/1.5 var(--text);font-feature-settings:"cv05" 1,"cv08" 1;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,ul,ol,dl,dd,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+:focus-visible{outline:3px solid var(--butter);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:16px;top:-60px;z-index:100;padding:10px 14px;background:var(--ground);border:1px solid var(--line);border-radius:8px}
+.skip:focus{top:16px}
+
+.wrap{width:100%;max-width:1160px;margin:0 auto;padding-inline:20px}
+@media (min-width:768px){.wrap{padding-inline:40px}}
+
+/* ---------- Type ---------- */
+.h1{font:600 clamp(2.6rem,7vw,4.25rem)/1.02 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.035em;text-wrap:balance}
+.h2{font:600 clamp(1.7rem,3.2vw,2.35rem)/1.1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.03em;text-wrap:balance}
+.lede{font-size:clamp(1.05rem,1.4vw,1.25rem);line-height:1.5;color:var(--ink-2);text-wrap:pretty}
+.quiet{color:var(--ink-2)}
+
+/* ---------- Header ---------- */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 85%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font:600 1.25rem/1 var(--display);font-variation-settings:"opsz" 40;letter-spacing:-.025em}
+.brand svg{width:24px;height:24px;flex:none;border-radius:6px;box-shadow:0 0 0 .5px var(--edge)}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:999px;font-weight:600;font-size:1rem;white-space:nowrap;border:1.5px solid transparent}
+.btn.primary{background:var(--button);color:var(--button-ink)}
+.btn.quiet{border-color:var(--line);color:var(--ink)}
+.btn.quiet:hover{border-color:var(--ink-2)}
+.btn.small{height:36px;padding:0 14px;font-size:.92rem}
+/* Nothing can be downloaded yet: every outward link says so on its face. */
+.btn .soon{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:.72rem;font-weight:600;background:var(--butter);color:#10263f}
+.btn[aria-disabled="true"]{cursor:not-allowed}
+
+/* ---------- Hero ---------- */
+.hero{padding-block:clamp(40px,7vw,80px) 0;text-align:center}
+.hero .wrap{display:flex;flex-direction:column;align-items:center}
+.hero .name{font-weight:500;color:var(--ink-2)}
+.hero .h1{margin-top:14px;max-width:14ch}
+.hero .lede{margin-top:18px;max-width:44ch}
+.hero .ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:30px}
+.hero .note{margin-top:14px;font-size:.9rem;color:var(--ink-2)}
+
+/* The screen, in a slim bezel, with nothing behind it. */
+.stage{width:100%;margin-top:clamp(36px,6vw,64px)}
+.bezel{padding:clamp(5px,.8vw,10px);background:var(--bezel);border-radius:clamp(8px,1.2vw,16px)}
+.bezel .screen{border-radius:clamp(4px,.5vw,7px)}
+.stage-caption{margin-top:16px;font-size:.9rem;color:var(--ink-2)}
+@media (max-width:767px){.stage{margin-inline:-20px}.bezel{border-radius:0;padding-inline:0}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
+
+/* ---------- One sentence, one screen state ---------- */
+.rooms{padding-block:clamp(56px,8vw,112px) 0;display:grid;gap:clamp(56px,8vw,112px)}
+.room{display:grid;gap:22px;align-items:center}
+.room .h2{max-width:18ch}
+.room p{margin-top:12px;max-width:34ch}
+@media (min-width:900px){
+  .room{grid-template-columns:5fr 7fr;gap:56px}
+  .room.flip{grid-template-columns:7fr 5fr}
+  .room.flip .words{order:2}
+  .room.flip .crop{order:1}
+  .room.tall{grid-template-columns:7fr 5fr}
+}
+/* A crop of the real UI: the right side or the left panel on its own, in the product's own scale. */
+.crop{container-type:inline-size;position:relative;overflow:hidden;background:var(--s-surface);color:var(--s-ink);border-radius:12px;box-shadow:0 0 0 1px var(--edge);font-family:var(--text);font-feature-settings:"cv05" 1,"cv08" 1;line-height:1.35}
+.crop *{font-size:1em}
+.crop.right{aspect-ratio:80/58}
+.crop.right>.s-ahead{position:absolute;inset:0;font-size:calc(100cqw / 80)}
+.crop.left{aspect-ratio:40/60}
+.crop.left>.s-today{position:absolute;inset:0;flex:none;font-size:calc(100cqw / 40)}
+
+/* ---------- Set up ---------- */
+.setup{padding-block:clamp(56px,8vw,112px) 0}
+.setup .h2{max-width:20ch}
+.steps{display:grid;gap:26px;margin-top:28px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:baseline;max-width:40ch}
+.step b{font:600 2rem/1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.04em;color:var(--ink)}
+.step span{color:var(--ink-2);text-wrap:pretty}
+.step code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
+.setup .room{margin-top:0}
+/* The pairing screen, as the product draws it inside its calendar card. */
+.pair{display:flex;flex-direction:column;justify-content:center;padding:4em 4.5em}
+.pair .t{font:600 2.1em/1.3 var(--text);letter-spacing:-.01em}
+.pair .p{font-size:1.6em;color:var(--s-ink-2);max-width:26em;margin-top:.3em}
+.pair .addr{font:600 2.6em/1.2 var(--text);letter-spacing:-.01em;margin-top:1.4em}
+.pair .or{font-size:1.5em;color:var(--s-ink-2);margin-top:.3em;font-variant-numeric:tabular-nums}
+.pair .code{font:600 9em/1 var(--text);letter-spacing:.06em;margin-top:.25em;font-variant-numeric:tabular-nums}
+
+/* ---------- Where it runs ---------- */
+.home{margin-top:clamp(56px,8vw,112px);padding-block:clamp(48px,6vw,80px);background:var(--band)}
+.home .h2{max-width:20ch}
+.home .cols{display:grid;gap:28px;margin-top:28px}
+@media (min-width:768px){.home .cols{grid-template-columns:1fr 1fr 1fr;gap:40px}}
+.home h3{font:600 1.15rem/1.3 var(--text);letter-spacing:-.01em}
+.home .cols p{margin-top:8px;color:var(--ink-2);text-wrap:pretty}
+
+/* ---------- Hardware, tinkerers, status ---------- */
+.facts{padding-block:clamp(56px,8vw,112px) 0}
+.facts .h2{max-width:22ch}
+.specs{margin-top:24px;border-top:1px solid var(--line);max-width:760px}
+.spec{display:grid;grid-template-columns:1fr;gap:2px;padding:14px 0;border-bottom:1px solid var(--line)}
+@media (min-width:600px){.spec{grid-template-columns:170px 1fr;gap:24px}}
+.spec dt{font-weight:600}
+.spec dd{color:var(--ink-2);text-wrap:pretty}
+.facts .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.facts p.lede{margin-top:12px;max-width:44ch}
+.coming{margin-top:20px;display:grid;gap:6px;max-width:40ch}
+.coming li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+.coming li:last-child{border-bottom:0}
+.coming li::before{content:"";width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink-2);flex:none}
+
+/* ---------- Footer ---------- */
+.foot{margin-top:clamp(64px,9vw,120px);padding:40px 0 48px;border-top:1px solid var(--line)}
+.foot .wrap{display:grid;gap:22px}
+@media (min-width:768px){.foot .wrap{grid-template-columns:1fr 1fr;align-items:end}}
+.foot .made{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px;font-size:.95rem}
+.foot .made a{font-weight:600;border-bottom:1.5px solid var(--line)}
+.foot .made a:hover{border-color:var(--ink)}
+.heart{display:inline-block;width:15px;height:15px;color:var(--butter)}
+.foot .fine{display:grid;gap:6px;font-size:.88rem;color:var(--ink-2)}
+@media (min-width:768px){.foot .fine{text-align:right}}
+.foot .clock{font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* =====================================================================================
+   The wall screen. A faithful recreation of the 1920 × 1080 display in its own design language.
+   Every size inside is in em, and the screen's font-size is 1/120 of its own width (the product's
+   own rule), so the whole thing scales as one drawing. Containers stay at 1em; only leaves set a size.
+   The product's uppercase eyebrows and middle dots are its own design and stay.
+   ===================================================================================== */
+.screen-box{container-type:inline-size;width:100%}
+.screen{display:flex;width:100%;aspect-ratio:16/9;overflow:hidden;font-size:calc(100cqw / 120);font-family:var(--text);font-feature-settings:"cv05" 1,"cv08" 1;line-height:1.35;background:var(--s-surface);color:var(--s-ink);position:relative;isolation:isolate;text-align:left}
+.screen *{font-size:1em}
+.s-eyebrow{display:block;font:600 1.15em/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--s-ink-2)}
+
+/* Left third: the sky window. */
+.s-today{flex:0 0 33%;position:relative;display:flex;flex-direction:column;padding:3em 3.25em 2.5em;color:var(--sky-ink);background:linear-gradient(to bottom,var(--sky-top),var(--sky-bottom));overflow:hidden}
+.s-today>*{position:relative;z-index:1}
+.s-sky{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.s-sky i{position:absolute;display:block}
+.s-sun{top:-16em;right:-14em;width:44em;height:44em;border-radius:50%;background:radial-gradient(closest-side,rgba(255,246,220,.8),rgba(255,246,220,0));animation:breathe 16s ease-in-out infinite alternate}
+.s-cloud{left:0;height:15em;width:30em;background-image:radial-gradient(closest-side,rgba(255,255,255,.62),rgba(255,255,255,0)),radial-gradient(closest-side,rgba(255,255,255,.62),rgba(255,255,255,0)),radial-gradient(closest-side,rgba(255,255,255,.62),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;animation:drift 200s linear infinite}
+.s-cloud.c1{top:6em;animation-delay:-60s}
+.s-cloud.c2{top:38em;width:24em;animation-duration:260s;animation-delay:-180s}
+@keyframes drift{from{transform:translate3d(-100%,0,0)}to{transform:translate3d(400%,0,0)}}
+@keyframes breathe{from{opacity:.55}to{opacity:.9}}
+@media (prefers-reduced-motion:reduce){.s-sun,.s-cloud{animation:none}.s-cloud.c1{transform:translate3d(20%,0,0)}.s-cloud.c2{transform:translate3d(90%,0,0)}}
+.s-weekday{font:600 5.25em/1 var(--display);letter-spacing:-.03em}
+.s-date{font:400 2.5em/1.2 var(--display);letter-spacing:-.01em;opacity:.78;margin-top:.2em}
+.s-clock{font:300 11.5em/1 var(--display);letter-spacing:-.045em;margin:.2em 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.s-clock span{font-size:.217em;font-weight:500;letter-spacing:0;margin-left:.8em;opacity:.78;vertical-align:baseline}
+.s-now{display:flex;align-items:center;margin-top:1.75em}
+.s-wx{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.s-wx .sun{fill:var(--sun);stroke:var(--sun)}
+.s-wx .drop{stroke:var(--rain)}
+.s-now .s-wx{width:5em;height:5em;flex:none;margin-right:1.1em}
+.s-temp{font:500 4.5em/1 var(--display);letter-spacing:-.04em;margin-right:.3em}
+.s-nowtext p{font-size:1.75em;line-height:1.3;font-weight:600}
+.s-nowtext .s-nowdetail{font-weight:400;font-size:1.4em;opacity:.78;font-variant-numeric:tabular-nums}
+.s-todaylabel{color:inherit;opacity:.7;margin-top:2.25em;padding-top:1.5em;border-top:.125em solid rgba(127,127,127,.35);margin-bottom:1.1em}
+.s-tomorrow{margin-top:1.5em;padding-top:1.4em;border-top:.125em solid rgba(127,127,127,.35)}
+.s-tomorrow .s-eyebrow{color:inherit;opacity:.7;margin-bottom:1.1em}
+.s-countdown{margin-top:auto;padding-top:1.25em;font:600 1.75em/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-sunline{font:500 1.4em/1 var(--text);opacity:.78;padding-top:.7em;font-variant-numeric:tabular-nums}
+
+/* Items: an event carries a calendar-coloured rail, a chore a circle you can tap. */
+.s-item{display:flex;align-items:flex-start;position:relative;margin-bottom:1.5em}
+.s-item>div{flex:1;min-width:0}
+.s-title{display:block;font-weight:600;font-size:2.25em;line-height:1.2;letter-spacing:-.005em}
+.s-title.busy{font-weight:500;color:var(--rail)}
+.s-meta{display:block;font-size:1.5em;line-height:1.3;opacity:.75;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-item.happening .s-meta{opacity:1;font-weight:600}
+.s-item.event{padding-left:1em}
+.s-item.event::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:.3em;border-radius:.3em;background:var(--rail)}
+.s-item.happening::before{width:.45em}
+.s-item.allday .s-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-item.allday.continues{opacity:.62}
+.s-check{flex:none;display:block;width:2.5em;height:2.5em;margin:.1em .7em 0 0;border:.16em solid var(--tick,currentColor);border-radius:50%;opacity:.6}
+.s-tomorrow .s-item{margin-bottom:1.1em}
+.s-tomorrow .s-title{font-size:1.9em}
+.s-tomorrow .s-meta{font-size:1.3em}
+.s-tomorrow .s-check{width:2.2em;height:2.2em}
+.s-owner{display:inline-flex;align-items:center;justify-content:center;width:2em;height:2em;border-radius:50%;background:var(--who);color:#fff;font:700 1.1em/1 var(--text);margin-left:.5em;vertical-align:.1em}
+
+/* Right side: the view you pick. */
+.s-ahead{flex:1;min-width:0;display:flex;flex-direction:column;padding:2.25em 2.75em 1.5em}
+.s-view{flex:1;min-height:0;display:flex;flex-direction:column}
+.s-view[hidden]{display:none}
+.s-head{display:flex;align-items:center;height:3.5em;margin-bottom:1.5em}
+.s-head h3{font:600 2.5em/1 var(--text);letter-spacing:-.02em;margin-right:1em;white-space:nowrap}
+.s-head .s-sub{flex:1;font-size:1.35em;color:var(--s-ink-2)}
+.s-legend{display:flex;flex:1;font-size:1.3em;color:var(--s-ink-2)}
+.s-legend span{display:flex;align-items:center;margin-right:1.35em}
+.s-legend i{width:.65em;height:.65em;border-radius:50%;margin-right:.42em;background:var(--rail)}
+.s-pager{display:flex;align-items:center}
+.s-arrow{width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.s-arrow svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.s-arrow.off{opacity:.25}
+.s-add{height:3em;padding:0 1.6em;border-radius:1.5em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center}
+.s-add,.s-arrow{color:var(--s-ink)}
+.s-card{flex:1;min-height:0;background:var(--s-card);border-radius:1.5em;box-shadow:0 .1em .2em var(--s-shade);overflow:hidden}
+.s-strip{display:flex}
+.s-day{flex:1 1 0;min-width:0;display:flex;flex-direction:column;padding:1.4em 1.1em 1em;border-left:.0625em solid var(--s-line)}
+.s-day:first-child{border-left:0}
+.s-day.weekend{background:var(--s-tint)}
+.s-dayname{display:flex;flex-direction:column;line-height:1}
+.s-dayname .s-eyebrow{margin-bottom:.45em}
+.s-dayname b{font:600 2.75em/1 var(--display);letter-spacing:-.04em}
+.s-forecast{display:flex;align-items:center;height:3.2em;margin:.7em 0 1.1em;padding-bottom:1em;box-sizing:content-box;border-bottom:.0625em solid var(--s-line);font-size:1.45em;color:var(--s-ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.s-forecast .s-wx{width:1.65em;height:1.65em;margin-right:.45em;color:var(--s-ink-2)}
+.s-forecast b{color:var(--s-ink);font-weight:600;margin-right:.35em}
+.s-forecast small{font-size:.72em;font-weight:600;color:var(--rain);margin-left:.35em}
+.s-day .s-item{margin-bottom:1.15em}
+.s-day .s-title{font-size:1.55em;line-height:1.22}
+.s-day .s-meta{font-size:1.3em;white-space:normal}
+.s-day .s-check{width:1.9em;height:1.9em;margin:.05em .7em 0 0}
+.s-day .s-item.allday .s-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.s-day .s-owner{width:1.7em;height:1.7em;font-size:.95em;margin-left:.6em}
+.s-later{display:flex;padding:1.5em .5em 0 1.1em}
+.s-later .s-eyebrow{flex:0 0 6.1em;line-height:2.1em}
+.s-laterrows{flex:1;min-width:0}
+.s-laterrow{display:flex;align-items:center;height:2.4em;font-size:1.45em}
+.s-laterrow .when{flex:0 0 6.6em;color:var(--s-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.s-laterrow .time{flex:0 0 5.5em;color:var(--s-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.s-laterrow i{flex:none;width:.55em;height:.55em;border-radius:50%;margin-right:.55em;background:var(--rail)}
+.s-laterrow i.ring{background:none;border:.1em solid var(--s-ink-2)}
+.s-laterrow .what{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-laterrow .owner{color:var(--s-ink-2);font-weight:400}
+
+/* A list. */
+.s-listbody{padding:1.75em 2.25em;max-width:60em}
+.s-listbody.two{max-width:none;column-count:2;column-gap:3.5em;column-rule:.0625em solid var(--s-line)}
+.s-listbody .s-item{break-inside:avoid;min-height:3.6em;padding:.7em 0;margin:0;align-items:center;border-bottom:.0625em solid var(--s-line)}
+.s-listbody .s-item.last{border-bottom:0}
+.s-listbody .s-title{font-size:1.8em;font-weight:400}
+.s-listbody .s-meta{font-size:1.25em}
+.s-listbody .s-check{width:2.4em;height:2.4em;margin:0 1.1em 0 0}
+.s-listbody .s-item.done .s-check{opacity:1;background:var(--tick,currentColor);position:relative}
+.s-listbody .s-item.done .s-check::after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--s-card);border-width:0 .2em .2em 0;transform:rotate(42deg)}
+.s-listbody .s-item.done .s-title{text-decoration:line-through;opacity:.55}
+.s-listbody .s-group{font:600 1.15em/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--s-ink-2);padding:.7em 0 .55em;break-after:avoid}
+.s-listbody.kid .s-item{min-height:5.6em;padding:1.1em 0}
+.s-listbody.kid .s-check{width:3.2em;height:3.2em;margin-right:1.3em}
+.s-listbody.kid .s-title{font-size:2.6em}
+.s-emoji{flex:none;font-size:3.2em;line-height:1;margin:0 .3em 0 .06em;order:-1}
+.s-listhead h3{display:flex;align-items:center}
+.s-listhead .s-glyph{width:2.6em;height:2.6em;margin-right:1em;color:var(--s-ink-2);stroke-width:1.8}
+.s-listhead .s-avatar{width:2.2em;height:2.2em;margin-right:.8em;font-size:.5em}
+/* The toast: what a check-off looks like for the next ten seconds. */
+.s-toast{position:absolute;z-index:3;left:50%;bottom:6.75em;transform:translateX(-50%);display:flex;align-items:center;padding:.5em .6em .5em 1.75em;border-radius:2.5em;background:var(--s-ink);color:var(--s-surface);font-size:1.5em;box-shadow:0 .75em 2.5em var(--s-shade);white-space:nowrap}
+.s-toast b{margin-left:1em;height:2.27em;padding:0 1.07em;border-radius:1.2em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
+.s-cheer{position:absolute;z-index:3;left:50%;top:44%;transform:translate(-50%,-50%);font-size:12em;line-height:1}
+
+/* Photos: the photo whole, over a blurred copy of itself. */
+.s-photo{position:relative;background:#000}
+.s-photo .fill{position:absolute;inset:-4em;background-size:cover;background-position:center;filter:blur(3em) brightness(.55)}
+.s-photo .pic{position:absolute;inset:0;margin:auto;height:100%;aspect-ratio:3/4}
+.s-photo .pic svg{width:100%;height:100%}
+
+/* Dock. */
+.s-dock{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:1.25em;height:4em}
+.s-tabs{display:flex;background:var(--s-press);border-radius:2em;padding:.3em}
+.s-tabs button{display:flex;align-items:center;height:3.4em;padding:0 1.4em;border-radius:1.7em;font-size:1.4em;font-weight:600;color:var(--s-ink-2);white-space:nowrap;line-height:1}
+.s-tabs button b{font-weight:600;font-variant-numeric:tabular-nums;margin-left:.55em;color:var(--s-ink)}
+.s-tabs button[aria-pressed="true"]{background:var(--s-selected);color:var(--s-ink);box-shadow:0 .08em .25em var(--s-shade)}
+.s-tabs button:focus-visible{outline:.2em solid var(--s-accent);outline-offset:.1em}
+.s-glyph{flex:none;width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;margin-right:.45em}
+.s-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;width:1.35em;height:1.35em;border-radius:50%;background:var(--who);color:#fff;font:700 .75em/1 var(--text);margin-right:.6em}
+.s-gear{width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--s-ink-2)}
+.s-gear svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.s-gear circle{fill:var(--s-surface)}
+
+/* On a phone the hero screen is a picture, so its live controls step back. */
+@media (max-width:600px){.s-tabs button{pointer-events:none}}
