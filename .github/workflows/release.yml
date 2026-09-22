@@ -1,0 +1,85 @@
+# A release: push a tag like v0.2.0. It builds the Android app, signed (one APK per chip family and one with both),
+# and the server's container image for Intel and ARM, then publishes both: the APKs on the release, the image at
+# ghcr.io/rileysheehan/gingham. Signing needs the repository secrets KIOSK_KEYSTORE_B64 and KIOSK_KEYSTORE_PASSWORD.
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+  packages: write
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+      # Node for Android, from the nodejs-mobile fork that tracks current Node (the full build, which has time zones).
+      - uses: actions/cache@v4
+        id: libnode
+        with:
+          path: kiosk/app/libnode
+          key: nodejs-mobile-android-24.20.0-0
+      - name: Fetch Node for Android
+        if: steps.libnode.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v24.20.0-0 -R digidem/nodejs-mobile -p 'nodejs-mobile-android-24.20.0-0.zip' -O /tmp/node.zip
+          mkdir -p kiosk/app/libnode && unzip -q /tmp/node.zip 'bin/armeabi-v7a/*' 'bin/arm64-v8a/*' 'include/*' -d kiosk/app/libnode
+      - name: Signing key
+        env:
+          KIOSK_KEYSTORE_B64: ${{ secrets.KIOSK_KEYSTORE_B64 }}
+        run: |
+          test -n "$KIOSK_KEYSTORE_B64" || { echo "No signing key in this repository's secrets"; exit 1; }
+          echo "$KIOSK_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/frame.p12"
+      - name: Build
+        env:
+          KIOSK_KEYSTORE: ${{ runner.temp }}/frame.p12
+          KIOSK_KEYSTORE_PASSWORD: ${{ secrets.KIOSK_KEYSTORE_PASSWORD }}
+          GINGHAM_VERSION: ${{ github.ref_name }}
+        run: gradle -p kiosk --no-daemon assembleRelease -PndkVer=$(ls "$ANDROID_HOME/ndk" | sort -V | tail -1)
+      - name: Check the signatures and name the files
+        run: |
+          OUT=kiosk/app/build/outputs/apk/release; mkdir apks
+          cp $OUT/app-armeabi-v7a-release.apk apks/gingham-32bit.apk
+          cp $OUT/app-arm64-v8a-release.apk apks/gingham-64bit.apk
+          cp $OUT/app-universal-release.apk apks/gingham-either.apk
+          for APK in apks/*.apk; do "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify "$APK"; done
+          (cd apks && sha256sum *.apk > SHA256SUMS)
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" apks/* --verify-tag --title "${{ github.ref_name }}" --generate-notes \
+            --notes "Most frames and cheap tablets want gingham-32bit.apk; gingham-either.apk works on any. The server: docker pull ghcr.io/rileysheehan/gingham:${{ github.ref_name }}"
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/rileysheehan/gingham:${{ github.ref_name }}
+            ghcr.io/rileysheehan/gingham:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/rileysheehan/gingham
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.description=Gingham, a family wall display. The server for several households.

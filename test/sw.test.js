@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {policy, markStale} = require('../dist/sw.js');
+const {policy, markStale, changesWho, becomesSomeone} = require('../dist/sw.js');
 
 const at = 'https://frame.test', p = (path, method = 'GET') => policy(method, at + path, at);
 
@@ -19,4 +19,15 @@ test('An answer from the cupboard says it is stale, in the words the page alread
   assert.deepEqual(JSON.parse(markStale('{"events":[],"updatedAt":"2026-09-20T20:00:00Z"}')), {events: [], updatedAt: '2026-09-20T20:00:00Z', stale: true});
   assert.equal(markStale('[1,2]'), '[1,2]');
   assert.equal(markStale('<html>'), '<html>');
+});
+
+test('Following a pairing or setup link forgets what was kept for whoever this browser was before', () => {
+  for (const url of ['https://frame.example/s/abc123', 'https://frame.example/?k=secret', 'https://frame.example/s/']) assert.equal(changesWho(url), true, url);
+  for (const url of ['https://frame.example/', 'https://frame.example/setup', 'https://frame.example/api/tasks', 'https://frame.example/lists?kid=1', 'not a url']) assert.equal(changesWho(url), false, url);
+});
+
+test('A code typed on the setup page, or a pairing approved, forgets too', () => {
+  const at = 'https://frame.example';
+  for (const path of ['/api/setup/claim', '/api/pair/poll']) assert.equal(becomesSomeone('POST', at + path, at), true, path);
+  for (const [method, url] of [['GET', at + '/api/pair/poll'], ['POST', at + '/api/pair/start'], ['POST', 'https://elsewhere.example/api/setup/claim'], ['POST', at + '/api/setup/lists']]) assert.equal(becomesSomeone(method, url, at), false, method + ' ' + url);
 });

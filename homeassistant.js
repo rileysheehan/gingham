@@ -9,7 +9,7 @@
 // FRAME_ALLOW_PRIVATE_FEEDS=1), and a hosted server needs Home Assistant's remote address.
 const crypto = require('node:crypto');
 const dns = require('node:dns').promises;
-const {safeRequest} = require('./safe-fetch');
+const {safeRequest, pinnedFetch} = require('./safe-fetch');
 const {dayIn, validZone} = require('./zone');
 
 const fail = (code, message, status) => Object.assign(Error(message), {code, status});
@@ -23,7 +23,7 @@ function dueDay(due, zone) {
   return Number.isNaN(at) ? '' : dayIn(validZone(zone) ? zone : 'UTC', at);
 }
 
-function createHomeAssistant({credentials = () => ({}), fetchImpl = fetch, lookup = dns.lookup, allowPrivate = process.env.FRAME_ALLOW_PRIVATE_FEEDS === '1'} = {}) {
+function createHomeAssistant({credentials = () => ({}), fetchImpl = pinnedFetch, lookup = dns.lookup, allowPrivate = process.env.FRAME_ALLOW_PRIVATE_FEEDS === '1'} = {}) {
   const index = new Map();   // short item id -> which list and which item: only what a read has shown can be checked off
 
   function account() {

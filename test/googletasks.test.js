@@ -104,22 +104,38 @@ test('Setup: a sign-in is bound to its household, used once, and its token seale
   assert.deepEqual((await call('')).body.googletasks, {available: true, connected: false, account: '', signIn: false});
   const started = await call('/googletasks-start', {});
   const state = new URL(started.body.url).searchParams.get('state');
+  assert.equal(started.bind, state, 'the state goes back to the browser as a cookie too');
+  assert.ok(!('bind' in started.body), 'and not in what the page is sent as data');
 
-  assert.equal((await setup.oauthReturn({code: 'GOOD', state: 'made-up'})).status, 400, 'a state nobody started gets nothing');
-  const denied = await setup.oauthReturn({error: 'access_denied', state: (new URL((await call('/googletasks-start', {})).body.url)).searchParams.get('state')});
+  assert.equal((await setup.oauthReturn({code: 'GOOD', state: 'made-up', browser: 'made-up'})).status, 400, 'a state nobody started gets nothing');
+  const deniedState = new URL((await call('/googletasks-start', {})).body.url).searchParams.get('state');
+  const denied = await setup.oauthReturn({error: 'access_denied', state: deniedState, browser: deniedState});
   assert.match(denied.html, /wasn’t connected/);
 
-  const back = await setup.oauthReturn({code: 'GOOD', state});
+  // The sign-in link passed to someone else, who signs in to their own Google: their browser has no cookie for it.
+  const passedOn = (await call('/googletasks-start', {})).bind;
+  const elsewhere = await setup.oauthReturn({code: 'GOOD', state: passedOn, browser: ''});
+  assert.equal(elsewhere.status, 400); assert.match(elsewhere.html, /phone that started it/);
+  assert.equal((await setup.oauthReturn({code: 'GOOD', state: passedOn, browser: passedOn})).status, 400, 'and the state is spent');
+  assert.equal(fake.asked.length, 0, 'Google was never asked for a token');
+  assert.equal((await setup.oauthReturn({code: 'GOOD', state: (await call('/googletasks-start', {})).bind, browser: 'é'.repeat(20)})).status, 400, 'an odd cookie is refused, not a crash');
+
+  const back = await setup.oauthReturn({code: 'GOOD', state, browser: state});
   assert.equal(back.status, 200);
   assert.match(back.html, /<meta http-equiv="refresh" content="0;url=\/setup\?household=alpha#google-connected">/, 'the phone goes on to setup from this site, so its cookie comes too');
   assert.ok(!back.html.includes('GOOD') && !back.html.includes('R1'), 'neither the code nor the token is on the page');
-  assert.equal((await setup.oauthReturn({code: 'GOOD', state})).status, 400, 'used once');
+  assert.equal((await setup.oauthReturn({code: 'GOOD', state, browser: state})).status, 400, 'used once');
   assert.deepEqual((await call('')).body.googletasks, {available: true, connected: true, account: 'sam@example.com', signIn: false});
   assert.ok(!fs.readFileSync(file, 'utf8').includes('R1'), 'sealed on disk');
 
   const lists = (await call('/googletasks-lists', {})).body.lists;
   await call('/lists', {source: 'googletasks', lists: [{id: lists[0].id, name: 'Groceries', icon: 'cart'}, {id: 'Gforged', name: 'Nope'}]});
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home.dir, 'sources.json'), 'utf8')).projects.map(p => [p.source, p.remote || '']), [['googletasks', 'LIST1'], ['local', '']]);
+  // Two lists may not share a name, whichever services they come from: the name is what says where an addition goes.
+  const clash = await call('/lists', {source: 'todoist', lists: [{id: 'P1', name: 'groceries', icon: 'cart'}]});
+  assert.deepEqual([clash.status, clash.body.error], [400, 'There is already a list called groceries. Rename one of them first.']);
+  assert.equal((await call('/lists', {source: 'todoist', lists: [{id: 'P1', name: 'Kept'}]})).status, 400, 'nor with one of the household\'s own');
+  assert.equal((await call('/lists', {source: 'todoist', lists: [{id: 'P1', name: 'Errands'}, {id: 'P2', name: 'ERRANDS'}]})).status, 400, 'nor with each other');
 
   await call('/googletasks-disconnect', {});
   assert.deepEqual(fake.state.revoked, ['R1'], 'Google is told to forget the token');

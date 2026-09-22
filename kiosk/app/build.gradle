@@ -21,8 +21,10 @@ android {
         applicationId 'co.rileysheehan.gingham'
         minSdk 26          // Android 8.0: the Frameo runs 8.1
         targetSdk 34
-        versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int)
-        versionName '0.' + (System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        // Minutes since 2026 began: always higher for a later build, whichever repository or machine made it, which is
+        // what Android needs to take an update over what is installed. A release names itself (GINGHAM_VERSION).
+        versionCode((int) ((System.currentTimeMillis() - 1767225600000L) / 60000L))
+        versionName(System.getenv('GINGHAM_VERSION') ?: ('0.' + (System.getenv('GITHUB_RUN_NUMBER') ?: 'dev')))
         if (hasNode) {
             externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_shared'; abiFilters 'armeabi-v7a', 'arm64-v8a' } }
         }

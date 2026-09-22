@@ -9,8 +9,8 @@
 // out (FRAME_ALLOW_PRIVATE_FEEDS=1), each redirect checked, the answer capped.
 const crypto = require('node:crypto');
 const dns = require('node:dns').promises;
-const {safeRequest} = require('./safe-fetch');
-const {dayIn} = require('./zone');
+const {safeRequest, sameService, pinnedFetch} = require('./safe-fetch');
+const {dayIn, instantOf} = require('./zone');
 const ics = require('./ics');
 
 const DAY = 86400000;
@@ -127,11 +127,19 @@ function completeText(text, nowMs) {
     const rule = ics.parseRule(rrule.line.value), anchorO = get('DTSTART') || get('DUE');
     const anchor = anchorO && ics.parseWhen(anchorO.line.value.trim(), anchorO.line.params, 'UTC');
     if (!rule || !anchor) throw fail('REPEAT', 'Check off this repeating item in its own app.', 409);
+    // Far enough ahead for a leap day every four years or a rule that repeats every few years; a series is over only
+    // when its UNTIL or COUNT says so, never because the search stopped looking.
     let next = null;
-    for (const wall of ics.occurrences(anchor.wall, {...rule, count: undefined}, anchor.wall + 800 * DAY, anchor.wall)) if (wall > anchor.wall) { next = wall; break; }
-    const until = rule.until ? ics.parseWhen(rule.until, {}, 'UTC') : null;
-    if (next !== null && until && next > (until.allDay ? until.wall + DAY - 1 : until.wall)) next = null;
-    if (next !== null && rule.count === 1) next = null;
+    const horizon = anchor.wall + 4000 * DAY;
+    for (const wall of ics.occurrences(anchor.wall, {...rule, count: undefined}, horizon, anchor.wall)) if (wall > anchor.wall) { next = wall; break; }
+    // UNTIL compared as ics.js compares it for events: a timed series by the instant (09:00 in Chicago is 15:00Z, and a
+    // UNTIL of 12:00Z has passed), an all-day one by the day.
+    const until = rule.until ? ics.parseWhen(rule.until, {}, anchor.zone || 'UTC') : null;
+    const untilDay = until && (until.allDay ? until.wall : Date.UTC(new Date(until.wall).getUTCFullYear(), new Date(until.wall).getUTCMonth(), new Date(until.wall).getUTCDate()));
+    const pastUntil = wall => !!until && (anchor.allDay ? wall > untilDay : instantOf(anchor.zone, wall) > (until.allDay ? until.wall + DAY - 1 : until.at));
+    const over = rule.count === 1 || (next !== null ? pastUntil(next) : !!until && until.wall < horizon);
+    if (next === null && !over) throw fail('REPEAT', 'Check off this repeating item in its own app.', 409);
+    if (over) next = null;
     if (next !== null) {
       finished = false;
       const shift = next - anchor.wall;
@@ -171,14 +179,17 @@ const QUERY = '<?xml version="1.0" encoding="utf-8"?><c:calendar-query xmlns:d="
   '<c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VTODO"><c:prop-filter name="COMPLETED"><c:is-not-defined/></c:prop-filter></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>';
 const PROPFIND = props => '<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop>' + props + '</d:prop></d:propfind>';
 
-function createCalDav({credentials = () => ({}), fetchImpl = fetch, lookup = dns.lookup, allowPrivate = process.env.FRAME_ALLOW_PRIVATE_FEEDS === '1', now = () => Date.now()} = {}) {
+function createCalDav({credentials = () => ({}), fetchImpl = pinnedFetch, lookup = dns.lookup, allowPrivate = process.env.FRAME_ALLOW_PRIVATE_FEEDS === '1', now = () => Date.now()} = {}) {
   const index = new Map();   // short task id -> its address: only what a query has shown can be checked off
 
   async function request(address, {method = 'GET', depth, body, headers = {}, account}) {
+    // A server may name another of its own hosts for the account (iCloud does), but the password goes nowhere else.
+    if (account && !sameService(address, account.url)) throw fail('BAD_ADDRESS', 'The server sent Gingham to a different site for this account, so the password wasn’t sent there.', 400);
     const r = await safeRequest(address, {method, body, fetchImpl, lookup, allowPrivate, headers: {
       ...(body && !headers['Content-Type'] ? {'Content-Type': 'application/xml; charset=utf-8'} : {}), ...headers,
       ...(depth !== undefined ? {Depth: String(depth)} : {}),
       ...(account ? {Authorization: 'Basic ' + Buffer.from(account.username + ':' + account.password).toString('base64')} : {})}});
+    if ((r.status === 401 || r.status === 403) && account && !sameService(r.url, address)) throw fail('BAD_ADDRESS', 'The server sent Gingham on to ' + new URL(r.url).host + ' for this account. Type that address instead.', 400);
     if (r.status === 401 || r.status === 403) throw fail('AUTH', 'The server didn’t accept that username and password.', 400);
     return r;
   }

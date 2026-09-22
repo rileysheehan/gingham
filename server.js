@@ -9,6 +9,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
+const net = require('node:net');
+const {groups} = require('./safe-fetch');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || '0.0.0.0';
 const distDir = path.join(__dirname,'dist');
@@ -28,7 +30,7 @@ const setup = createSetup({households, grants});
 const admin = require('./admin-api').createAdmin({households, grants});
 const authRequired = process.env.FRAME_AUTH === 'required';
 const defaultHousehold = () => households.get(process.env.FRAME_HOUSEHOLD || households.list()[0]);
-const COOKIE = 'frame';
+const COOKIE = 'frame', OAUTH_COOKIE = 'gingham_oauth';
 // Every write must carry a header that a form on another site cannot send: it forces a CORS preflight this server
 // never answers. X-Gingham is the header; the name it had before the product had one is still taken, so that a page
 // kept from before the change (the frame keeps its last good page for outages) can still check off a chore.
@@ -51,15 +53,33 @@ function whoIs(req) {
 }
 const secure = req => req.headers['x-forwarded-proto'] === 'https' || !!req.socket.encrypted;
 const sessionCookie = (req, secret) => COOKIE+'='+secret+'; Path=/; HttpOnly; SameSite=Strict; Max-Age=315360000'+(secure(req)?'; Secure':'');
-// Guessable things (pairing codes) and free things (starting a pairing) are rationed per address.
-const clientAddress = req => String(req.headers['fly-client-ip'] || req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+// Guessable things (pairing codes) and free things (starting a pairing) are rationed per address. Which address is
+// the asker's: on Fly its proxy says so in Fly-Client-IP, which it sets itself; behind another proxy that says who
+// connected in X-Forwarded-For, FRAME_TRUST_PROXY=1 takes the address that proxy added; otherwise the connection's.
+// A header is never believed by default, since anyone can send one.
+const onFly = !!process.env.FLY_APP_NAME, trustProxy = process.env.FRAME_TRUST_PROXY === '1';
+const clientAddress = req => String((onFly && req.headers['fly-client-ip']) ||
+  (trustProxy && String(req.headers['x-forwarded-for'] || '').split(',').pop().trim()) || req.socket.remoteAddress || '').replace(/^::ffff:/, '');
 const spent = new Map(), pinLocks = new Map();
 const hasOwner = household => grants.list().some(g => g.household === household && g.scope === 'owner' && !g.revokedAt);
+// One household's connection is one IPv6 /64 (a phone picks a new address in it every day), so that is one ration.
+const rationKey = address => { if (!net.isIPv6(address)) return address; const g = groups(address); return g ? g.slice(0, 4).map(n => n.toString(16)).join(':') + '::/64' : address; };
+let prunedAt = 0;
 function rationed(req, what, max, windowMs) {
-  const key = what+'|'+clientAddress(req), at = Date.now(), recent = (spent.get(key) || []).filter(t => at - t < windowMs);
-  recent.push(at); spent.set(key, recent);
-  if (spent.size > 5000) spent.clear();
-  return recent.length > max;
+  const key = what+'|'+rationKey(clientAddress(req)), at = Date.now();
+  let entry = spent.get(key);
+  if (!entry) {
+    // Bounded without ever forgetting someone still being held back: addresses whose window has passed go (looked
+    // for at most once a second), and while the table is still full a new address waits like a held-back one.
+    if (spent.size >= 5000 && at - prunedAt > 1000) { prunedAt = at; for (const [k, e] of spent) if (!e.times.length || at - e.times[e.times.length - 1] >= e.windowMs) spent.delete(k); }
+    if (spent.size >= 5000) return true;
+    entry = {windowMs, times: []}; spent.set(key, entry);
+  }
+  // Only as many times as it takes to know the limit is passed, so a flood from one address costs nothing to keep.
+  entry.times = entry.times.filter(t => at - t < windowMs);
+  entry.times.push(at);
+  if (entry.times.length > max + 1) entry.times.splice(0, entry.times.length - max - 1);
+  return entry.times.length > max;
 }
 const readBody = (req, max = 2000) => new Promise((resolve, reject) => { let body = ''; req.on('data', c => { body += c; if (body.length > max) { req.destroy(); reject(Error('Too large')); } }); req.on('end', () => resolve(body)); req.on('error', reject); });
 
@@ -118,8 +138,17 @@ function version() {
   return versionCache.value;
 }
 function json(res,status,body){res.writeHead(status,{'Content-Type':'application/json','X-Frame-Version':version()});res.end(JSON.stringify(body));}
-http.createServer(async (req,res)=>{
-  const url = new URL(req.url, 'http://localhost');
+// One request that goes wrong answers 500 (or is cut off) and is logged; it never takes down the server, which on a
+// hosted copy is every household's.
+http.createServer((req,res)=>{
+  serve(req,res).catch(e=>{ log('request failed: '+req.method+' '+String(req.url).slice(0,200)+': '+(e&&e.stack||e)); if(!res.headersSent){res.writeHead(500,{'Content-Type':'text/plain'});res.end('Something went wrong');} else res.destroy(); });
+}).listen(port,host,()=>{
+  console.log('Gingham: http://localhost:'+port+' · households: '+(households.list().join(', ')||'none')+(authRequired?' · pairing required':''));
+  interfaces().filter(a=>a.family==='IPv4'&&!a.internal).forEach(a=>console.log('Local network: http://'+a.address+':'+port));
+  if (networkName) networkName.start().catch(() => {});
+});
+async function serve(req,res){
+  let url; try { url = new URL(req.url, 'http://localhost'); } catch (e) { res.writeHead(400,{'Content-Type':'text/plain'}); return res.end('Bad request'); }
   const pathname = url.pathname;
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Content-Type-Options','nosniff');
@@ -194,8 +223,8 @@ http.createServer(async (req,res)=>{
   // only proof of who this is; setup.js checks it, and nothing about the code in the address is kept or shown.
   if (pathname === '/oauth/google') {
     if (rationed(req,'oauth',30,60000)) return json(res,429,{error:'Slow down'});
-    const answer = await setup.oauthReturn({code: url.searchParams.get('code') || '', state: url.searchParams.get('state') || '', error: url.searchParams.get('error') || ''});
-    res.writeHead(answer.status, {'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex'});
+    const answer = await setup.oauthReturn({code: url.searchParams.get('code') || '', state: url.searchParams.get('state') || '', error: url.searchParams.get('error') || '', browser: cookie(req, OAUTH_COOKIE)});
+    res.writeHead(answer.status, {'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex','Set-Cookie':OAUTH_COOKIE+'=; Path=/oauth/google; HttpOnly; SameSite=Lax; Max-Age=0'+(secure(req)?'; Secure':'')});
     return res.end(answer.html);
   }
   if (pathname.startsWith('/api/setup')) {
@@ -204,6 +233,9 @@ http.createServer(async (req,res)=>{
     let body = {}; if (req.method === 'POST') { try { body = JSON.parse(await readBody(req, 8000) || '{}'); } catch(e) { return json(res,400,{error:'Send JSON'}); } }
     const asking = grants.verify(cookie(req, COOKIE)); if (asking) grants.seen(asking.id);
     const answer = await setup.handle({method: req.method, url, grant: asking, body});
+    // A Google sign-in is finished only by the browser that started it: Google's return brings this cookie (Lax is
+    // sent on the way back from another site; the household's own Strict cookie is not) and it must match the state.
+    if (answer.bind) res.setHeader('Set-Cookie', OAUTH_COOKIE+'='+answer.bind+'; Path=/oauth/google; HttpOnly; SameSite=Lax; Max-Age=600'+(secure(req)?'; Secure':''));
     return json(res, answer.status, answer.body);
   }
   // Pairing a screen: it asks for a code, shows it, and polls until someone with authority has approved it. The
@@ -319,11 +351,7 @@ http.createServer(async (req,res)=>{
     const type=types[path.extname(file)];
     res.writeHead(200,{'Content-Type':type,...(type==='font/woff2'?{'Cache-Control':'public, max-age=31536000, immutable'}:{})});res.end(body);
   });
-}).listen(port,host,()=>{
-  console.log('Gingham: http://localhost:'+port+' · households: '+(households.list().join(', ')||'none')+(authRequired?' · pairing required':''));
-  interfaces().filter(a=>a.family==='IPv4'&&!a.internal).forEach(a=>console.log('Local network: http://'+a.address+':'+port));
-  if (networkName) networkName.start().catch(() => {});
-});
+}
 // FRAME_MDNS=frame answers to "frame.local" on the home network. For a tablet that is its own server; see mdns.js
 // for why it stays off everywhere else.
 const networkName = process.env.FRAME_MDNS ? require('./mdns').createResponder({name: process.env.FRAME_MDNS, log: text => console.log(text)}) : null;

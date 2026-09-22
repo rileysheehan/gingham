@@ -82,6 +82,18 @@ test('Finding the lists: the well-known address, who the account is, where its c
   await assert.rejects(caldav.discover({...account, password: 'wrong'}), {code: 'AUTH', status: 400});
 });
 
+test('A server that names a host on another site for the account is not sent the password', async () => {
+  const server = fakeServer(), caldav = createCalDav({fetchImpl: async (url, options) => {
+    if (new URL(url).pathname === '/remote.php/dav/') return ms(multistatus(ok('/remote.php/dav/', '<d:current-user-principal><d:href>https://collector.example/principal/</d:href></d:current-user-principal>')));
+    return server.fetchImpl(url, options);
+  }, lookup: publicDns});
+  await assert.rejects(caldav.discover({url: 'https://cloud.example.com/', username: 'sam', password: 'app-pass'}), {code: 'BAD_ADDRESS', message: /different site/});
+  assert.ok(!server.asked.some(a => a.path === '/principal/'), 'the other site was never asked');
+  // Redirected to another host at the start: the password stays behind, and the message says which address to type.
+  const moved = createCalDav({fetchImpl: async (url, options) => new URL(url).host === 'cloud.example.com' ? new Response('', {status: 301, headers: {Location: 'https://dav.example.net/remote.php/dav/'}}) : new Response('', {status: options.headers.Authorization ? 207 : 401}), lookup: publicDns});
+  await assert.rejects(moved.discover({url: 'https://cloud.example.com/', username: 'sam', password: 'app-pass'}), {code: 'BAD_ADDRESS', message: /on to dav\.example\.net .*Type that address instead/});
+});
+
 test('A typed address gets a calendar link\'s care: https, public, no password in it, every redirect checked', async () => {
   const server = fakeServer();
   const privateDns = async () => [{address: '10.0.0.5'}];
@@ -149,6 +161,15 @@ test('Repeating tasks: local times survive daylight saving, a count counts down,
   const ended = completeText(vtodo(['BEGIN:VTODO', 'UID:d', 'DUE;VALUE=DATE:20261029', 'RRULE:FREQ=WEEKLY;UNTIL=20261101', 'END:VTODO']), at);
   assert.match(ended, /STATUS:COMPLETED/);
   assert.throws(() => completeText(vtodo(['BEGIN:VTODO', 'UID:e', 'DUE:20261029T150000Z', 'RRULE:FREQ=HOURLY', 'END:VTODO']), at), {code: 'REPEAT', status: 409});
+  // From the pre-launch review: a series is over only when it says so, never because the search stopped looking.
+  assert.match(completeText(vtodo(['BEGIN:VTODO', 'UID:f', 'DUE;VALUE=DATE:20260101', 'RRULE:FREQ=YEARLY;INTERVAL=3', 'END:VTODO']), at), /DUE;VALUE=DATE:20290101[\s\S]*STATUS:NEEDS-ACTION|STATUS:NEEDS-ACTION[\s\S]*DUE;VALUE=DATE:20290101/, 'every three years moves on three years');
+  assert.match(completeText(vtodo(['BEGIN:VTODO', 'UID:g', 'DUE;VALUE=DATE:20240229', 'RRULE:FREQ=YEARLY', 'END:VTODO']), at), /DUE;VALUE=DATE:20280229/, 'a leap day waits for the next one');
+  assert.throws(() => completeText(vtodo(['BEGIN:VTODO', 'UID:h', 'DUE;VALUE=DATE:20260101', 'RRULE:FREQ=YEARLY;INTERVAL=20', 'END:VTODO']), at), {code: 'REPEAT', status: 409}, 'too far ahead to find: refused, not ended');
+  // Second pass: UNTIL is an instant, and 09:00 in Chicago is 15:00Z.
+  const zoned = until => completeText(vtodo(['BEGIN:VTODO', 'UID:i', 'DTSTART;TZID=America/Chicago:20261029T090000', 'RRULE:FREQ=DAILY;UNTIL=' + until, 'END:VTODO']), at);
+  assert.match(zoned('20261030T120000Z'), /STATUS:COMPLETED/, 'the next one, at 14:00Z, is after UNTIL');
+  assert.match(zoned('20261030T150000Z'), /DTSTART;TZID=America\/Chicago:20261030T090000/, 'the next one is exactly UNTIL, so it still happens');
+  assert.match(zoned('20261030'), /DTSTART;TZID=America\/Chicago:20261030T090000/, 'a date UNTIL covers the whole day');
   assert.match(newTodo('x', 'u', at), /^BEGIN:VCALENDAR\r\nVERSION:2\.0\r\n/);
   assert.equal(foldLine('é'.repeat(50)).split('\r\n ').every(part => Buffer.byteLength(part) <= 75), true, 'never splits a character');
 });

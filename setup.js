@@ -4,6 +4,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+// An action's answer can carry a value for server.js to set as a cookie rather than show the page (a Google sign-in's
+// state); keyed by a symbol so no answer can carry it by accident.
+const BIND = Symbol('bind');
 const {mayManage} = require('./grants');
 const {validZone} = require('./zone');
 const {eventsBetween} = require('./ics');
@@ -119,6 +122,10 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
       const known = service ? new Map((await service.lists()).map(l => [l.id, l.remote])) : null;
       const chosen = (Array.isArray(body.lists) ? body.lists : []).slice(0, 12).map(l => ({id: text(l.id, 40), name: text(l.name, 40), ...(known ? {source, remote: known.get(text(l.id, 40))} : {}), ...(l.person ? {person: true, ...(l.kid ? {kid: true} : {}), ...(color(l.color, '') ? {color: color(l.color, '')} : {})} : {icon: ICONS.includes(l.icon) ? l.icon : 'list'})})).filter(l => /^[A-Za-z0-9]{1,40}$/.test(l.id) && l.name && (!known || l.remote));
       const kind = p => ['local', 'microsoft', 'caldav', 'homeassistant', 'googletasks'].includes(p.source) ? p.source : 'todoist';
+      // A list's name is how the frame and the phone say which list to add to and whose task was checked off, so two
+      // lists may not share one, whichever services they come from.
+      const taken = new Set((home.sources().projects || []).filter(p => kind(p) !== source).map(p => p.name.toLowerCase()));
+      for (const l of chosen) { if (taken.has(l.name.toLowerCase())) throw fail(400, 'There is already a list called ' + l.name + '. Rename one of them first.'); taken.add(l.name.toLowerCase()); }
       update(home, s => { const had = s.projects || []; s.projects = ['todoist', 'googletasks', 'microsoft', 'caldav', 'homeassistant', 'local'].flatMap(k => k === source ? chosen : had.filter(p => kind(p) === k)); });
     },
     // A CalDAV account (Nextcloud, Fastmail, Synology): its address, a username and an app password, tried before
@@ -164,7 +171,7 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
       for (const [key, value] of googleStates) if (value.until < now) googleStates.delete(key);
       if (googleStates.size >= 100) throw fail(429, 'Too many sign-ins at once. Try again in a few minutes.');
       googleStates.set(started.state, {household: home.id, verifier: started.verifier, until: now + 600000});
-      return {url: started.url};
+      return {url: started.url, [BIND]: started.state};
     },
     async 'googletasks-lists'(home) {
       if (!(held(home).googletasks || {}).refresh) throw fail(400, 'Connect Google Tasks first.');
@@ -272,21 +279,25 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
       if (url.pathname === '/api/setup/places' && method === 'GET') return {status: 200, body: {places: await places(url.searchParams.get('q'))}};
       const action = url.pathname.replace('/api/setup/', '');
       if (method !== 'POST' || !Object.prototype.hasOwnProperty.call(actions, action)) return {status: 404, body: {error: 'Not found'}};
-      const result = await actions[action](home, body || {});
-      return {status: 200, body: {...(result || {}), setup: describe(home)}};
+      const {[BIND]: bind, ...result} = (await actions[action](home, body || {})) || {};
+      return {status: 200, body: {...result, setup: describe(home)}, ...(bind ? {bind} : {})};
     } catch (e) { return {status: e.status || 500, body: {error: e.status ? e.message : 'That did not work. Try again.'}}; }
   }
   // Where Google sends the phone back. The household's cookie does not come along (it is kept to this site's own
-  // links), so the state alone says who this is: made by an owner, used once, within ten minutes. The answer is a page
-  // that sends the phone on to setup itself, since a link followed from this site does carry the cookie.
-  async function oauthReturn({code = '', state = '', error = ''} = {}) {
+  // links), so the state says who this is: made by an owner, used once, within ten minutes, and carried back by the
+  // same browser in a cookie of its own (server.js), so a sign-in link passed to someone else connects nothing. The
+  // answer is a page that sends the phone on to setup itself, since a link followed from this site does carry the cookie.
+  async function oauthReturn({code = '', state = '', error = '', browser = ''} = {}) {
     const pending = googleStates.get(String(state));
     googleStates.delete(String(state));
+    const given = Buffer.from(String(browser)), expected = Buffer.from(String(state));
+    const sameBrowser = !!pending && given.length === expected.length && crypto.timingSafeEqual(given, expected);
     const page = (status, message, then) => ({status, html: '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<meta name="robots" content="noindex">' + (then ? '<meta http-equiv="refresh" content="0;url=' + then + '">' : '') + '<title>Google Tasks</title><link rel="stylesheet" href="/setup.css"></head>' +
       '<body><main><header class="top"><p class="eyebrow">Google Tasks</p><h1>' + escapeHtml(message) + '</h1></header>' +
       '<section class="card"><a class="button primary" href="' + (then || '/setup') + '">Back to setup</a></section></main></body></html>'});
     if (!pending || pending.until < Date.now()) return page(400, 'That sign-in ran out. Go back to setup and try again.');
+    if (!sameBrowser) return page(400, 'Finish connecting Google on the phone that started it. Go back to setup and try again there.');
     const home = households.get(pending.household), back = '/setup?household=' + encodeURIComponent(pending.household);
     if (!home) return page(400, 'That household is gone.');
     if (error || !code) return page(200, 'Google Tasks wasn’t connected.', null);

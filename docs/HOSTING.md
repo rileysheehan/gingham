@@ -62,9 +62,20 @@ admin naming one), `dist/setup.html`, `setup.css` and `setup-page.js` are the pa
 Each household's `credentials.json` holds what it has been trusted with: calendar links, a Todoist token, a Google
 authorization. With `FRAME_MASTER_KEY` set (32 random bytes, base64: `openssl rand -base64 32`), that file is
 AES-256-GCM ciphertext sealed to the household's own id (`vault.js`). A copy of the volume, a snapshot or a backup
-then gives nothing away, and one household's file cannot be opened from another's folder. The key lives in the
-host's secret store (`fly secrets`), not on the volume. A plain file is sealed the first time the server sees it.
+then gives away none of those secrets, and one household's file cannot be opened from another's folder. The key lives
+in the host's secret store (`fly secrets`), not on the volume. A plain file is sealed the first time the server sees it.
 Without a key the file stays plain JSON, mode 600, which is fine for one household on a machine at home.
+
+Only the secrets are sealed. What the frame shows is not: each household's names, lists, photos and the last
+calendar and list answers it kept for outages are ordinary files on the volume, so treat a backup of it as private.
+
+## Behind a proxy
+
+Pairing codes and the setup and sign-in endpoints are rationed per address, so the server has to know whose address
+a request is. On Fly it reads `Fly-Client-IP`, which Fly's proxy sets itself. Behind another proxy (Caddy, nginx, a
+Cloudflare tunnel), set `FRAME_TRUST_PROXY=1` and it takes the last address in `X-Forwarded-For`, the one your proxy
+added; make sure the proxy is the only way in, since anyone who can reach the server directly could claim any address.
+Without either, every request counts as coming from the proxy, which is safe but shares one ration among everyone.
 
 Secrets go in and do not come out. `admin.js secret set` takes the value from standard input, so it never lands in
 shell history or a process list, and `admin.js secret names` lists what is set, never the values. **Keep a copy of
@@ -129,8 +140,8 @@ the server's public address so the printed link is right.
    the album mirrors itself from iCloud within a few minutes.
 4. `fly certs add frame.example.com`, and in your DNS point that name at the app as a CNAME (with Cloudflare, DNS only, not proxied), so Fly can validate and renew the certificate itself.
 5. Open the server's address on the device, read the code it shows, and approve it with `admin.js frame pair`.
-6. For push-to-deploy: `fly tokens create deploy`, saved as the repository secret `FLY_API_TOKEN`. The workflow in
-   `.github/workflows/deploy.yml` tests every push and deploys `main` once that secret exists.
+6. For push-to-deploy: `fly tokens create deploy`, saved as a repository secret, and a workflow that runs the tests
+   and then `flyctl deploy --remote-only` on pushes to `main`.
 
 
 ## Photos from a phone
@@ -217,7 +228,4 @@ machine the name belongs to the machine.
 
 - **Photos that are not JPEG.** On a Mac the server converts them with macOS's `sips`; the container skips them with a log
   line. iCloud keeps a JPEG of nearly every photo, so this is rare.
-- **No admin page.** Creating a household and sending its first setup link is still a shell command
-  (`admin.js household add`, `admin.js owner link`). Everything after that is the setup page.
-- **The page when the host is unreachable.** It keeps showing what it has, but a reload during an outage shows
-  nothing. A service worker (possible now that there is HTTPS) would cover that.
+

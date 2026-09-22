@@ -19,12 +19,25 @@ function policy(method, url, origin) {
   if (u.pathname === '/setup' || u.pathname === '/admin' || u.pathname === '/photos' || u.pathname === '/healthz') return 'pass';
   return 'shell';
 }
+// A pairing or setup link can make this browser somebody else, another household or another person, so what was
+// kept for whoever it was before is thrown away when one is followed.
+function changesWho(url) {
+  var u; try { u = new URL(url); } catch (e) { return false; }
+  return u.pathname.indexOf('/s/') === 0 || u.searchParams.has('k');
+}
+// The same from the page itself: a code typed on the setup page, or a screen's pairing approved, answers 200 with a
+// new cookie for this browser.
+var BECOMES = ['/api/setup/claim', '/api/pair/poll'];
+function becomesSomeone(method, url, origin) {
+  var u; try { u = new URL(url); } catch (e) { return false; }
+  return method === 'POST' && u.origin === origin && BECOMES.indexOf(u.pathname) >= 0;
+}
 // An answer from the cupboard says so, in the words the page already understands.
 function markStale(text) {
   try { var data = JSON.parse(text); if (data && typeof data === 'object' && !Array.isArray(data)) { data.stale = true; return JSON.stringify(data); } } catch (e) {}
   return text;
 }
-if (typeof module !== 'undefined') module.exports = { policy: policy, markStale: markStale };
+if (typeof module !== 'undefined') module.exports = { policy: policy, markStale: markStale, changesWho: changesWho, becomesSomeone: becomesSomeone };
 
 if (typeof self !== 'undefined' && self.addEventListener && typeof caches !== 'undefined') {
   self.addEventListener('install', function () { self.skipWaiting(); });
@@ -74,6 +87,12 @@ if (typeof self !== 'undefined' && self.addEventListener && typeof caches !== 'u
 
   self.addEventListener('fetch', function (event) {
     var what = policy(event.request.method, event.request.url, self.location.origin);
+    if (event.request.mode === 'navigate' && changesWho(event.request.url)) event.waitUntil(forgetEverything());
+    if (becomesSomeone(event.request.method, event.request.url, self.location.origin)) {
+      return event.respondWith(fetch(event.request).then(function (response) {
+        return response.status === 200 ? forgetEverything().then(function () { return response; }) : response;
+      }));
+    }
     if (what === 'data') event.respondWith(networkFirst(event.request, DATA, MAX_DATA, true));
     else if (what === 'shell') event.respondWith(networkFirst(event.request, SHELL, 60, false));
     else if (what === 'photo') event.respondWith(keptOnceSeen(event.request));
