@@ -159,6 +159,8 @@ body[data-rest] .photo-card{border-radius:0}
 .legend span{display:flex;align-items:center;margin-right:1.75rem}
 .legend i{width:.85rem;height:.85rem;border-radius:50%;margin-right:.55rem}
 .pager{display:flex;align-items:center}
+/* Photos has no legend to push its arrows out, so they take the far right themselves: paging lives in one place in every view. */
+.photo-view .pager{margin-left:auto}
 .arrow,.icon-button{width:3.5rem;height:3.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .arrow svg,.icon-button svg{width:1.9rem;height:1.9rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .arrow:disabled{opacity:.25}
@@ -167,7 +169,8 @@ body[data-rest] .photo-card{border-radius:0}
 
 .strip{flex:1;min-height:0;display:flex;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);overflow:hidden}
 .loading{padding:2.5rem;font:400 1.6rem/1.35 var(--text);color:var(--ink-2);max-width:48rem}
-.pairing{max-width:none}
+/* The first-run screen is read once, from a phone in hand: it sits in the middle of the card rather than in its top corner. */
+.pairing{max-width:none;align-self:center}
 .pair-code{font:600 9rem/1 var(--text);letter-spacing:.06em;color:var(--ink);margin:2.5rem 0 1.5rem;font-variant-numeric:tabular-nums}
 .pair-host{font-size:1.5rem;color:var(--ink-2)}
 .pair-address{font:600 2.6rem/1.2 var(--text);letter-spacing:-.01em;color:var(--ink);margin-top:1.6rem}
@@ -223,7 +226,8 @@ button.item:active{opacity:.6}
 .list-body.kid .check{width:3.2rem;height:3.2rem;margin-right:1.3rem}
 .list-body.kid .item-title{font-size:2.6rem}
 .kid-emoji{flex:none;font-size:3.2rem;line-height:1;margin:0 1rem 0 .2rem;order:-1}
-.cheer{position:fixed;left:50%;top:50%;font-size:14rem;line-height:1;opacity:0;pointer-events:none;z-index:30;-webkit-transform:translate(-50%,-50%) scale(.4);transform:translate(-50%,-50%) scale(.4);-webkit-transition:opacity .35s ease,-webkit-transform .5s cubic-bezier(.2,1.5,.45,1);transition:opacity .35s ease,transform .5s cubic-bezier(.2,1.5,.45,1)}
+/* The cheer lands over the list that was tapped, anchored where the toast is, not over the seam with the sky window. */
+.cheer{position:fixed;left:66.5%;top:50%;font-size:14rem;line-height:1;opacity:0;pointer-events:none;z-index:30;-webkit-transform:translate(-50%,-50%) scale(.4);transform:translate(-50%,-50%) scale(.4);-webkit-transition:opacity .35s ease,-webkit-transform .5s cubic-bezier(.2,1.5,.45,1);transition:opacity .35s ease,transform .5s cubic-bezier(.2,1.5,.45,1)}
 .cheer.on{opacity:1;-webkit-transform:translate(-50%,-50%) scale(1);transform:translate(-50%,-50%) scale(1)}
 .list-empty{font:400 2.1rem/1.3 var(--text);color:var(--ink-2);padding:.5rem 0;-webkit-column-span:all;column-span:all}
 .list-empty-hint{display:block;max-width:44rem;margin-top:.7rem;font-size:1.5rem;line-height:1.4;opacity:.8}
@@ -349,4 +353,5 @@ button.item:active{opacity:.6}
   .dock{position:fixed;left:0;right:0;bottom:0;margin:0;height:auto;padding:1rem 1.2rem;background:var(--surface);border-top:.0625rem solid var(--line);z-index:7}
   .tabs{overflow-x:auto;max-width:calc(100% - 5rem)}
   .toast{left:50%;bottom:8rem;max-width:calc(100% - 2.4rem);font-size:1.5rem}
+  .cheer{left:50%}
 }

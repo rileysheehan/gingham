@@ -25,13 +25,16 @@
   // The rest of the Thursday stays; only what a later hour would change changes.
   var clockEl = screen && screen.querySelector('.s-clock');
   var soccer = screen && screen.querySelector('.s-item.happening .s-meta');
-  if (clockEl && soccer && window.matchMedia) {
+  var sunline = screen && screen.querySelector('.s-sunline');
+  if (clockEl && soccer && sunline && window.matchMedia) {
     var dark = window.matchMedia('(prefers-color-scheme: dark)');
-    var day = { clock: clockEl.firstChild.nodeValue, soccer: soccer.textContent };
+    var day = { clock: clockEl.firstChild.nodeValue, soccer: soccer.textContent, sun: sunline.textContent };
     function hour() {
       var night = dark.matches && document.documentElement.getAttribute('data-theme') !== 'light' || document.documentElement.getAttribute('data-theme') === 'dark';
       clockEl.firstChild.nodeValue = night ? '7:16' : day.clock;
-      soccer.textContent = night ? 'Now, until 8:00 PM · Northside fields' : day.soccer;
+      soccer.textContent = night ? 'Now, until 8 PM · Northside fields' : day.soccer;
+      // After sunset the product's sun line looks ahead to the morning.
+      sunline.textContent = night ? 'Sunrise tomorrow 7:26 AM' : day.sun;
     }
     hour();
     if (dark.addEventListener) dark.addEventListener('change', hour);

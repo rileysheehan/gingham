@@ -4,12 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Gingham, a family wall display</title>
-  <meta name="description" content="Gingham, a family wall display. Bring your own Android photo frame or tablet, and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. The app is its own server. No hub, no account, no subscription.">
+  <meta name="description" content="Gingham, a family wall display. Put it on an Android photo frame or an old tablet and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. The app is its own server. No hub, no account, no subscription.">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0b1119" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#070a10" media="(prefers-color-scheme: dark)">
   <meta property="og:title" content="Gingham, a family wall display">
-  <meta property="og:description" content="Bring your own screen. Put Gingham on an Android photo frame or an old tablet, and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. No hub, no account, no subscription.">
+  <meta property="og:description" content="Bring your own screen. Put Gingham on an Android photo frame or an old tablet and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. No hub, no account, no subscription.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gingham.rileysheehan.co/">
+  <meta property="og:image" content="https://gingham.rileysheehan.co/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Gingham wall display of a made-up family: the sky window with the day, the clock and the weather beside the week ahead.">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preload" href="fonts/bricolage-grotesque-var.woff2" as="font" type="font/woff2" crossorigin>
@@ -65,10 +71,10 @@
     <div class="wrap">
       <p class="name">Gingham, a family wall display</p>
       <h1 class="h1">Bring your own screen.</h1>
-      <p class="lede">Put Gingham on an Android photo frame or an old tablet, and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. The app is its own server: no hub, no account, no subscription.</p>
+      <p class="lede">Put Gingham on an Android photo frame or an old tablet and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. The app is its own server. No hub, no account, no subscription.</p>
       <div class="ctas">
         <a class="btn primary" href="https://github.com/rileysheehan/gingham/releases/latest" aria-describedby="app-note">Get the app</a>
-        <a class="btn quiet" href="#lists">See it work</a>
+        <a class="btn quiet" href="#set-up">How it's set up</a>
       </div>
       <p class="note" id="app-note">Free and open source. Android 8.0 or later.</p>
     </div>
@@ -88,12 +94,12 @@
                 <div class="s-nowtext"><p>Partly cloudy</p><p class="s-nowdetail">H:81° L:62°</p></div>
               </div>
               <p class="s-eyebrow s-todaylabel">Today</p>
-              <div class="s-item event happening" style="--rail:#d9782f"><div><span class="s-title">Soccer practice</span><span class="s-meta">Now, until 6:30 PM · Northside fields</span></div></div>
-              <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Chores</span></div></div>
+              <div class="s-item event happening" style="--rail:#d9782f"><div><span class="s-meta">Now, until 6:30 PM · Northside fields</span><span class="s-title">Soccer practice</span></div></div>
+              <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span></div></div>
               <div class="s-tomorrow">
                 <p class="s-eyebrow">Tomorrow</p>
-                <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-title">Early release</span><span class="s-meta">12:30 PM · School</span></div></div>
-                <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Chores</span></div></div>
+                <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-meta">12:30 PM</span><span class="s-title">Early release</span></div></div>
+                <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Pizza night</span></div></div>
               </div>
               <p class="s-countdown">3 sleeps until June's birthday</p>
               <p class="s-sunline">Sunset 7:04 PM</p>
@@ -115,47 +121,47 @@
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Tomorrow</span><b>9</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-sun"/></svg></span><b>81°</b>62°</div>
-                    <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-title">Early release</span><span class="s-meta">12:30 PM</span></div></div>
+                    <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-meta">12:30 PM</span><span class="s-title">Early release</span></div></div>
                     <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Pizza night</span></div></div>
                   </div>
                   <div class="s-day weekend">
                     <div class="s-dayname"><span class="s-eyebrow">Sat</span><b>10</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-partly"/></svg></span><b>79°</b>60°</div>
-                    <div class="s-item event allday" style="--rail:#d9782f"><div><span class="s-title">Grandma Nell visiting</span><span class="s-meta">Through Sunday</span></div></div>
-                    <div class="s-item event" style="--rail:#d9782f"><div><span class="s-title">Farmers market</span><span class="s-meta">9:00 AM</span></div></div>
-                    <div class="s-item event" style="--rail:#8a63c9"><div><span class="s-title">Bike ride</span><span class="s-meta">3:00 PM · Greenbelt</span></div></div>
+                    <div class="s-item event allday" style="--rail:#d9782f"><div><span class="s-title">Grandma Nell visiting</span></div></div>
+                    <div class="s-item event" style="--rail:#d9782f"><div><span class="s-meta">9 AM</span><span class="s-title">Farmers market</span></div></div>
+                    <div class="s-item event" style="--rail:#8a63c9"><div><span class="s-meta">3 PM</span><span class="s-title">Bike ride</span></div></div>
                   </div>
                   <div class="s-day weekend">
                     <div class="s-dayname"><span class="s-eyebrow">Sun</span><b>11</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-sun"/></svg></span><b>83°</b>63°</div>
                     <div class="s-item event allday continues" style="--rail:#d9782f"><div><span class="s-title">Grandma Nell visiting</span></div></div>
                     <div class="s-item event allday" style="--rail:#d9782f"><div><span class="s-title">June turns five</span></div></div>
-                    <div class="s-item event" style="--rail:#d9782f"><div><span class="s-title">Birthday party</span><span class="s-meta">2:00 PM · Backyard</span></div></div>
+                    <div class="s-item event" style="--rail:#d9782f"><div><span class="s-meta">2 PM</span><span class="s-title">Birthday party</span></div></div>
                   </div>
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Mon</span><b>12</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-cloud"/></svg></span><b>77°</b>61°</div>
-                    <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-title">Dentist</span><span class="s-meta">3:15 PM</span></div></div>
+                    <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-meta">3:15 PM</span><span class="s-title">Dentist</span></div></div>
                     <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" aria-label="Theo">T</span></span></div></div>
                   </div>
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Tue</span><b>13</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-rain"/></svg><small>60%</small></span><b>71°</b>58°</div>
-                    <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-title">Book club</span><span class="s-meta">7:00 PM</span></div></div>
+                    <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-meta">7 PM</span><span class="s-title">Book club</span></div></div>
                   </div>
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Wed</span><b>14</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-partly"/></svg></span><b>74°</b>57°</div>
-                    <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-title">Parent night</span><span class="s-meta">6:00 PM · Library</span></div></div>
+                    <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-meta">6 PM</span><span class="s-title">Parent night</span></div></div>
                     <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Recycling</span></div></div>
                   </div>
                 </div>
                 <div class="s-later">
                   <p class="s-eyebrow">Later</p>
                   <div class="s-laterrows">
-                    <div class="s-laterrow" style="--rail:#d9782f"><span class="when">Sat, Oct 17</span><span class="time">10:00 AM</span><i></i><span class="what">Pumpkin patch</span></div>
-                    <div class="s-laterrow" style="--rail:#d9782f"><span class="when">Fri, Oct 23</span><span class="time"></span><i></i><span class="what">Camping <span class="owner">· Through Sunday</span></span></div>
-                    <div class="s-laterrow"><span class="when">Sat, Oct 31</span><span class="time">5:00 PM</span><i class="ring"></i><span class="what">Carve the pumpkins <span class="owner">· Theo</span></span></div>
+                    <div class="s-laterrow" style="--rail:#d9782f"><i></i><span class="when">Sat, Oct 17</span><span class="time">10 AM</span><span class="what">Pumpkin patch</span></div>
+                    <div class="s-laterrow" style="--rail:#d9782f"><i></i><span class="when">Fri, Oct 23</span><span class="time"></span><span class="what">Camping</span></div>
+                    <div class="s-laterrow"><i class="ring"></i><span class="when">Sat, Oct 31</span><span class="time">5 PM</span><span class="what">Carve the pumpkins</span></div>
                   </div>
                 </div>
               </section>
@@ -172,10 +178,10 @@
               <section class="s-view" data-view="chores" hidden aria-label="Chores list">
                 <header class="s-head s-listhead"><h3><svg class="s-glyph" aria-hidden="true"><use href="#g-repeat"/></svg>Chores</h3><p class="s-sub">Everything on a schedule</p><span class="s-add">Add</span></header>
                 <div class="s-card s-listbody">
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Today</span></div></div>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Tomorrow</span></div></div>
-                  <div class="s-item"><i class="s-check" style="--tick:#8a63c9"></i><div><span class="s-title">Water the tomatoes</span><span class="s-meta">Theo · Mon, Oct 12</span></div></div>
-                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Recycling</span><span class="s-meta">Wed, Oct 14</span></div></div>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Thu, Oct 8 · repeats</span></div></div>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Fri, Oct 9 · repeats</span></div></div>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" aria-label="Theo">T</span></span><span class="s-meta">Mon, Oct 12</span></div></div>
+                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Recycling</span><span class="s-meta">Wed, Oct 14 · repeats</span></div></div>
                 </div>
               </section>
 
@@ -237,19 +243,19 @@
 
   <section class="why" id="one-app">
     <div class="wrap">
-      <h2 class="h2">One app. No hub, no cloud, no bill.</h2>
+      <h2 class="h2">The whole thing is one app.</h2>
       <div class="cols">
         <div>
           <h3>Whatever screen you have</h3>
           <p>Ours is a 15.6-inch photo frame that was $50 on Amazon. An old tablet in a drawer, an eBay or Goodwill find: any Android touchscreen from 8.0 on will do.</p>
         </div>
         <div>
-          <h3>The tablet is the server</h3>
-          <p>Gingham runs its own server inside the app. No computer, no hub, no account. Calendar links and tokens stay in the app's own private storage.</p>
+          <h3>The screen is the server</h3>
+          <p>The server runs inside the app, on the screen itself. Nothing else in the house has to be on. Calendar links and tokens stay in the app's own private storage.</p>
         </div>
         <div>
           <h3>No Gingham cloud</h3>
-          <p>Nothing is tracked and nothing phones home. Free and open source under the AGPL, with signed builds on GitHub. In an outage the wall keeps the last good screen and says from when.</p>
+          <p>Nothing is tracked and nothing phones home. When the internet is out, the wall keeps the last good screen and says from when.</p>
         </div>
       </div>
     </div>
@@ -260,9 +266,9 @@
     <section class="room" id="lists">
       <div class="words">
         <h2 class="h2">Lists, at the wall or from a phone.</h2>
-        <p class="lede">Kept by Gingham, or in the list app you already use. Check things off with a moment to undo.</p>
+        <p class="lede">Kept by Gingham, or in Todoist, Google Tasks, Microsoft To Do, a CalDAV server or Home Assistant. Check things off with a moment to undo.</p>
       </div>
-      <div class="crop right" role="img" aria-label="The grocery list on the wall, with Cilantro just checked off and an Undo button">
+      <div class="crop right" role="img" aria-label="The grocery list on the wall, with Cilantro just checked off and a toast reading Checked off Cilantro, with Undo">
         <div class="s-ahead">
           <section class="s-view">
             <header class="s-head s-listhead"><h3><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery</h3><p class="s-sub">Tap to check off</p><span class="s-add">Add</span></header>
@@ -281,13 +287,13 @@
               <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
             </div>
           </section>
-          <div class="s-toast">Cilantro checked off<b>Undo</b></div>
+          <div class="s-toast">Checked off “Cilantro”<b>Undo</b></div>
           <nav class="s-dock">
             <div class="s-tabs">
               <button type="button" tabindex="-1" aria-pressed="false">Calendar</button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-house"/></svg>Family<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
-              <button type="button" tabindex="-1" aria-pressed="true"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>7</b></button>
+              <button type="button" tabindex="-1" aria-pressed="true"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>8</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>2</b></button>
               <button type="button" tabindex="-1" aria-pressed="false">Photos</button>
             </div>
@@ -319,7 +325,7 @@
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-house"/></svg>Family<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>8</b></button>
-              <button type="button" tabindex="-1" aria-pressed="true"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>1</b></button>
+              <button type="button" tabindex="-1" aria-pressed="true"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>2</b></button>
               <button type="button" tabindex="-1" aria-pressed="false">Photos</button>
             </div>
             <span class="s-gear"><svg><use href="#g-sliders"/></svg></span>
@@ -333,7 +339,7 @@
         <h2 class="h2">Any calendar with a link.</h2>
         <p class="lede">Google, Apple, Outlook or any ICS feed. An event marked private shows as Busy.</p>
       </div>
-      <div class="crop left noon" role="img" aria-label="The left panel on a Monday: the clock, the weather, and Today with a dentist appointment, an event shown only as Busy, and a chore">
+      <div class="crop left noon" role="img" aria-label="The left panel on a Monday: the clock, the weather, and Today with an event shown only as Busy, a dentist appointment, and a chore assigned to Theo">
         <aside class="s-today">
           <div class="s-sky"><i class="s-sun"></i><i class="s-cloud c1"></i></div>
           <p class="s-weekday">Monday</p>
@@ -341,9 +347,9 @@
           <p class="s-clock">12:20<span>PM</span></p>
           <div class="s-now"><svg class="s-wx"><use href="#wx-cloud"/></svg><p class="s-temp">72°</p><div class="s-nowtext"><p>Cloudy</p><p class="s-nowdetail">H:77° L:61°</p></div></div>
           <p class="s-eyebrow s-todaylabel">Today</p>
-          <div class="s-item event" style="--rail:#8a63c9"><div><span class="s-title busy">Busy</span><span class="s-meta">1:00 to 2:00 PM</span></div></div>
-          <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-title">Dentist</span><span class="s-meta">3:15 PM · Mara</span></div></div>
-          <div class="s-item chore"><i class="s-check" style="--tick:#8a63c9"></i><div><span class="s-title">Water the tomatoes</span><span class="s-meta">Theo</span></div></div>
+          <div class="s-item event" style="--rail:#8a63c9"><div><span class="s-meta">1 PM · in 40 min</span><span class="s-title busy">Busy</span></div></div>
+          <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-meta">3:15 PM · in 2 hr 55 min</span><span class="s-title">Dentist</span></div></div>
+          <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" aria-label="Theo">T</span></span></div></div>
           <p class="s-countdown">11 sleeps until Camping</p>
           <p class="s-sunline">Sunset 6:59 PM</p>
         </aside>
@@ -393,16 +399,18 @@
             <li class="step"><b>3</b><span>Paste your calendar links, make a list, pick an album.</span></li>
           </ol>
         </div>
-        <div class="crop right" role="img" aria-label="The screen before it is set up: Set up from a phone, the address gingham.local slash setup, and the code K7W-PX4">
+        <div class="crop right" role="img" aria-label="The screen before it is set up, headed Welcome: Set up from a phone, the address gingham.local slash setup, and the code K7W-PX4">
           <div class="s-ahead">
             <section class="s-view">
-              <div class="s-card pair">
+              <header class="s-head"><h3>Welcome</h3></header>
+              <div class="s-card s-strip"><div class="pair">
                 <p class="t">Set up from a phone</p>
-                <p class="p">On a phone on this Wi‑Fi, open the address and enter the code.</p>
+                <p class="p">On the same Wi‑Fi, open this address and enter the code.</p>
                 <p class="addr">gingham.local/setup</p>
                 <p class="or">or 192.168.4.23:4173/setup</p>
                 <p class="code">K7W-PX4</p>
-              </div>
+                <p class="host">Your calendar links and tokens stay on this tablet.</p>
+              </div></div>
             </section>
             <nav class="s-dock">
               <div class="s-tabs"><button type="button" tabindex="-1" aria-pressed="true">Calendar</button></div>
@@ -419,35 +427,34 @@
       <h2 class="h2">What it runs on.</h2>
       <dl class="specs">
         <div class="spec"><dt>Any Android</dt><dd>8.0 or later, on a photo frame or a tablet. Built and tested on a 15.6-inch, 1920 × 1080 photo frame with Android 8.1 and 1 GB of memory.</dd></div>
-        <div class="spec"><dt>The install</dt><dd>An APK from the <a href="https://github.com/rileysheehan/gingham/releases/latest">latest release</a>, about 22 MB, not an app store. Most frames want <code>gingham-32bit.apk</code>; <code>gingham-either.apk</code> runs on any Android.</dd></div>
+        <div class="spec"><dt>The install</dt><dd>An APK from the <a href="https://github.com/rileysheehan/gingham/releases/latest">latest release</a>, not an app store. Most frames want <code>gingham-32bit.apk</code> (22 MB); <code>gingham-either.apk</code> (45 MB) runs on any Android.</dd></div>
         <div class="spec"><dt>Check first</dt><dd>A few photo frames lock their launcher so nothing else can be installed. Look for one that lets you install an APK, or use a tablet.</dd></div>
       </dl>
     </div>
   </section>
 
-  <section class="facts" id="tinkerers">
-    <div class="wrap">
+  <div class="wrap facts-row">
+    <section class="facts" id="tinkerers">
       <h2 class="h2">Plain Node. No packages. No build step.</h2>
       <p class="lede">One small program, on the frame or in a container.</p>
       <div class="ctas">
         <a class="btn primary" href="https://github.com/rileysheehan/gingham/blob/main/docs/HOSTING.md">Read the docs</a>
         <a class="btn quiet" href="https://github.com/rileysheehan/gingham/pkgs/container/gingham">Docker image</a>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="facts" id="status">
-    <div class="wrap">
+    <section class="facts" id="status">
       <h2 class="h2">Open source, and early.</h2>
       <p class="lede">The code is on <a href="https://github.com/rileysheehan/gingham">GitHub</a> under the AGPL-3.0, with signed builds of the app and a container image in its <a href="https://github.com/rileysheehan/gingham/releases">releases</a>.</p>
-      <ul class="coming" aria-label="Coming later">
+      <h3 class="coming-label" id="coming-label">Still to come</h3>
+      <ul class="coming" aria-labelledby="coming-label">
         <li>Adding and editing events at the wall</li>
-        <li>Calendars from more apps, and more places for photos</li>
-        <li>Home controls through Home Assistant</li>
+        <li>Calendars by sign-in as well as by link, and more places for photos</li>
+        <li>Lights and scenes through Home Assistant</li>
         <li>What's for dinner</li>
       </ul>
-    </div>
-  </section>
+    </section>
+  </div>
 
 </main>
 
@@ -458,7 +465,7 @@
       <p class="made"><span>Stitched together in Austin, Texas</span> <svg class="heart" aria-hidden="true"><use href="#heart"/></svg> <span>by <a href="https://rileysheehan.co" rel="author">Riley Sheehan</a>.</span></p>
     </div>
     <div class="fine">
-      <p>No cookies, no trackers, no sign-up.</p>
+      <p>No cookies, no trackers.</p>
       <p>Not affiliated with Todoist, Google, Apple or Microsoft.</p>
       <p class="clock" id="austin-clock"></p>
     </div>

@@ -40,9 +40,9 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --ground:#0b1119;--band:#121a25;--ink:#eef1f6;--ink-2:#a3adbd;--line:#26314a;
-    --button:#f2be3c;--button-ink:#10263f;--bezel:#05080d;--bezel-rim:rgba(255,255,255,.1);--edge:rgba(255,255,255,.13);
-    --crop-shadow:0 0 0 1px var(--edge),0 24px 60px -20px rgba(0,0,0,.7);
+    --ground:#070a10;--band:#0e141e;--ink:#eef1f6;--ink-2:#a3adbd;--line:#222c40;
+    --button:#f2be3c;--button-ink:#10263f;--bezel:#000000;--bezel-rim:rgba(255,255,255,.14);--edge:rgba(255,255,255,.16);
+    --crop-shadow:0 0 0 1px var(--edge),0 0 90px -10px rgba(120,140,220,.16),0 24px 60px -20px rgba(0,0,0,.7);
     --glow:1;
     --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
     --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);
@@ -52,9 +52,9 @@
   }
 }
 :root[data-theme="dark"]{
-  --ground:#0b1119;--band:#121a25;--ink:#eef1f6;--ink-2:#a3adbd;--line:#26314a;
-  --button:#f2be3c;--button-ink:#10263f;--bezel:#05080d;--bezel-rim:rgba(255,255,255,.1);--edge:rgba(255,255,255,.13);
-  --crop-shadow:0 0 0 1px var(--edge),0 24px 60px -20px rgba(0,0,0,.7);
+  --ground:#070a10;--band:#0e141e;--ink:#eef1f6;--ink-2:#a3adbd;--line:#222c40;
+  --button:#f2be3c;--button-ink:#10263f;--bezel:#000000;--bezel-rim:rgba(255,255,255,.14);--edge:rgba(255,255,255,.16);
+  --crop-shadow:0 0 0 1px var(--edge),0 0 90px -10px rgba(120,140,220,.16),0 24px 60px -20px rgba(0,0,0,.7);
   --glow:1;
   --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
   --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);
@@ -112,8 +112,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 
 /* The screen, in a slim bezel. By day it sits on the page; at night it lights the wall behind it. */
 .stage{position:relative;width:100%;margin-top:clamp(36px,6vw,64px)}
-.stage::before{content:"";position:absolute;inset:-12% -8% -6%;z-index:0;pointer-events:none;opacity:var(--glow);
-  background:radial-gradient(62% 60% at 20% 50%,rgba(181,86,107,.6),transparent 70%),radial-gradient(58% 64% at 72% 48%,rgba(84,110,196,.42),transparent 70%);filter:blur(30px)}
+.stage::before{content:"";position:absolute;inset:-14% -10% -8%;z-index:0;pointer-events:none;opacity:var(--glow);
+  background:radial-gradient(62% 60% at 20% 50%,rgba(181,86,107,.72),transparent 70%),radial-gradient(58% 64% at 72% 48%,rgba(84,110,196,.52),transparent 70%);filter:blur(36px)}
 .bezel{position:relative;z-index:1;padding:clamp(5px,.8vw,10px);background:var(--bezel);border-radius:clamp(8px,1.2vw,16px);box-shadow:inset 0 0 0 1px var(--bezel-rim),0 30px 60px -30px rgba(0,0,0,.45)}
 .bezel .screen{border-radius:clamp(4px,.5vw,7px)}
 .stage-caption{position:relative;z-index:1;margin-top:16px;font-size:.9rem;color:var(--ink-2)}
@@ -130,7 +130,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .rooms{padding-block:clamp(56px,8vw,112px) 0;display:grid;gap:clamp(56px,8vw,112px)}
 .room{display:grid;gap:22px;align-items:center}
 .room .h2{max-width:18ch}
-.room p{margin-top:12px;max-width:34ch}
+/* Scoped to the words column: a bare .room p reached into the crops and moved every list subhead and aisle label. */
+.room .words p{margin-top:12px;max-width:34ch}
 @media (min-width:900px){
   .room{grid-template-columns:5fr 7fr;gap:56px}
   .room.flip{grid-template-columns:7fr 5fr}
@@ -157,13 +158,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .step span{color:var(--ink-2);text-wrap:pretty}
 .step code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
 .setup .room{margin-top:0}
-/* The pairing screen, as the product draws it inside its calendar card. */
-.pair{display:flex;flex-direction:column;justify-content:center;padding:4em 4.5em}
-.pair .t{font:600 2.1em/1.3 var(--text);letter-spacing:-.01em}
-.pair .p{font-size:1.6em;color:var(--s-ink-2);max-width:26em;margin-top:.3em}
-.pair .addr{font:600 2.6em/1.2 var(--text);letter-spacing:-.01em;margin-top:1.4em}
-.pair .or{font-size:1.5em;color:var(--s-ink-2);margin-top:.3em;font-variant-numeric:tabular-nums}
-.pair .code{font:600 9em/1 var(--text);letter-spacing:.06em;margin-top:.25em;font-variant-numeric:tabular-nums}
+/* The pairing screen, as the product draws it inside its calendar card: 2.5rem of padding, centred in the card's height. */
+.pair{align-self:center;padding:2.5em;color:var(--s-ink-2)}
+.pair .t{font:600 2.1em/1.3 var(--text);letter-spacing:-.01em;color:var(--s-ink);margin-bottom:.143em}
+.pair .p{font-size:1.6em;line-height:1.35}
+.pair .addr{font:600 2.6em/1.2 var(--text);letter-spacing:-.01em;color:var(--s-ink);margin-top:.615em}
+.pair .or{font-size:1.5em;margin-top:.267em;font-variant-numeric:tabular-nums}
+.pair .code{font:600 9em/1 var(--text);letter-spacing:.06em;color:var(--s-ink);margin:.156em 0 .167em;font-variant-numeric:tabular-nums}
+.pair .host{font-size:1.5em}
 
 /* ---------- Which screen, tinkerers, status ---------- */
 .band{margin-top:clamp(56px,8vw,112px);padding-block:clamp(48px,6vw,80px);background:var(--band);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -174,14 +176,16 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .spec dt{font-weight:600}
 .spec dd{color:var(--ink-2);text-wrap:pretty}
 .spec code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
-.facts{padding-block:clamp(56px,8vw,112px) 0}
+.facts-row{display:grid;gap:clamp(56px,8vw,112px) 56px;padding-top:clamp(56px,8vw,112px)}
+@media (min-width:900px){.facts-row{grid-template-columns:1fr 1fr}}
 .facts .h2{max-width:22ch}
 .facts .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .facts p.lede{margin-top:12px;max-width:44ch}
-.coming{margin-top:20px;display:grid;gap:6px;max-width:40ch}
+.coming-label{margin-top:26px;font:600 1rem/1.3 var(--text)}
+.coming{margin-top:6px;display:grid;gap:6px;max-width:40ch}
 .coming li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
 .coming li:last-child{border-bottom:0}
-.coming li::before{content:"";width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink-2);flex:none}
+.coming li::before{content:"";width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink-2);flex:none}
 
 /* ---------- Footer ---------- */
 .foot{margin-top:clamp(64px,9vw,120px);padding:40px 0 48px;border-top:1px solid var(--line)}
@@ -368,3 +372,4 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
    width, cropped to its left edge, so the sky window is whole and the first days of the week follow it. */
 @media (max-width:767px){.hero .stage{align-self:stretch;width:auto;margin-inline:-20px}.bezel{border-radius:0;padding-inline:0;box-shadow:none}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
 @media (max-width:600px){.bezel{overflow:hidden}.bezel>.screen-box{width:200%}}
+@media (max-width:600px){.crop.right{aspect-ratio:62/50}.crop.right>.s-ahead{right:auto;width:80em;font-size:calc(100cqw / 62)}}
