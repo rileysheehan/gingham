@@ -36,12 +36,13 @@ gets in by a one-time link, or through a frame the household already has.
 ### Run a server
 
 ```sh
-docker build -t gingham .
 docker run -d --name gingham -p 8080:8080 -v gingham-data:/data \
   -e FRAME_URL=http://192.168.1.20:8080 \
-  -e FRAME_MASTER_KEY="$(openssl rand -base64 32)" gingham
+  -e FRAME_MASTER_KEY="$(openssl rand -base64 32)" ghcr.io/rileysheehan/gingham:latest
 docker logs gingham        # prints a one-time link: open it on your phone to set up the first household
 ```
+
+The image is built for Intel and ARM from each release; `docker build -t gingham .` builds the same thing from a checkout.
 
 `FRAME_URL` is the address phones and frames will use to reach it, here this machine on the home network. Keep
 `FRAME_MASTER_KEY` somewhere safe and give the same value on every start: it seals each household's calendar
@@ -51,8 +52,10 @@ covers households, pairing, secrets, each list service, Fly.io, and running it f
 ### The Android app
 
 `kiosk/` is the app: one activity, a WebView and the server, no libraries. It needs Android 8.0 or later and was built
-on a 15.6-inch 1920×1080 photo frame with 1 GB of memory. Signed builds are coming to this repository's releases;
-until then, `kiosk/` builds with Gradle (see its build file for the Node runtime it expects).
+on a 15.6-inch 1920×1080 photo frame with 1 GB of memory. Signed builds are in this repository's
+[releases](https://github.com/rileysheehan/gingham/releases): most frames and cheap tablets want `gingham-32bit.apk`,
+and `gingham-either.apk` works on any. To build it yourself, `kiosk/` builds with Gradle (see its build file for the
+Node runtime it expects).
 
 ## How it is built
 
@@ -67,7 +70,7 @@ WebView cheap frames ship with. `npm test` runs the tests, `npm run check` the s
 
 ## Status
 
-Early, and in daily use on one family's kitchen wall. Nothing is released yet. What is coming is in
+Early, and in daily use on one family's kitchen wall. The first release is 0.1.0. What is coming is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licence and security

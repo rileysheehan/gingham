@@ -80,8 +80,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .btn.quiet:hover{border-color:var(--ink-2)}
 .btn.small{height:36px;padding:0 14px;font-size:.92rem}
 /* Nothing can be downloaded yet: every outward link says so on its face. */
-.btn .soon{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:.72rem;font-weight:600;background:var(--butter);color:#10263f}
-.btn[aria-disabled="true"]{cursor:not-allowed}
 
 /* ---------- Hero ---------- */
 .hero{padding-block:clamp(40px,7vw,80px) 0;text-align:center}
