@@ -21,6 +21,22 @@
     }
   }
 
+  // After dark the hero screen shows the product's evening, so its clock reads later and soccer runs under the lights.
+  // The rest of the Thursday stays; only what a later hour would change changes.
+  var clockEl = screen && screen.querySelector('.s-clock');
+  var soccer = screen && screen.querySelector('.s-item.happening .s-meta');
+  if (clockEl && soccer && window.matchMedia) {
+    var dark = window.matchMedia('(prefers-color-scheme: dark)');
+    var day = { clock: clockEl.firstChild.nodeValue, soccer: soccer.textContent };
+    function hour() {
+      var night = dark.matches && document.documentElement.getAttribute('data-theme') !== 'light' || document.documentElement.getAttribute('data-theme') === 'dark';
+      clockEl.firstChild.nodeValue = night ? '7:16' : day.clock;
+      soccer.textContent = night ? 'Now, until 8:00 PM · Northside fields' : day.soccer;
+    }
+    hour();
+    if (dark.addEventListener) dark.addEventListener('change', hour);
+  }
+
   // The time where it was made. Refreshes on the minute.
   var clock = document.getElementById('austin-clock');
   if (clock && window.Intl && Intl.DateTimeFormat) {

@@ -2,9 +2,13 @@
   Gingham, a family wall display — product site. Static, no build step.
   Fonts are the product's own, self-hosted under fonts/ with their OFL licences.
 
-  The page is white, ink and hairlines; the only colour on it is the product (its sky) and the
-  mark. The mark is a gingham made the way gingham is: two translucent bands crossing, so one
+  By day the page is white, ink and hairlines; the only colour on it is the product (its sky) and
+  the mark. The mark is a gingham made the way gingham is: two translucent bands crossing, so one
   colour, butter, gives the pale check, the deep check and the white.
+
+  At night the page is not an inversion. The wall screen shows the product's own evening — its dark
+  theme under a dusk sky, as it looks at 7 PM — and lights the wall around it; the mark's butter
+  becomes the colour of the one button that matters.
 */
 @font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-grotesque-var.woff2) format("woff2");font-weight:200 800;font-display:swap}
 @font-face{font-family:"Inter";src:url(fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
@@ -19,29 +23,43 @@
   --ink-2:#5b6b7d;
   --line:#dfe4ea;
   --butter:#f2be3c;
-  --check:rgba(242,190,60,.55);
   --button:#10263f;
   --button-ink:#ffffff;
   --bezel:#141a24;
+  --bezel-rim:rgba(255,255,255,.06);
   --edge:rgba(16,38,63,.14);
+  --crop-shadow:0 0 0 1px var(--edge);
+  --glow:0;
 
-  /* The wall screen's own palette, from the product's stylesheet. The screen is an object in the
-     room; by day it is light whatever the page does. */
+  /* The wall screen's own palette, from the product's stylesheet: its light theme, by day. */
   --s-surface:#f3f6f9;--s-card:#ffffff;--s-ink:#10263f;--s-ink-2:#51647a;--s-line:#d6dfe7;--s-accent:#1b66c9;
   --s-press:#e6ecf2;--s-selected:#ffffff;--s-shade:rgba(16,38,63,.14);--s-tint:rgba(16,38,63,.028);
-  --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;--sun:#ffc94d;--rain:#4a97e8;
+  --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;--sun:#ffc94d;--rain:#4a97e8;--moon:#f1e6c3;
+  --cloud:rgba(255,255,255,.62);--sunglow:1;--stars:0;--photo-dim:1;--fill-dim:.55;--day-icon:block;--night-icon:none;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --ground:#0e141f;--band:#151d2b;--ink:#e6eaf2;--ink-2:#9aa6b8;--line:#243047;
-    --button:#e6eaf2;--button-ink:#0e141f;--bezel:#05080d;--edge:rgba(255,255,255,.12);
+    --ground:#0b1119;--band:#121a25;--ink:#eef1f6;--ink-2:#a3adbd;--line:#26314a;
+    --button:#f2be3c;--button-ink:#10263f;--bezel:#05080d;--bezel-rim:rgba(255,255,255,.1);--edge:rgba(255,255,255,.13);
+    --crop-shadow:0 0 0 1px var(--edge),0 24px 60px -20px rgba(0,0,0,.7);
+    --glow:1;
+    --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
+    --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);
+    --sky-top:#26306a;--sky-bottom:#b5566b;--sky-ink:#fdf6ee;
+    --cloud:rgba(196,206,236,.16);--sunglow:0;--stars:1;--photo-dim:.68;--fill-dim:.3;--day-icon:none;--night-icon:block;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --ground:#0e141f;--band:#151d2b;--ink:#e6eaf2;--ink-2:#9aa6b8;--line:#243047;
-  --button:#e6eaf2;--button-ink:#0e141f;--bezel:#05080d;--edge:rgba(255,255,255,.12);
+  --ground:#0b1119;--band:#121a25;--ink:#eef1f6;--ink-2:#a3adbd;--line:#26314a;
+  --button:#f2be3c;--button-ink:#10263f;--bezel:#05080d;--bezel-rim:rgba(255,255,255,.1);--edge:rgba(255,255,255,.13);
+  --crop-shadow:0 0 0 1px var(--edge),0 24px 60px -20px rgba(0,0,0,.7);
+  --glow:1;
+  --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
+  --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);
+  --sky-top:#26306a;--sky-bottom:#b5566b;--sky-ink:#fdf6ee;
+  --cloud:rgba(196,206,236,.16);--sunglow:0;--stars:1;--photo-dim:.68;--fill-dim:.3;--day-icon:none;--night-icon:block;
   color-scheme:dark;
 }
 
@@ -62,9 +80,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 @media (min-width:768px){.wrap{padding-inline:40px}}
 
 /* ---------- Type ---------- */
-.h1{font:600 clamp(2.6rem,7vw,4.25rem)/1.02 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.035em;text-wrap:balance}
+.h1{font:600 clamp(2.9rem,8.2vw,5.25rem)/1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.04em;text-wrap:balance}
 .h2{font:600 clamp(1.7rem,3.2vw,2.35rem)/1.1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.03em;text-wrap:balance}
 .lede{font-size:clamp(1.05rem,1.4vw,1.25rem);line-height:1.5;color:var(--ink-2);text-wrap:pretty}
+.lede a,.cols a,.spec a{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.18em;text-decoration-color:var(--line)}
+.lede a:hover,.cols a:hover,.spec a:hover{text-decoration-color:var(--ink)}
 .quiet{color:var(--ink-2)}
 
 /* ---------- Header ---------- */
@@ -76,26 +96,35 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 /* ---------- Buttons ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:999px;font-weight:600;font-size:1rem;white-space:nowrap;border:1.5px solid transparent}
 .btn.primary{background:var(--button);color:var(--button-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
 .btn.quiet{border-color:var(--line);color:var(--ink)}
 .btn.quiet:hover{border-color:var(--ink-2)}
 .btn.small{height:36px;padding:0 14px;font-size:.92rem}
-/* Nothing can be downloaded yet: every outward link says so on its face. */
 
 /* ---------- Hero ---------- */
-.hero{padding-block:clamp(40px,7vw,80px) 0;text-align:center}
+.hero{padding-block:clamp(40px,7vw,84px) 0;text-align:center}
 .hero .wrap{display:flex;flex-direction:column;align-items:center}
 .hero .name{font-weight:500;color:var(--ink-2)}
-.hero .h1{margin-top:14px;max-width:14ch}
-.hero .lede{margin-top:18px;max-width:44ch}
+.hero .h1{margin-top:14px;max-width:22ch}
+.hero .lede{margin-top:22px;max-width:46ch}
 .hero .ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:30px}
 .hero .note{margin-top:14px;font-size:.9rem;color:var(--ink-2)}
 
-/* The screen, in a slim bezel, with nothing behind it. */
-.stage{width:100%;margin-top:clamp(36px,6vw,64px)}
-.bezel{padding:clamp(5px,.8vw,10px);background:var(--bezel);border-radius:clamp(8px,1.2vw,16px)}
+/* The screen, in a slim bezel. By day it sits on the page; at night it lights the wall behind it. */
+.stage{position:relative;width:100%;margin-top:clamp(36px,6vw,64px)}
+.stage::before{content:"";position:absolute;inset:-12% -8% -6%;z-index:0;pointer-events:none;opacity:var(--glow);
+  background:radial-gradient(62% 60% at 20% 50%,rgba(181,86,107,.6),transparent 70%),radial-gradient(58% 64% at 72% 48%,rgba(84,110,196,.42),transparent 70%);filter:blur(30px)}
+.bezel{position:relative;z-index:1;padding:clamp(5px,.8vw,10px);background:var(--bezel);border-radius:clamp(8px,1.2vw,16px);box-shadow:inset 0 0 0 1px var(--bezel-rim),0 30px 60px -30px rgba(0,0,0,.45)}
 .bezel .screen{border-radius:clamp(4px,.5vw,7px)}
-.stage-caption{margin-top:16px;font-size:.9rem;color:var(--ink-2)}
-@media (max-width:767px){.stage{margin-inline:-20px}.bezel{border-radius:0;padding-inline:0}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
+.stage-caption{position:relative;z-index:1;margin-top:16px;font-size:.9rem;color:var(--ink-2)}
+
+/* ---------- One app, and what that means ---------- */
+.why{padding-block:clamp(56px,8vw,112px) 0}
+.why .h2{max-width:22ch}
+.cols{display:grid;gap:28px;margin-top:28px}
+@media (min-width:900px){.cols{grid-template-columns:1fr 1fr 1fr;gap:40px}}
+.cols h3{font:600 1.15rem/1.3 var(--text);letter-spacing:-.01em}
+.cols p{margin-top:8px;color:var(--ink-2);text-wrap:pretty;max-width:34ch}
 
 /* ---------- One sentence, one screen state ---------- */
 .rooms{padding-block:clamp(56px,8vw,112px) 0;display:grid;gap:clamp(56px,8vw,112px)}
@@ -110,12 +139,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
   .room.tall{grid-template-columns:7fr 5fr}
 }
 /* A crop of the real UI: the right side or the left panel on its own, in the product's own scale. */
-.crop{container-type:inline-size;position:relative;overflow:hidden;background:var(--s-surface);color:var(--s-ink);border-radius:12px;box-shadow:0 0 0 1px var(--edge);font-family:var(--text);font-feature-settings:"cv05" 1,"cv08" 1;line-height:1.35}
+.crop{container-type:inline-size;position:relative;overflow:hidden;background:var(--s-surface);color:var(--s-ink);border-radius:12px;box-shadow:var(--crop-shadow);font-family:var(--text);font-feature-settings:"cv05" 1,"cv08" 1;line-height:1.35}
 .crop *{font-size:1em}
 .crop.right{aspect-ratio:80/58}
 .crop.right>.s-ahead{position:absolute;inset:0;font-size:calc(100cqw / 80)}
 .crop.left{aspect-ratio:40/60}
 .crop.left>.s-today{position:absolute;inset:0;flex:none;font-size:calc(100cqw / 40)}
+/* A crop of the sky window at noon keeps its noon sky whatever the page does; it is a different moment, not a theme. */
+.crop.noon{--sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;--cloud:rgba(255,255,255,.62);--sunglow:1;--stars:0}
 
 /* ---------- Set up ---------- */
 .setup{padding-block:clamp(56px,8vw,112px) 0}
@@ -134,22 +165,17 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .pair .or{font-size:1.5em;color:var(--s-ink-2);margin-top:.3em;font-variant-numeric:tabular-nums}
 .pair .code{font:600 9em/1 var(--text);letter-spacing:.06em;margin-top:.25em;font-variant-numeric:tabular-nums}
 
-/* ---------- Where it runs ---------- */
-.home{margin-top:clamp(56px,8vw,112px);padding-block:clamp(48px,6vw,80px);background:var(--band)}
-.home .h2{max-width:20ch}
-.home .cols{display:grid;gap:28px;margin-top:28px}
-@media (min-width:768px){.home .cols{grid-template-columns:1fr 1fr 1fr;gap:40px}}
-.home h3{font:600 1.15rem/1.3 var(--text);letter-spacing:-.01em}
-.home .cols p{margin-top:8px;color:var(--ink-2);text-wrap:pretty}
-
-/* ---------- Hardware, tinkerers, status ---------- */
-.facts{padding-block:clamp(56px,8vw,112px) 0}
-.facts .h2{max-width:22ch}
+/* ---------- Which screen, tinkerers, status ---------- */
+.band{margin-top:clamp(56px,8vw,112px);padding-block:clamp(48px,6vw,80px);background:var(--band);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.band .h2{max-width:22ch}
 .specs{margin-top:24px;border-top:1px solid var(--line);max-width:760px}
 .spec{display:grid;grid-template-columns:1fr;gap:2px;padding:14px 0;border-bottom:1px solid var(--line)}
 @media (min-width:600px){.spec{grid-template-columns:170px 1fr;gap:24px}}
 .spec dt{font-weight:600}
 .spec dd{color:var(--ink-2);text-wrap:pretty}
+.spec code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
+.facts{padding-block:clamp(56px,8vw,112px) 0}
+.facts .h2{max-width:22ch}
 .facts .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .facts p.lede{margin-top:12px;max-width:44ch}
 .coming{margin-top:20px;display:grid;gap:6px;max-width:40ch}
@@ -172,7 +198,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 /* =====================================================================================
    The wall screen. A faithful recreation of the 1920 × 1080 display in its own design language.
    Every size inside is in em, and the screen's font-size is 1/120 of its own width (the product's
-   own rule), so the whole thing scales as one drawing. Containers stay at 1em; only leaves set a size.
+   own rule), so the whole thing scales as one drawing. Containers stay at 1em; only leaves set a
+   size, and a leaf inside a sized leaf divides by its parent so its em still means the product's rem.
    The product's uppercase eyebrows and middle dots are its own design and stay.
    ===================================================================================== */
 .screen-box{container-type:inline-size;width:100%}
@@ -185,30 +212,40 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-today>*{position:relative;z-index:1}
 .s-sky{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
 .s-sky i{position:absolute;display:block}
-.s-sun{top:-16em;right:-14em;width:44em;height:44em;border-radius:50%;background:radial-gradient(closest-side,rgba(255,246,220,.8),rgba(255,246,220,0));animation:breathe 16s ease-in-out infinite alternate}
-.s-cloud{left:0;height:15em;width:30em;background-image:radial-gradient(closest-side,rgba(255,255,255,.62),rgba(255,255,255,0)),radial-gradient(closest-side,rgba(255,255,255,.62),rgba(255,255,255,0)),radial-gradient(closest-side,rgba(255,255,255,.62),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;animation:drift 200s linear infinite}
+.s-sun{top:-16em;right:-14em;width:44em;height:44em;border-radius:50%;background:radial-gradient(closest-side,rgba(255,246,220,.8),rgba(255,246,220,0));animation:breathe 16s ease-in-out infinite alternate;opacity:var(--sunglow)}
+.s-cloud{left:0;height:15em;width:30em;background-image:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;animation:drift 200s linear infinite}
 .s-cloud.c1{top:6em;animation-delay:-60s}
 .s-cloud.c2{top:38em;width:24em;animation-duration:260s;animation-delay:-180s}
+/* Stars, as the product scatters them after dark: a handful of faint points in the upper sky. */
+.s-stars{inset:0;opacity:var(--stars);background-image:
+  radial-gradient(circle,rgba(255,255,255,.55) 0 .11em,transparent .16em),radial-gradient(circle,rgba(255,255,255,.4) 0 .09em,transparent .14em),
+  radial-gradient(circle,rgba(255,255,255,.45) 0 .1em,transparent .15em),radial-gradient(circle,rgba(255,255,255,.3) 0 .09em,transparent .14em);
+  background-size:23em 19em,31em 27em,17em 29em,29em 13em;background-position:3em 2em,11em 9em,7em 5em,15em 1em;background-repeat:repeat;
+  -webkit-mask-image:linear-gradient(to bottom,#000 30%,transparent 62%);mask-image:linear-gradient(to bottom,#000 30%,transparent 62%)}
 @keyframes drift{from{transform:translate3d(-100%,0,0)}to{transform:translate3d(400%,0,0)}}
-@keyframes breathe{from{opacity:.55}to{opacity:.9}}
+@keyframes breathe{from{opacity:calc(.55 * var(--sunglow))}to{opacity:calc(.9 * var(--sunglow))}}
 @media (prefers-reduced-motion:reduce){.s-sun,.s-cloud{animation:none}.s-cloud.c1{transform:translate3d(20%,0,0)}.s-cloud.c2{transform:translate3d(90%,0,0)}}
 .s-weekday{font:600 5.25em/1 var(--display);letter-spacing:-.03em}
 .s-date{font:400 2.5em/1.2 var(--display);letter-spacing:-.01em;opacity:.78;margin-top:.2em}
-.s-clock{font:300 11.5em/1 var(--display);letter-spacing:-.045em;margin:.2em 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.s-clock{font:300 11.5em/1 var(--display);letter-spacing:-.045em;margin:.196em 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
 .s-clock span{font-size:.217em;font-weight:500;letter-spacing:0;margin-left:.8em;opacity:.78;vertical-align:baseline}
 .s-now{display:flex;align-items:center;margin-top:1.75em}
 .s-wx{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .s-wx .sun{fill:var(--sun);stroke:var(--sun)}
+.s-wx .moon{fill:var(--moon);stroke:var(--moon);stroke-width:1}
 .s-wx .drop{stroke:var(--rain)}
 .s-now .s-wx{width:5em;height:5em;flex:none;margin-right:1.1em}
-.s-temp{font:500 4.5em/1 var(--display);letter-spacing:-.04em;margin-right:.3em}
+/* The current conditions carry a moon after sunset; the forecast days keep their suns. */
+.s-now .s-wx.day{display:var(--day-icon)}
+.s-now .s-wx.night{display:var(--night-icon)}
+.s-temp{font:500 4.5em/1 var(--display);letter-spacing:-.04em;margin-right:.31em}
 .s-nowtext p{font-size:1.75em;line-height:1.3;font-weight:600}
 .s-nowtext .s-nowdetail{font-weight:400;font-size:1.4em;opacity:.78;font-variant-numeric:tabular-nums}
-.s-todaylabel{color:inherit;opacity:.7;margin-top:2.25em;padding-top:1.5em;border-top:.125em solid rgba(127,127,127,.35);margin-bottom:1.1em}
+.s-todaylabel{color:inherit;opacity:.7;margin-top:1.96em;padding-top:1.3em;border-top:.11em solid rgba(127,127,127,.35);margin-bottom:.96em}
 .s-tomorrow{margin-top:1.5em;padding-top:1.4em;border-top:.125em solid rgba(127,127,127,.35)}
-.s-tomorrow .s-eyebrow{color:inherit;opacity:.7;margin-bottom:1.1em}
+.s-tomorrow .s-eyebrow{color:inherit;opacity:.7;margin-bottom:.96em}
 .s-countdown{margin-top:auto;padding-top:1.25em;font:600 1.75em/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.s-sunline{font:500 1.4em/1 var(--text);opacity:.78;padding-top:.7em;font-variant-numeric:tabular-nums}
+.s-sunline{font:500 1.4em/1 var(--text);opacity:.78;padding-top:.5em;font-variant-numeric:tabular-nums}
 
 /* Items: an event carries a calendar-coloured rail, a chore a circle you can tap. */
 .s-item{display:flex;align-items:flex-start;position:relative;margin-bottom:1.5em}
@@ -227,7 +264,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-tomorrow .s-title{font-size:1.9em}
 .s-tomorrow .s-meta{font-size:1.3em}
 .s-tomorrow .s-check{width:2.2em;height:2.2em}
-.s-owner{display:inline-flex;align-items:center;justify-content:center;width:2em;height:2em;border-radius:50%;background:var(--who);color:#fff;font:700 1.1em/1 var(--text);margin-left:.5em;vertical-align:.1em}
+/* A person's monogram beside a chore: 2rem in Today (font 1.1), 1.7rem in a week column (font .95). Set through the
+   title's own size so the em still means the product's rem. */
+.s-owner{display:inline-flex;align-items:center;justify-content:center;width:1.82em;height:1.82em;border-radius:50%;background:var(--who);color:#fff;font:700 .489em/1 var(--text);margin-left:.55em;vertical-align:.1em}
 
 /* Right side: the view you pick. */
 .s-ahead{flex:1;min-width:0;display:flex;flex-direction:column;padding:2.25em 2.75em 1.5em}
@@ -243,7 +282,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-arrow{width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .s-arrow svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .s-arrow.off{opacity:.25}
-.s-add{height:3em;padding:0 1.6em;border-radius:1.5em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center}
+/* "Add": 3rem tall, 1.3rem type. */
+.s-add{height:2.31em;padding:0 1.23em;border-radius:1.16em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center}
 .s-add,.s-arrow{color:var(--s-ink)}
 .s-card{flex:1;min-height:0;background:var(--s-card);border-radius:1.5em;box-shadow:0 .1em .2em var(--s-shade);overflow:hidden}
 .s-strip{display:flex}
@@ -253,16 +293,18 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-dayname{display:flex;flex-direction:column;line-height:1}
 .s-dayname .s-eyebrow{margin-bottom:.45em}
 .s-dayname b{font:600 2.75em/1 var(--display);letter-spacing:-.04em}
+/* The forecast line: a 2.6rem column holds the icon with the chance of rain beneath it, then high and low. */
 .s-forecast{display:flex;align-items:center;height:3.2em;margin:.7em 0 1.1em;padding-bottom:1em;box-sizing:content-box;border-bottom:.0625em solid var(--s-line);font-size:1.45em;color:var(--s-ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
-.s-forecast .s-wx{width:1.65em;height:1.65em;margin-right:.45em;color:var(--s-ink-2)}
-.s-forecast b{color:var(--s-ink);font-weight:600;margin-right:.35em}
-.s-forecast small{font-size:.72em;font-weight:600;color:var(--rain);margin-left:.35em}
+.s-forecast .s-wx{width:1.66em;height:1.66em;color:var(--s-ink-2)}
+.s-forecast .wxcol{flex:none;width:1.8em;margin-right:.41em;display:flex;flex-direction:column;align-items:center}
+.s-forecast b{color:var(--s-ink);font-weight:600;margin-right:.31em}
+.s-forecast small{display:block;font-size:.72em;line-height:1;font-weight:600;color:var(--rain);margin-top:-.1em}
 .s-day .s-item{margin-bottom:1.15em}
 .s-day .s-title{font-size:1.55em;line-height:1.22}
 .s-day .s-meta{font-size:1.3em;white-space:normal}
 .s-day .s-check{width:1.9em;height:1.9em;margin:.05em .7em 0 0}
 .s-day .s-item.allday .s-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.s-day .s-owner{width:1.7em;height:1.7em;font-size:.95em;margin-left:.6em}
+.s-day .s-owner{width:1.79em;height:1.79em;font-size:.613em;margin-left:.63em}
 .s-later{display:flex;padding:1.5em .5em 0 1.1em}
 .s-later .s-eyebrow{flex:0 0 6.1em;line-height:2.1em}
 .s-laterrows{flex:1;min-width:0}
@@ -289,34 +331,40 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-listbody.kid .s-item{min-height:5.6em;padding:1.1em 0}
 .s-listbody.kid .s-check{width:3.2em;height:3.2em;margin-right:1.3em}
 .s-listbody.kid .s-title{font-size:2.6em}
-.s-emoji{flex:none;font-size:3.2em;line-height:1;margin:0 .3em 0 .06em;order:-1}
+.s-emoji{flex:none;font-size:3.2em;line-height:1;margin:0 .31em 0 .06em;order:-1}
+/* The list's mark in its header: a 2.6rem glyph or a 3.2rem monogram beside a 2.5rem title. */
 .s-listhead h3{display:flex;align-items:center}
-.s-listhead .s-glyph{width:2.6em;height:2.6em;margin-right:1em;color:var(--s-ink-2);stroke-width:1.8}
-.s-listhead .s-avatar{width:2.2em;height:2.2em;margin-right:.8em;font-size:.5em}
+.s-listhead .s-glyph{width:1.04em;height:1.04em;margin-right:.4em;color:var(--s-ink-2);stroke-width:1.8}
+.s-listhead .s-avatar{width:1.88em;height:1.88em;margin-right:.59em;font-size:.68em}
 /* The toast: what a check-off looks like for the next ten seconds. */
 .s-toast{position:absolute;z-index:3;left:50%;bottom:6.75em;transform:translateX(-50%);display:flex;align-items:center;padding:.5em .6em .5em 1.75em;border-radius:2.5em;background:var(--s-ink);color:var(--s-surface);font-size:1.5em;box-shadow:0 .75em 2.5em var(--s-shade);white-space:nowrap}
 .s-toast b{margin-left:1em;height:2.27em;padding:0 1.07em;border-radius:1.2em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
-.s-cheer{position:absolute;z-index:3;left:50%;top:44%;transform:translate(-50%,-50%);font-size:12em;line-height:1}
+.s-cheer{position:absolute;z-index:3;left:50%;top:44%;transform:translate(-50%,-50%);font-size:14em;line-height:1}
 
-/* Photos: the photo whole, over a blurred copy of itself. */
+/* Photos: the photo whole, over a blurred copy of itself. After dark the product dims both, so the wall is not glare. */
 .s-photo{position:relative;background:#000}
-.s-photo .fill{position:absolute;inset:-4em;background-size:cover;background-position:center;filter:blur(3em) brightness(.55)}
-.s-photo .pic{position:absolute;inset:0;margin:auto;height:100%;aspect-ratio:3/4}
+.s-photo .fill{position:absolute;inset:-4em;background-size:cover;background-position:center;filter:blur(3em) brightness(var(--fill-dim))}
+.s-photo .pic{position:absolute;inset:0;margin:auto;height:100%;aspect-ratio:3/4;filter:brightness(var(--photo-dim))}
 .s-photo .pic svg{width:100%;height:100%}
+.s-photo .pic img{display:block;width:100%;height:100%;object-fit:cover}
 
 /* Dock. */
 .s-dock{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:1.25em;height:4em}
 .s-tabs{display:flex;background:var(--s-press);border-radius:2em;padding:.3em}
 .s-tabs button{display:flex;align-items:center;height:3.4em;padding:0 1.4em;border-radius:1.7em;font-size:1.4em;font-weight:600;color:var(--s-ink-2);white-space:nowrap;line-height:1}
-.s-tabs button b{font-weight:600;font-variant-numeric:tabular-nums;margin-left:.55em;color:var(--s-ink)}
+.s-tabs button b{font-weight:600;font-size:1.036em;font-variant-numeric:tabular-nums;margin-left:.55em;color:var(--s-ink)}
 .s-tabs button[aria-pressed="true"]{background:var(--s-selected);color:var(--s-ink);box-shadow:0 .08em .25em var(--s-shade)}
 .s-tabs button:focus-visible{outline:.2em solid var(--s-accent);outline-offset:.1em}
-.s-glyph{flex:none;width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;margin-right:.45em}
-.s-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;width:1.35em;height:1.35em;border-radius:50%;background:var(--who);color:#fff;font:700 .75em/1 var(--text);margin-right:.6em}
+.s-glyph{flex:none;width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;margin-right:.43em}
+.s-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;width:1.36em;height:1.36em;border-radius:50%;background:var(--who);color:#fff;font:700 .75em/1 var(--text);margin-right:.57em}
 .s-gear{width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--s-ink-2)}
 .s-gear svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .s-gear circle{fill:var(--s-surface)}
 
 /* On a phone the hero screen is a picture, so its live controls step back. */
 @media (max-width:600px){.s-tabs button{pointer-events:none}}
-.lede a{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.18em}
+
+/* On a phone the bezel runs edge to edge, and the whole screen would be three pixels to the em: show it at twice the
+   width, cropped to its left edge, so the sky window is whole and the first days of the week follow it. */
+@media (max-width:767px){.hero .stage{align-self:stretch;width:auto;margin-inline:-20px}.bezel{border-radius:0;padding-inline:0;box-shadow:none}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
+@media (max-width:600px){.bezel{overflow:hidden}.bezel>.screen-box{width:200%}}
