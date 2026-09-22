@@ -3,24 +3,19 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
-const {spawn} = require('node:child_process');
 const {createGrants} = require('../grants');
+const {startServer, makeData, writeHousehold} = require('./server-harness');
 
 test('A frame sees its own household and nobody else\'s', async () => {
-  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-iso-')), port = 4300 + Math.floor(Math.random() * 500);
-  for (const [id, name, zone] of [['alpha', 'Alpha', 'America/Chicago'], ['beta', 'Beta', 'Europe/London']]) {
-    fs.mkdirSync(path.join(data, 'households', id), {recursive: true});
-    fs.writeFileSync(path.join(data, 'households', id, 'sources.json'), JSON.stringify({name, timezone: zone, calendars: [], projects: []}));
-    fs.writeFileSync(path.join(data, 'households', id, 'credentials.json'), '{}');
-  }
+  const data = makeData('frame-iso-');
+  for (const [id, name, zone] of [['alpha', 'Alpha', 'America/Chicago'], ['beta', 'Beta', 'Europe/London']])
+    fs.writeFileSync(path.join(writeHousehold(data, id, {name, timezone: zone}), 'credentials.json'), '{}');
   const grants = createGrants({file: path.join(data, 'grants.json')});
   const a = grants.add({scope: 'frame', household: 'alpha', label: 'A wall'}).secret, b = grants.add({scope: 'frame', household: 'beta', label: 'B wall'}).secret;
-  const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {env: {...process.env, FRAME_DATA: data, FRAME_AUTH: 'required', PORT: String(port), HOST: '127.0.0.1'}, stdio: 'ignore'});
+  const s = await startServer({data, env: {FRAME_AUTH: 'required'}});
   try {
-    const base = 'http://127.0.0.1:' + port;
-    for (let i = 0; i < 50; i++) { try { if ((await fetch(base + '/healthz')).ok) break; } catch (e) {} await new Promise(r => setTimeout(r, 100)); }
+    const base = s.url;
     const as = secret => ({headers: {cookie: 'frame=' + secret, 'x-gingham': '1'}});
     assert.equal((await (await fetch(base + '/api/household', as(a))).json()).name, 'Alpha');
     assert.equal((await (await fetch(base + '/api/household', as(b))).json()).timezone, 'Europe/London');
@@ -89,5 +84,5 @@ test('A frame sees its own household and nobody else\'s', async () => {
     assert.equal((await post('/api/setup/claim', {code: shown.code})).status, 400, 'the code works once');
     for (let i = 0; i < 5; i++) await post('/api/owner-code', {pin: '9999'}, frameB);
     assert.equal((await post('/api/owner-code', {pin: '2468'}, frameB)).status, 429, 'five wrong PINs shut the door for a while, even to the right one');
-  } finally { server.kill(); fs.rmSync(data, {recursive: true, force: true}); }
+  } finally { await s.stop(); }
 });

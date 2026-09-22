@@ -13,15 +13,19 @@ const {createSetup} = require('../setup');
 const json = (body, status = 200) => new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
 const idToken = claims => 'x.' + Buffer.from(JSON.stringify(claims)).toString('base64url') + '.y';
 const config = {clientId: 'CID.apps.googleusercontent.com', clientSecret: 'SECRET', redirectUri: 'https://frame.example.com/oauth/google'};
+// The refresh token the fake Google hands out. It is long, and its dashes are characters base64 cannot spell, because
+// a test below asks whether it can be found in a sealed file. It was 'R1' until 2026-09-22: two characters, which
+// random ciphertext writes by chance in about one run in sixteen — a test that failed for no reason at all.
+const REFRESH = 'refresh-token-R1-never-on-disk';
 
 // A Google that answers like the real one, and remembers what it was asked.
 function fakeGoogle({grantScope = 'https://www.googleapis.com/auth/tasks openid https://www.googleapis.com/auth/userinfo.email', giveRefresh = true} = {}) {
-  const asked = [], state = {refresh: 'R1', revoked: []};
+  const asked = [], state = {refresh: REFRESH, revoked: []};
   const fetchImpl = async (url, options = {}) => {
     const u = new URL(url), body = options.body instanceof URLSearchParams ? Object.fromEntries(options.body) : options.body ? JSON.parse(options.body) : null;
     asked.push({method: options.method || 'GET', url: u.toString(), path: u.pathname, query: Object.fromEntries(u.searchParams), body, auth: (options.headers || {}).Authorization});
     if (u.host === 'oauth2.googleapis.com' && u.pathname === '/token') {
-      if (body.grant_type === 'authorization_code') return body.code === 'GOOD' ? json({access_token: 'A0', expires_in: 3599, scope: grantScope, ...(giveRefresh ? {refresh_token: 'R1'} : {}), id_token: idToken({email: 'sam@example.com'})}) : json({error: 'invalid_grant'}, 400);
+      if (body.grant_type === 'authorization_code') return body.code === 'GOOD' ? json({access_token: 'A0', expires_in: 3599, scope: grantScope, ...(giveRefresh ? {refresh_token: REFRESH} : {}), id_token: idToken({email: 'sam@example.com'})}) : json({error: 'invalid_grant'}, 400);
       if (body.grant_type === 'refresh_token') return body.refresh_token === state.refresh && !state.revoked.includes(body.refresh_token) ? json({access_token: 'A1', expires_in: 3599}) : json({error: 'invalid_grant', error_description: 'Token has been expired or revoked.'}, 400);
     }
     if (u.host === 'oauth2.googleapis.com' && u.pathname === '/revoke') { state.revoked.push(body.token); return json({}); }
@@ -63,7 +67,7 @@ test('Sending the phone to Google: its own state, a PKCE challenge, Tasks only, 
 test('Coming back: the code traded with the secret and the verifier, and refused without Tasks or without lasting access', async () => {
   const fake = fakeGoogle(), google = createGoogleTasks({...config, fetchImpl: fake.fetchImpl});
   const {verifier} = google.begin();
-  assert.deepEqual(await google.finish('GOOD', verifier), {refresh: 'R1', account: 'sam@example.com'});
+  assert.deepEqual(await google.finish('GOOD', verifier), {refresh: REFRESH, account: 'sam@example.com'});
   assert.deepEqual(fake.asked[0].body, {grant_type: 'authorization_code', code: 'GOOD', code_verifier: verifier, client_id: config.clientId, client_secret: 'SECRET', redirect_uri: config.redirectUri});
   await assert.rejects(google.finish('BAD', verifier), {code: 'UPSTREAM'});
   await assert.rejects(createGoogleTasks({...config, fetchImpl: fakeGoogle({grantScope: 'openid email'}).fetchImpl}).finish('GOOD', verifier), {code: 'SCOPE'}, 'Tasks unticked on Google\'s screen');
@@ -71,7 +75,7 @@ test('Coming back: the code traded with the secret and the verifier, and refused
 });
 
 test('Lists and items: pages followed, finished and untitled tasks left out, due dates as the day meant, check-offs to Google', async () => {
-  const fake = fakeGoogle(), google = createGoogleTasks({...config, fetchImpl: fake.fetchImpl, credentials: () => ({googletasks: {refresh: 'R1'}})});
+  const fake = fakeGoogle(), google = createGoogleTasks({...config, fetchImpl: fake.fetchImpl, credentials: () => ({googletasks: {refresh: REFRESH}})});
   assert.deepEqual((await google.lists()).map(l => [l.name, l.remote]), [['Groceries', 'LIST1'], ['Chores', 'LIST2']]);
   const items = await google.items('LIST1');
   assert.deepEqual(items.map(t => [t.title, t.due]), [['Milk', ''], ['Birthday cake', '2026-09-25']]);
@@ -123,10 +127,10 @@ test('Setup: a sign-in is bound to its household, used once, and its token seale
   const back = await setup.oauthReturn({code: 'GOOD', state, browser: state});
   assert.equal(back.status, 200);
   assert.match(back.html, /<meta http-equiv="refresh" content="0;url=\/setup\?household=alpha#google-connected">/, 'the phone goes on to setup from this site, so its cookie comes too');
-  assert.ok(!back.html.includes('GOOD') && !back.html.includes('R1'), 'neither the code nor the token is on the page');
+  assert.ok(!back.html.includes('GOOD') && !back.html.includes(REFRESH), 'neither the code nor the token is on the page');
   assert.equal((await setup.oauthReturn({code: 'GOOD', state, browser: state})).status, 400, 'used once');
   assert.deepEqual((await call('')).body.googletasks, {available: true, connected: true, account: 'sam@example.com', signIn: false});
-  assert.ok(!fs.readFileSync(file, 'utf8').includes('R1'), 'sealed on disk');
+  assert.ok(!fs.readFileSync(file, 'utf8').includes(REFRESH), 'sealed on disk');
 
   const lists = (await call('/googletasks-lists', {})).body.lists;
   await call('/lists', {source: 'googletasks', lists: [{id: lists[0].id, name: 'Groceries', icon: 'cart'}, {id: 'Gforged', name: 'Nope'}]});
@@ -138,6 +142,6 @@ test('Setup: a sign-in is bound to its household, used once, and its token seale
   assert.equal((await call('/lists', {source: 'todoist', lists: [{id: 'P1', name: 'Errands'}, {id: 'P2', name: 'ERRANDS'}]})).status, 400, 'nor with each other');
 
   await call('/googletasks-disconnect', {});
-  assert.deepEqual(fake.state.revoked, ['R1'], 'Google is told to forget the token');
+  assert.deepEqual(fake.state.revoked, [REFRESH], 'Google is told to forget the token');
   assert.deepEqual([(await call('')).body.googletasks.connected, JSON.parse(fs.readFileSync(path.join(home.dir, 'sources.json'), 'utf8')).projects.map(p => p.source)], [false, ['local']]);
 });

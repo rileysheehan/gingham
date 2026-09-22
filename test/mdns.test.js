@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const dgram = require('node:dgram');
 const {createResponder, parse, answer, query, tidyName} = require('../mdns');
+const {freePort} = require('./server-harness');
 
 test('a name is tidied to what a network name may be', () => {
   assert.equal(tidyName('Frame.local'), 'frame');
@@ -36,7 +37,9 @@ const ask = (port, name) => new Promise((resolve, reject) => {
 });
 
 test('it answers to its own name, with the address that faces the asker, and to no other name', async () => {
-  const port = 20000 + Math.floor(Math.random() * 20000);
+  // A port the kernel says is free. The responder asks for SO_REUSEADDR, as an mDNS responder must, so a guessed port
+  // another process already held would be bound without complaint and the answers would go to whoever got there first.
+  const port = await freePort('udp');
   const responder = createResponder({name: 'Frame', port, settleMs: 30, address: async them => { assert.equal(them, '127.0.0.1'); return '192.168.1.40'; }});
   try {
     assert.equal(await responder.start(), 'frame.local');

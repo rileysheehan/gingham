@@ -2,17 +2,12 @@
 // the frame, and the first person to read the code off that screen becomes the household's owner. Once.
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const {spawn} = require('node:child_process');
+const {startServer, makeData} = require('./server-harness');
 
 test('First run on a tablet: the screen vouches for the first owner, and only the first', async () => {
-  const data = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-device-')), port = 4800 + Math.floor(Math.random() * 400);
-  const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {env: {...process.env, FRAME_DATA: data, FRAME_AUTH: 'required', FRAME_LOCAL_FRAME: '1', FRAME_URL: 'http://192.168.1.23:4173', PORT: String(port), HOST: '127.0.0.1'}, stdio: 'ignore'});
+  const s = await startServer({data: makeData('frame-device-'), env: {FRAME_AUTH: 'required', FRAME_LOCAL_FRAME: '1', FRAME_URL: 'http://192.168.1.23:4173'}});
   try {
-    const base = 'http://127.0.0.1:' + port;
-    for (let i = 0; i < 50; i++) { try { if ((await fetch(base + '/healthz')).ok) break; } catch (e) {} await new Promise(r => setTimeout(r, 100)); }
+    const base = s.url;
     const post = (url, body, headers = {}) => fetch(base + url, {method: 'POST', headers: {'x-gingham': '1', 'content-type': 'application/json', ...headers}, body: JSON.stringify(body)});
     const screen = await (await fetch(base + '/api/household')).json();
     assert.deepEqual(screen, {name: 'home', timezone: 'UTC', place: '', needsSetup: true, address: 'http://192.168.1.23:4173'}, 'the tablet\'s own screen is its frame, and is told nobody looks after it yet');
@@ -36,5 +31,5 @@ test('First run on a tablet: the screen vouches for the first owner, and only th
     assert.deepEqual(wall.tasks.map(t => [t.project, t.title]), [['Groceries', 'Milk']]);
     assert.equal((await post('/api/tasks/' + wall.tasks[0].id + '/close', {})).status, 200);
     assert.deepEqual((await (await fetch(base + '/api/tasks')).json()).tasks, []);
-  } finally { server.kill(); fs.rmSync(data, {recursive: true, force: true}); }
+  } finally { await s.stop(); }
 });
