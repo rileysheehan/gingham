@@ -50,6 +50,9 @@ const stressTasks = [
   task('June', '🎹 Practice: piano', '2026-09-23T16:00:00', {recurring: true}), task('June', '⚽️ Pack: soccer bag', '2026-09-24'), task('June', '📚 Return: library book', '2026-10-01'), task('June', '🦷 Brush teeth', '', {recurring: true}),
   ...Object.entries(grocerySections).flatMap(([section, items]) => items.map((title, i) => task('Grocery', title, '', {section, labels: section === 'Miscellaneous' && i % 2 ? 'Costco' : ''})))
 ];
+// What the household counts down to, as the server hands it to the frame: one this week (the Saturday of the fixtures'
+// week) and June's birthday the week after, so the week rail has a star to show on either side of the weekend.
+const countdowns = [{name: 'the pumpkin patch', date: '2026-09-26', word: 'sleeps'}, {name: 'June’s birthday', date: '2026-10-03', word: 'sleeps'}];
 const weatherDays = (codes, high, low, rain) => codes.map((code, i) => ({date: '2026-09-' + (23 + i), code, high: high + (i % 3), low: low - (i % 2), rain: rain[i] || 0, sunrise: Date.UTC(2026, 8, 23 + i, 12, 17), sunset: Date.UTC(2026, 8, 24 + i, 0, 29)}));
 
 module.exports = {
@@ -57,20 +60,20 @@ module.exports = {
     calendar: {mode: 'live', calendars, events: stressEvents, from: '2026-09-23', to: '2026-10-21', updatedAt: stamp},
     tasks: {projects: ['Family', 'Chores', 'Grocery', 'Garage', 'June'], people, lists: lists(['Family', 'Chores', 'Grocery', 'Garage', 'June']), tasks: stressTasks, updatedAt: stamp},
     weather: {location: 'Springfield', temperature: 101, feelsLike: 108, code: 95, high: 104, low: 79, rain: 80, days: weatherDays([95, 61, 3, 0, 2, 45, 80, 71], 101, 76, [80, 60, 10, 0, 20, 30, 70, 40]), fetchedAt: Date.now()},
-    photos: 'album'
+    photos: 'album', countdowns
   },
   quiet: {
     calendar: {mode: 'live', calendars, events: [allDay('mara', 'Priya’s birthday', '09-24', '09-25'), timed('mara', 'Coffee with Sam', '09-25', '11:30', '12:30'), timed('mara', 'Grandpa Joe’s retirement party', '09-27', '14:00', '15:30')], from: '2026-09-23', to: '2026-10-21', updatedAt: stamp},
     tasks: {projects: ['Family', 'Chores', 'Grocery', 'June'], people, lists: lists(['Family', 'Chores', 'Grocery', 'June']), tasks: [task('Chores', 'Return: trash cans', '2026-09-25', {recurring: true}), task('Grocery', 'Ginger beer', '', {section: 'Drinks'})], updatedAt: stamp},
     weather: {location: 'Springfield', temperature: 84, feelsLike: 90, code: 2, high: 94, low: 75, rain: 0, days: weatherDays([2, 3, 3, 0, 1, 2, 3, 0], 94, 73, []), fetchedAt: Date.now()},
-    photos: 'album'
+    photos: 'album', countdowns
   },
   // Nothing today or tomorrow, something later: the left panel should say what is next rather than sit empty.
   sparse: {
     calendar: {mode: 'live', calendars, events: [timed('mara', 'Grandpa Joe’s retirement party', '09-27', '14:00', '15:30', 'The Lakeside Hall, 12 Shore Drive'), timed('mara', 'Coffee with Sam', '10-02', '11:30', '12:30')], from: '2026-09-23', to: '2026-10-21', updatedAt: stamp},
     tasks: {projects: ['Family', 'Chores', 'Grocery', 'June'], people, lists: lists(['Family', 'Chores', 'Grocery', 'June']), tasks: [task('Grocery', 'Ginger beer', '', {section: 'Drinks'})], updatedAt: stamp},
     weather: {location: 'Springfield', temperature: 84, feelsLike: 86, code: 0, high: 94, low: 75, rain: 0, days: weatherDays([0, 0, 1, 0, 2, 3, 0, 0], 94, 73, []), fetchedAt: Date.now()},
-    photos: 'album'
+    photos: 'album', countdowns
   },
   // Four empty weeks.
   empty: {

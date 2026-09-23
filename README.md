@@ -11,8 +11,9 @@ copy holds that copy's secrets.
 
 - **The left third never changes.** The day, the date and a clock you can read from the stove; the weather now;
   Today and Tomorrow; a countdown ("3 sleeps until June's birthday"); the next sunrise or sunset.
-- **The right side is the view you pick.** The week ahead with each day's weather, the weeks after that, one tab per
-  list with its open count, or the photos, full screen.
+- **The right side is the view you pick.** The calendar, as the week ahead with each day's weather or as an agenda
+  of the next four weeks, with this week's days crossed off beside the month; one tab per list with its open count; or
+  the photos, full screen.
 - **Calendars** by subscription link: Google, Apple, Outlook or any iCalendar feed, with repeating events done
   properly. An event marked private shows only as Busy.
 - **Lists** kept by Gingham itself, or in Todoist, Nextcloud, Fastmail and other CalDAV servers, Home Assistant, Google
@@ -76,7 +77,7 @@ release). Nothing appears on the wall itself, and nothing ever updates on its ow
 
 - **Never forced.** An old frame keeps working. The notice waits in Settings and never grows louder.
 - **Forward, never backward.** A new version reads everything an older one wrote and moves it forward if it must;
-  going back a version is not supported. Everything from 0.1.0 carries over to 0.1.1 as it is.
+  going back a version is not supported. Everything from 0.1.0 and 0.1.1 carries over to 0.1.2 as it is.
 - **Release notes say what a family gets**, in a few plain sentences, not just a version number
   ([RELEASING.md](RELEASING.md)).
 
@@ -93,7 +94,7 @@ WebView cheap frames ship with. `npm test` runs the tests, `npm run check` the s
 
 ## Status
 
-Early, and in daily use on one family's kitchen wall. The current release is 0.1.1. What is coming is in
+Early, and in daily use on one family's kitchen wall. The current release is 0.1.2. What is coming is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licence and security

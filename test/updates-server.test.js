@@ -64,7 +64,7 @@ test('Design review never asks GitHub, and shows a newer release when told to', 
   try {
     let body;
     for (let i = 0; i < 20 && !(body && body.latest); i++) { body = await (await fetch(s.url + '/api/updates')).json(); if (!body.latest) await new Promise(r => setTimeout(r, 50)); }
-    assert.equal(body.latest.version, '0.1.2');
+    assert.equal(body.latest.version, require('./release-fixture').newer.tag_name.slice(1));
     assert.equal(body.available, true);
     assert.equal((await (await fetch(s.url + '/api/updates?app=0.1.0')).json()).appAvailable, true);
   } finally { await s.stop(); }
@@ -83,10 +83,11 @@ test('A household’s data from 0.1.0 reads cleanly in this version', () => {
   assert.equal(place.latitude, 30.27);
   const settings = home.settings.read();
   assert.equal(settings.clock, DEFAULTS.clock, 'the new setting takes its default');
+  assert.equal(settings.calendarView, 'week', 'and so does 0.1.2’s calendar view: the columns it always had');
   assert.equal(settings.rest, 'calendar'); assert.equal(settings.screen, 'dim'); assert.equal(settings.mornings, 8);
   // An older version reading what this one writes: it drops what it does not know and keeps the rest.
   const written = home.settings.update({clock: '24'});
-  const olderClean = input => Object.fromEntries(Object.entries(input).filter(([k]) => k !== 'clock'));
+  const olderClean = input => Object.fromEntries(Object.entries(input).filter(([k]) => k !== 'clock' && k !== 'calendarView'));
   assert.deepEqual(olderClean(written), {rest: 'calendar', restAfter: 10, mornings: 8, photoEvery: 120, appearance: 'dark', screen: 'dim'});
   assert.equal(createSettings({file: path.join(dir, 'settings.json')}).read().clock, '24');
   fs.rmSync(data, {recursive: true, force: true});

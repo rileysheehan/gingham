@@ -21,7 +21,10 @@
   var calProblem = false, tasksProblem = false;
   var page = 0, mode = 'calendar', themeChoice = 'auto';
   // Household preferences from the Settings view, stored on the server. These defaults are used until they load.
-  var prefs = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto' };
+  var PREFS = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto', calendarView: 'week' };
+  var prefs = withDefaults({});
+  // What the server sends, over these defaults, so a setting it does not send yet still has its value.
+  function withDefaults(data) { var out = {}, k; for (k in PREFS) out[k] = PREFS[k]; for (k in data) out[k] = data[k]; return out; }
   var pending = {};          // task id -> true while "done" but not yet sent or not yet refetched
   var undo = null;           // {task, timer}
   var lastTouch = Date.now(), loadedDay = '', version = null, previousFocus = null;
@@ -94,6 +97,34 @@
     return (sameDay(d, addDays(today, -1)) ? 'yesterday' : shortDay(d) + ',') + ' ' + clockTime(d);
   }
   function shortDay(d) { return DAYS[d.getDay()].slice(0, 3) + ', ' + MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
+  // The calendar's title: "September", or "Sep – Oct" when the days shown cross a month, short so the week rail beside it
+  // never moves.
+  function monthSpan(a, b) { return a.getMonth() === b.getMonth() ? MONTHS[a.getMonth()] : MONTHS[a.getMonth()].slice(0, 3) + ' – ' + MONTHS[b.getMonth()].slice(0, 3); }
+  function monthDay(d) { return MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
+  // Within the coming six days a weekday names a day without doubt ("Fri"); past that it takes a date ("Oct 11").
+  function nearDay(d) { return d < addDays(startOfDay(now()), 7); }
+  function dayName(d) { return nearDay(d) ? DAYS[d.getDay()].slice(0, 3) : monthDay(d); }
+  // The first day of the household's week, 0 for Sunday to 6 for Saturday, found the way the clock's convention is: from
+  // the browser's own locale data (Unicode CLDR) for the household's country. Sunday in the US, Canada, Mexico, Brazil,
+  // Japan or Israel, Monday across most of Europe and in Australia, Saturday in Egypt. A household whose country is not
+  // known yet keeps Sunday, the week this product has always shown; an engine with no week data (Firefox) gives Monday,
+  // the ISO week, to any household it can place outside the US.
+  var weekConvention = {};
+  function weekStart() {
+    var country = household.country || '';
+    if (!/^[A-Z]{2}$/.test(country)) return 0;
+    if (country in weekConvention) return weekConvention[country];
+    var first = country === 'US' ? 0 : 1;
+    try {
+      var tag = 'und-' + country;
+      if (typeof Intl.Locale === 'function') {
+        var locale = new Intl.Locale(new Intl.Locale(tag).maximize().language + '-' + country);
+        var info = typeof locale.getWeekInfo === 'function' ? locale.getWeekInfo() : locale.weekInfo;
+        if (info && info.firstDay) first = info.firstDay % 7;
+      }
+    } catch (e) {}
+    return (weekConvention[country] = first);
+  }
 
   var unpaired = false;      // the server does not know this frame: it was never paired, or was revoked
   var pairing = null;        // {device, code, until}: the code this screen is showing while it waits to be approved
@@ -199,7 +230,10 @@
     var style = document.documentElement.style;
     style.setProperty('--sky-top', rgb(top)); style.setProperty('--sky-bottom', rgb(bottom));
     style.setProperty('--sky-ink', rgb(ink));
-    var dark = forced ? forced === 'night' || forced === 'dusk' : (t < sun.rise - 10 * min || t > sun.set + 5 * min);
+    // One decision for the whole screen: the calendar side turns dark or light at the same moment the sky's ink flips,
+    // so the two halves never disagree about whether it is day. (It used its own clock, sunrise less ten minutes, and
+    // lagged the sky, which starts brightening an hour before sunrise.)
+    var dark = forced ? forced === 'night' || forced === 'dusk' : !light;
     document.body.className = dark ? 'theme-dark' : 'theme-light';
     paintWeather(code, !light, dark);
   }
@@ -304,6 +338,19 @@
     else if (Math.abs(feels - Math.round(weather.temperature)) >= 4) detail += ' · Feels like ' + feels + '°';
     $('now-detail').textContent = detail + (weather.stale ? ' · not updating' : '');
   }
+  // A day's forecast in one short row: the icon, with the chance of rain under it where weather apps put it (so a wet day
+  // never overflows the row), then the high and the low.
+  function forecastNode(day, cls) {
+    var fc = forecastFor(day), row = node('div', cls);
+    if (!fc) return row;
+    var wx = node('span', 'wx'), svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'wx-icon'); svg.setAttribute('viewBox', '0 0 64 64'); svg.setAttribute('aria-hidden', 'true');
+    drawIcon(svg, fc.code); wx.appendChild(svg);
+    if (fc.rain >= 30) wx.appendChild(node('small', '', fc.rain + '%'));
+    row.appendChild(wx);
+    row.appendChild(node('b', '', Math.round(fc.high) + '°')); row.appendChild(node('span', '', Math.round(fc.low) + '°'));
+    row.setAttribute('aria-label', describe(fc.code) + ', high ' + Math.round(fc.high) + ', low ' + Math.round(fc.low) + (fc.rain >= 30 ? ', ' + fc.rain + ' percent chance of rain' : ''));
+    return row;
+  }
   function forecastFor(day) {
     var key = iso(day), found = null;
     if (weather && weather.days) weather.days.forEach(function (d) { if (d.date === key) found = d; });
@@ -374,7 +421,7 @@
   // column of times from across the room; a place may trail the time, and nothing else may. Whose it is goes after the
   // title as a monogram, and a date the section already implies is never repeated. A `compact` row (Today, past the now
   // and next rows) is one line: the same fact in a time column, then the title.
-  function itemNode(item, inToday, compact) {
+  function itemNode(item, inToday, compact, agenda) {
     var el = node('button', 'item ' + item.kind), body = node('span', 'item-body'), meta = '', note = '', emoji = '';
     if (item.kind === 'event') {
       var c = calendarOf(item.event.calendar);
@@ -386,8 +433,9 @@
       if (item.allDay) {
         // All-day and multi-day events are one line: they frame the day rather than fill it.
         el.className += ' allday' + (item.continues ? ' continues' : '');
-        // Today's panel says how long a trip runs; the week's columns show it by repeating it, dimmed, on each day.
-        if (item.through && inToday) meta = compact ? 'Until ' + DAYS[item.through.getDay()].slice(0, 3) : 'Through ' + DAYS[item.through.getDay()];
+        // Today's panel says how long a trip runs.
+        // So does the agenda, which is one line a row like Today's; the week's columns show it by repeating it, dimmed.
+        if (item.through && (inToday || agenda)) meta = compact ? 'Until ' + dayName(item.through) : 'Through ' + DAYS[item.through.getDay()];
       } else {
         meta = clockTime(item.at);
         if (inToday) {
@@ -411,7 +459,8 @@
     }
     // The next thing's time is the one read from across the room, so it is set larger (see .item.next in style.css).
     if (inToday && item.next) el.className += ' next';
-    // A compact row keeps its time column even when empty, so every title in it starts at the same place.
+    // A compact row keeps its time column even when empty, so every title in it starts at the same place (Today drops the
+    // column when no row in it has a time; see untimedColumn).
     if (compact) el.className += ' compact';
     if (meta || compact) body.appendChild(node('span', 'item-meta', meta));
     var text = item.kind === 'event' ? item.event.title : cleanTitle(item.task.title);
@@ -424,6 +473,14 @@
     if (item.kind === 'task') whoseMarks(item.task, item.inList).forEach(function (mark) { (compact ? body : title).appendChild(mark); });
     el.appendChild(body);
     return el;
+  }
+  // Today's one-line rows share a time column so their titles start at the same place. When none of them has a time (a
+  // chore or two after the now and next rows) the column would be an empty gap between the circle and the title, so it goes.
+  function untimedColumn(nodes) {
+    var compact = nodes.filter(function (el) { return /\bcompact\b/.test(el.className); });
+    var timed = compact.some(function (el) { var m = el.querySelector('.item-meta'); return m && m.textContent; });
+    if (!timed) compact.forEach(function (el) { var m = el.querySelector('.item-meta'); if (m) m.parentNode.removeChild(m); });
+    return nodes;
   }
   // Shows as many whole items as fit in `box`, then "and N more" (a button when there is somewhere to go).
   // Nothing is ever cut mid-line. Skipped while the box is hidden, since a hidden box measures zero; a box that is shown
@@ -541,7 +598,7 @@
       list.textContent = '';
       // Before anyone has set it up there is no calendar to be empty, so it says so rather than "Nothing planned".
       list.appendChild(node('p', 'today-empty', firstRun || unpaired ? 'Not set up yet' : cal ? (itemsFor(today, false).length ? 'Nothing else today' : 'Nothing planned') : calProblem ? 'Can’t reach the calendar' : ''));
-    } else allToday = fitItems(list, todayItems.map(function (item) { return itemNode(item, true, !item.now && !item.next); }), function () { openDay(today); }) === todayItems.length;
+    } else allToday = fitItems(list, untimedColumn(todayItems.map(function (item) { return itemNode(item, true, !item.now && !item.next); })), function () { openDay(today); }) === todayItems.length;
     // An empty tomorrow is not shown: "Nothing planned" twice says nothing. When today and tomorrow are both empty, the
     // space answers the next question instead: what is the next thing actually planned?
     var coming = cal && allToday ? itemsFor(tomorrowDay, false) : [], label = 'Tomorrow', onMore = function () { openDay(tomorrowDay); };
@@ -557,6 +614,10 @@
   }
   function renderStrip() {
     $('view-calendar').className = 'view' + (cal && !firstRun ? '' : ' no-calendar');
+    // The agenda is the same days as a list; every state before there is a calendar to show is said in the strip's card.
+    var agenda = cal && !firstRun && prefs.calendarView === 'agenda';
+    $('agenda').hidden = !agenda; $('strip').hidden = !!agenda;
+    if (agenda) { $('later').hidden = true; renderAgenda(); return; }
     if (firstRun) {
       // A tablet that is its own server, not yet looked after by anyone: say how to become that person. The QR code is the
       // way in; the typed address is the fallback, set quieter. The code links to the numbers, which every phone reaches;
@@ -598,7 +659,7 @@
     }
     var today = startOfDay(now()), first = addDays(today, 1 + page * STRIP_DAYS), last = addDays(first, STRIP_DAYS - 1);
     var strip = $('strip'), busiest = 0, columns = []; strip.textContent = '';
-    $('month').textContent = MONTHS[first.getMonth()] + (first.getMonth() !== last.getMonth() ? ' – ' + MONTHS[last.getMonth()] : '');
+    $('month').textContent = monthSpan(first, last);
     for (var i = 0; i < STRIP_DAYS; i++) {
       var d = addDays(first, i), col = node('section', 'day' + (d.getDay() % 6 === 0 ? ' weekend' : ''));
       col.setAttribute('aria-label', DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate());
@@ -606,17 +667,7 @@
       var name = node('p', 'day-name');
       name.appendChild(node('span', 'eyebrow', page === 0 && i === 0 ? 'Tomorrow' : DAYS[d.getDay()].slice(0, 3)));
       name.appendChild(node('b', '', String(d.getDate()))); col.appendChild(name);
-      var fc = forecastFor(d), row = node('div', 'forecast');
-      if (fc) {
-        // The chance of rain sits under the icon, where weather apps put it, so a wet day never overflows the row.
-        var wx = node('span', 'wx'), svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'wx-icon'); svg.setAttribute('viewBox', '0 0 64 64'); svg.setAttribute('aria-hidden', 'true');
-        drawIcon(svg, fc.code); wx.appendChild(svg);
-        if (fc.rain >= 30) wx.appendChild(node('small', '', fc.rain + '%'));
-        row.appendChild(wx);
-        row.appendChild(node('b', '', Math.round(fc.high) + '°')); row.appendChild(node('span', '', Math.round(fc.low) + '°'));
-        row.setAttribute('aria-label', describe(fc.code) + ', high ' + Math.round(fc.high) + ', low ' + Math.round(fc.low) + (fc.rain >= 30 ? ', ' + fc.rain + ' percent chance of rain' : ''));
-      }
-      col.appendChild(row);
+      col.appendChild(forecastNode(d, 'forecast'));
       var items = node('div', 'day-items'), dayItems = itemsFor(d, false); busiest = Math.max(busiest, dayItems.length);
       col.appendChild(items); strip.appendChild(col);
       columns.push({ box: items, items: dayItems, day: d });
@@ -624,6 +675,7 @@
     $('previous').disabled = page === 0;
     $('next').disabled = (page + 2) * STRIP_DAYS + 1 > WINDOW_DAYS;
     $('back-today').hidden = page === 0;
+    fitLegend();
     renderLater(addDays(last, 1), busiest);
     // Fit the columns only now: the Later rows below take height from the week, so measuring earlier would overflow.
     columns.forEach(function (c) { fitItems(c.box, c.items.map(function (item) { return itemNode(item, false); }), function () { openDay(c.day); }); });
@@ -655,9 +707,134 @@
     if (!rows.length) box.appendChild(node('p', 'later-note', 'Nothing else planned through ' + until));
     else if (rows.length > room) box.appendChild(node('p', 'later-note', (rows.length - room) + ' more through ' + until));
   }
+  /* ---------- Agenda ---------- */
+  // The days ahead as one list, the household's other way to see them (Settings -> Appearance -> Calendar). It starts
+  // tomorrow, because Today is the left panel, and runs as far as the frame has the calendar (four weeks, as far as
+  // Later reached), so Later folds into it: one list, not two. A day with things on it is a date, then its rows, then its
+  // weather at the right; each row is Today's one-line row (a time column, the title, whose it is after the title), so a
+  // long title gets a whole line rather than a tower. Days with nothing planned fold into one quiet line, "Nothing planned
+  // Sat-Sun", so a quiet month is a few lines instead of a wall of empty days. A new month gets a heading where it
+  // starts. Paging is by screenful and always breaks between days, never inside one, except for a day too long for
+  // a screen by itself, which ends in "N more" like a day anywhere else.
+  var agendaStarts = [0];    // where each page of the agenda begins, as found by laying it out
+  function agendaBlocks() {
+    var today = startOfDay(now()), end = parse(cal.to), blocks = [], run = null;
+    for (var d = addDays(today, 1); d < end; d = addDays(d, 1)) {
+      var items = itemsFor(d, false);
+      if (items.length) { run = null; blocks.push({ day: d, items: items }); }
+      else if (run) run.to = d;
+      else { run = { from: d, to: d }; blocks.push(run); }
+    }
+    if (run) run.last = true;
+    return blocks;
+  }
+  // "Nothing planned tomorrow", "Nothing planned Saturday", "Nothing planned Sat–Sun"; past the coming week, by date:
+  // "Nothing planned Oct 5–8". A run that reaches the end of what the frame has says how far that is.
+  function nothingPlanned(run, alone) {
+    var from = run.from, to = run.to, tomorrow = addDays(startOfDay(now()), 1);
+    if (run.last) return (alone ? 'Nothing planned' : 'Nothing else planned') + ' through ' + monthDay(to);
+    if (sameDay(from, to)) return 'Nothing planned ' + (sameDay(from, tomorrow) ? 'tomorrow' : nearDay(from) ? DAYS[from.getDay()] : shortDay(from));
+    if (nearDay(to)) return 'Nothing planned ' + DAYS[from.getDay()].slice(0, 3) + '–' + DAYS[to.getDay()].slice(0, 3);
+    return 'Nothing planned ' + monthDay(from) + (from.getMonth() === to.getMonth() ? '–' + to.getDate() : ' – ' + monthDay(to));
+  }
+  function agendaNode(block, alone) {
+    if (!block.day) return node('p', 'agenda-empty', nothingPlanned(block, alone));
+    var d = block.day, el = node('section', 'agenda-day' + (d.getDay() % 6 === 0 ? ' weekend' : ''));
+    var tomorrow = sameDay(d, addDays(startOfDay(now()), 1)), date = node('p', 'agenda-date');
+    el.setAttribute('aria-label', DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate());
+    date.appendChild(node('b', '', String(d.getDate()))); date.appendChild(node('span', '', tomorrow ? 'Tomorrow' : DAYS[d.getDay()].slice(0, 3)));
+    var rows = node('div', 'agenda-items');
+    block.items.forEach(function (item) { rows.appendChild(itemNode(item, false, true, true)); });
+    el.appendChild(date); el.appendChild(rows); el.appendChild(forecastNode(d, 'agenda-wx'));
+    return el;
+  }
+  function renderAgenda() {
+    var box = $('agenda'), blocks = agendaBlocks();
+    if (page > 0 && agendaStarts[page] === undefined) page = 0;
+    // The card is as tall as its list, up to the room there is, so a quiet month is a short card on a calm page rather than
+    // one line at the top of an empty slab. The room is measured from the view, not from the card.
+    var view = $('view-calendar').getBoundingClientRect(), room = Math.max(0, Math.floor(view.bottom - box.getBoundingClientRect().top));
+    var start = agendaStarts[page] || 0, nextStart = null, lastMonth = null, firstDay = null, lastDay = null;
+    box.textContent = '';
+    for (var i = start; i < blocks.length; i++) {
+      var block = blocks[i], el = agendaNode(block, blocks.length === 1), heading = null, begins = block.day || block.from;
+      // A month's heading where it starts, below the first; the view's title already names the first.
+      if (lastMonth !== null && block.day && begins.getMonth() !== lastMonth) { heading = node('h2', 'eyebrow agenda-month', MONTHS[begins.getMonth()]); box.appendChild(heading); }
+      box.appendChild(el);
+      if (room && box.scrollHeight > room + 2) {
+        // It does not fit. A day that has the page to itself, or that would leave a good part of the page empty, shows
+        // what fits and ends in "N more"; otherwise it waits for the next page. The next page starts with that day whole.
+        var rows = block.day && el.querySelector('.agenda-items'), left = rows ? box.getBoundingClientRect().top + room - rows.getBoundingClientRect().top - 12 : 0;
+        if (rows && (i === start || left > room * 0.3)) {
+          rows.style.maxHeight = Math.max(0, left) + 'px';
+          var nodes = [], d = block.day;
+          while (rows.firstChild) nodes.push(rows.removeChild(rows.firstChild));
+          if (fitItems(rows, nodes, function () { openDay(d); }) || i === start) { nextStart = i === start ? i + 1 : i; lastDay = block.day; if (!firstDay) firstDay = begins; break; }
+        }
+        box.removeChild(el); if (heading) box.removeChild(heading);
+        nextStart = i; break;
+      }
+      if (!firstDay) firstDay = begins;
+      lastDay = block.day || block.to;
+      // A heading marks where a month's days begin, so it follows the days, not the runs of nothing between them.
+      if (block.day || lastMonth === null) lastMonth = begins.getMonth();
+    }
+    agendaStarts.length = page + 1;
+    if (nextStart !== null && nextStart < blocks.length) agendaStarts[page + 1] = nextStart;
+    firstDay = firstDay || addDays(startOfDay(now()), 1); lastDay = lastDay || firstDay;
+    $('month').textContent = monthSpan(firstDay, lastDay);
+    $('previous').disabled = page === 0;
+    $('next').disabled = agendaStarts[page + 1] === undefined;
+    $('back-today').hidden = page === 0;
+    fitLegend();
+  }
+  function pageNext() {
+    if (prefs.calendarView === 'agenda' && cal) { if (agendaStarts[page + 1] !== undefined) { page++; renderStrip(); } return; }
+    if (!$('next').disabled) { page++; renderStrip(); }
+  }
+
+  /* ---------- The week, crossed off ---------- */
+  // How far through this calendar week the household is, the way a child keeps a paper calendar: the seven days of the
+  // week as marks, each day that is over crossed off with one stroke, today ringed, the days ahead plain. A day is crossed
+  // off when it ends at midnight house time; it is a state, drawn on every render, never an animation. A countdown the
+  // household keeps ("3 sleeps until June's birthday") that lands this week puts a star on its day, so the days still to
+  // cross off can be counted to it. The week starts as the household's country starts it (weekStart). The rail sits in
+  // the calendar's header in both views and never grows, so it costs the days below it nothing.
+  function renderRail() {
+    var rail = $('week-rail');
+    rail.hidden = !!(firstRun || unpaired);
+    if (rail.hidden) return;
+    var today = startOfDay(now()), first = addDays(today, -((today.getDay() - weekStart() + 7) % 7)), starred = {};
+    countdowns.forEach(function (c) { var d = parse(c.date), key = iso(d); if (d >= today && d < addDays(first, 7) && !starred[key]) starred[key] = tidy(c.name); });
+    rail.textContent = '';
+    var said = [];
+    for (var i = 0; i < 7; i++) {
+      var d = addDays(first, i), key = iso(d), state = d < today ? 'over' : sameDay(d, today) ? 'now' : 'ahead';
+      var mark = node('span', 'mark mark-' + state + (starred[key] ? ' starred' : ''));
+      mark.appendChild(node('b', '', String(d.getDate())));
+      if (starred[key]) mark.appendChild(starNode());
+      rail.appendChild(mark);
+      said.push(DAYS[d.getDay()] + ' ' + d.getDate() + (state === 'over' ? ', crossed off' : state === 'now' ? ', today' : '') + (starred[key] ? ', ' + starred[key] : ''));
+    }
+    rail.setAttribute('aria-label', 'This week: ' + said.join('; '));
+  }
+  function starNode() {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    svg.setAttribute('class', 'star'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+    p.setAttribute('d', 'M12 2.2l2.95 6.2 6.8.85-5 4.7 1.3 6.75L12 17.4l-6.05 3.3 1.3-6.75-5-4.7 6.8-.85z');
+    svg.appendChild(p); return svg;
+  }
   function renderLegend() {
     var legend = $('legend'); legend.textContent = '';
     (cal ? cal.calendars : []).forEach(function (c) { var s = node('span', '', c.name), dot = node('i'); dot.style.backgroundColor = c.color; s.insertBefore(dot, s.firstChild); legend.appendChild(s); });
+  }
+  // The legend wraps to a second line before it pushes anything. A third line would spill out of the header, so when two
+  // are not enough (five or more calendars beside the Today button) it is set smaller and closer rather than overflow.
+  function fitLegend() {
+    // Two lines stand about a tenth taller than the header; a third makes it half as tall again, so 1.4 tells them apart.
+    var legend = $('legend'); legend.className = 'legend';
+    var head = legend.parentNode.getBoundingClientRect().height;
+    if (head && legend.getBoundingClientRect().height > head * 1.4) legend.className = 'legend tight';
   }
   function renderTabs() {
     var tabs = $('tabs');
@@ -748,7 +925,7 @@
     $('status-weather').textContent = weather ? 'Open-Meteo, updated ' + since(weather.fetchedAt) + (weather.stale ? ', not updating now' : '') : 'Not loaded yet';
     $('status-photos').textContent = !photoInfo.configured ? 'No album connected' : !photos.length ? 'The album is empty' : photos.length + ' photos' + (photoInfo.syncedAt ? ', updated ' + since(photoInfo.syncedAt) : '') + (photoInfo.error ? ', can’t reach the album now' : '');
   }
-  function render() { paintSky(); renderNow(); renderToday(); renderLegend(); renderStrip(); renderTabs(); renderList(); renderNotice(); if (sheetDay && !$('day-dialog').hidden) fillDay(); }
+  function render() { paintSky(); renderNow(); renderToday(); renderLegend(); renderRail(); renderStrip(); renderTabs(); renderList(); renderNotice(); if (sheetDay && !$('day-dialog').hidden) fillDay(); }
 
   /* ---------- Modes ---------- */
   function setMode(next) {
@@ -766,12 +943,13 @@
 
   /* ---------- Settings ---------- */
   var CHOICES = {
-    rest: [['photos', 'Photos'], ['calendar', 'This week']],
+    rest: [['photos', 'Photos'], ['calendar', 'Calendar']],
     restAfter: [[2, '2 min'], [5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min']],
     mornings: [[0, 'Off'], [8, function () { return 'Until ' + clockTime(new Date(2000, 0, 1, 8)); }], [9, function () { return 'Until ' + clockTime(new Date(2000, 0, 1, 9)); }], [10, function () { return 'Until ' + clockTime(new Date(2000, 0, 1, 10)); }]],
     photoEvery: [[30, '30 sec'], [60, '1 min'], [120, '2 min'], [300, '5 min']],
     appearance: [['auto', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']],
     clock: [['auto', 'Automatic'], ['12', '12-hour'], ['24', '24-hour']],
+    calendarView: [['week', 'Week'], ['agenda', 'Agenda']],
     screen: [['auto', 'With the sun'], ['bright', 'Bright'], ['dim', 'Dim']]
   };
   function renderSettings() {
@@ -995,11 +1173,14 @@
     });
   }
   function closeManage() { $('manage-dialog').hidden = true; pinSoFar = ''; $('manage-code').textContent = ''; $('manage-qr').textContent = ''; }
+  var shownView = prefs.calendarView;
   function applyPrefs() {
     themeChoice = prefs.appearance;
+    // A different view of the calendar starts again from tomorrow.
+    if (prefs.calendarView !== shownView) { shownView = prefs.calendarView; page = 0; agendaStarts = [0]; }
     if (mode === 'photos') restartSlideTimer();
     // Every time on the wall follows the clock setting, so a change redraws everything, not only the sky.
-    $('mornings-note').textContent = 'Shows the week instead of photos from ' + clockTime(new Date(2000, 0, 1, 4)) + ' until the time you pick.';
+    $('mornings-note').textContent = 'Shows the calendar instead of photos from ' + clockTime(new Date(2000, 0, 1, 4)) + ' until the time you pick.';
     renderSettings(); render();
   }
   // A tap applies at once and saves in the background; if the server cannot be reached the choice is put back.
@@ -1010,10 +1191,10 @@
     xhr.open('POST', '/api/settings'); xhr.timeout = 15000;
     xhr.setRequestHeader('X-Gingham', '1'); xhr.setRequestHeader('Content-Type', 'application/json');
     function failed() { prefs[key] = before; applyPrefs(); toast('Couldn’t save that setting. The frame’s server isn’t answering.', false); }
-    xhr.onload = function () { if (xhr.status === 200) { try { prefs = JSON.parse(xhr.responseText); } catch (e) {} applyPrefs(); } else failed(); };
+    xhr.onload = function () { if (xhr.status === 200) { try { prefs = withDefaults(JSON.parse(xhr.responseText)); } catch (e) {} applyPrefs(); } else failed(); };
     xhr.onerror = xhr.ontimeout = failed; xhr.send(JSON.stringify(change));
   }
-  function loadSettings() { get('/api/settings', function (data) { if (data.rest) { prefs = data; applyPrefs(); } }, function () {}); }
+  function loadSettings() { get('/api/settings', function (data) { if (data.rest) { prefs = withDefaults(data); applyPrefs(); } }, function () {}); }
   // Where the frame settles when no one is using it: the week on a morning if that is set, otherwise the chosen view.
   function restingView() {
     var hour = now().getHours(), morning = prefs.mornings && hour >= 4 && hour < prefs.mornings;
@@ -1188,7 +1369,7 @@
   $('close-day').onclick = closeDay;
   $('day-dialog').onclick = function (e) { if (e.target === $('day-dialog')) closeDay(); };
   $('previous').onclick = function () { if (page > 0) { page--; renderStrip(); } };
-  $('next').onclick = function () { if (!$('next').disabled) { page++; renderStrip(); } };
+  $('next').onclick = pageNext;
   $('back-today').onclick = function () { page = 0; renderStrip(); };
   $('toast-undo').onclick = function () { if (undo) cancelUndo(); };
   $('close-dialog').onclick = closeEvent;
@@ -1212,6 +1393,7 @@
     }, { passive: true });
   }
   onSwipe($('strip'), function () { $('next').onclick(); }, function () { $('previous').onclick(); });
+  onSwipe($('agenda'), function () { $('next').onclick(); }, function () { $('previous').onclick(); });
   onSwipe($('photo-card'), function () { $('photo-next').onclick(); }, function () { $('photo-prev').onclick(); });
   // Anything that scrolls fades at the bottom until it has been scrolled to the end.
   $('tabs').addEventListener('scroll', clipTabs, { passive: true });

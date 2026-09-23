@@ -7,10 +7,14 @@ const release = (version, body) => ({
   body
 });
 
+// One patch past this checkout's package.json, so design review offers a newer release in every version.
+const [major, minor, patch] = require('../package.json').version.split(/[.-]/).map(Number);
+const next = major + '.' + minor + '.' + (patch + 1);
+
 module.exports = {
   release,
   // A newer release, written the way RELEASING.md asks: what a family gets, first, as a few bullets.
-  newer: release('0.1.2', [
+  newer: release(next, [
     '- Lists can be reordered from the wall: hold an item, then drag it.',
     '- Countdowns name the day of the week once they are a week away.',
     '- The frame starts about twice as fast on tablets with 1 GB of memory.',

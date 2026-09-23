@@ -133,6 +133,22 @@ test('Past the now and next rows, Today is one line a row, so it holds about twi
   assert.ok(bill.querySelector('.item-body').children.some(el => el.classes.includes('avatar')));
 });
 
+test('Today keeps an empty time column only while another one-line row has a time to line up with', () => {
+  const base = require('./fixtures').stress;
+  const event = (id, title, start, end) => ({id, uid: id, title, calendar: 'family', start, end, allDay: false, location: ''});
+  const chore = (id, title) => ({id, title, priority: 'p4', due: '2026-09-23', project: 'Chores', section: '', labels: '', recurring: false, assignee: ''});
+  const tasks = {...base.tasks, tasks: [chore('c1', 'Trash to the curb'), chore('c2', 'Feed the fish')]};
+  const day = extra => ({...base.calendar, events: [event('e1', 'Soccer practice', '2026-09-23T17:00:00', '2026-09-23T19:30:00'), ...extra]});
+  const metaSpans = w => w.$('today-list').children.filter(el => el.classes.includes('compact')).map(el => !!el.querySelector('.item-meta'));
+  // Soccer is happening, the chores have no time: nothing to line up with, so no gap between the circle and the title.
+  let w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([]), '/api/tasks': tasks}});
+  assert.deepEqual(metaSpans(w), [false, false]);
+  // Two timed events later (one is the next row, the other one line): the chores keep the column, so the titles align.
+  w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([event('e2', 'Dinner', '2026-09-23T19:45:00', '2026-09-23T20:30:00'), event('e3', 'Book club', '2026-09-23T21:00:00', '2026-09-23T22:00:00')]), '/api/tasks': tasks}});
+  const compact = metaSpans(w);
+  assert.ok(compact.length >= 2 && compact.every(Boolean), 'every one-line row keeps its time column: ' + JSON.stringify(compact));
+});
+
 test('The clock is 12- or 24-hour as the household\'s country writes it, or as Settings says (GA-24)', () => {
   const house = country => ({'/api/household': {name: '', timezone: 'America/Chicago', place: 'Somewhere', ...(country ? {country} : {})}});
   const settings = clock => ({'/api/settings': {rest: 'calendar', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock}});
@@ -150,7 +166,7 @@ test('The clock is 12- or 24-hour as the household\'s country writes it, or as S
   assert.ok(!/AM|PM/.test(w.$('later-rows').textContent));
   const mornings = w.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'mornings');
   assert.deepEqual(mornings.children.map(b => b.textContent), ['Off', 'Until 08:00', 'Until 09:00', 'Until 10:00']);
-  assert.equal(w.$('mornings-note').textContent, 'Shows the week instead of photos from 04:00 until the time you pick.');
+  assert.equal(w.$('mornings-note').textContent, 'Shows the calendar instead of photos from 04:00 until the time you pick.');
   // An American household, and one whose country is not known yet, keep the 12-hour clock.
   for (const country of ['US', '']) {
     w = load({now: '2026-09-23T22:58:00', overrides: house(country)});
@@ -301,4 +317,160 @@ test('In Gingham’s app: a dot on Settings, Install, the permission walk-throug
   // Nothing of it outside Settings, even mid-install.
   w.$('settings-button').click();
   assert.doesNotMatch(outside(w), /0\.1\.2|download|install/i);
+});
+
+test('The calendar side turns dark or light at the same moment as the sky, never on a clock of its own', () => {
+  // Riley, 2026-09-23: "the left side weather frame of gingham got bright in the morning before the right side calendar
+  // did." The sky blends for an hour around sunrise and sunset; the theme used to flip at sunrise less ten minutes.
+  const cream = 'rgb(253,246,238)';
+  let flips = 0;
+  for (const [from, to] of [[5 * 60, 8 * 60], [17 * 60, 21 * 60]]) {
+    let last = null;
+    for (let m = from; m <= to; m += 5) {
+      const hh = String(Math.floor(m / 60)).padStart(2, '0'), mm = String(m % 60).padStart(2, '0');
+      const w = load({fixture: 'quiet', now: `2026-09-23T${hh}:${mm}:00`});
+      const inkIsCream = w.document.documentElement.style.getPropertyValue('--sky-ink') === cream;
+      const dark = w.document.body.className === 'theme-dark';
+      assert.equal(dark, inkIsCream, `at ${hh}:${mm} the sky's ink and the calendar's theme disagree`);
+      if (last !== null && last !== dark) flips++;
+      last = dark;
+    }
+  }
+  assert.equal(flips, 2, 'one change at dawn and one at dusk');
+});
+
+// 0.1.2: the days ahead as an agenda (a household setting), and this calendar week crossed off in the header.
+const settingsWith = extra => ({'/api/settings': {rest: 'calendar', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock: 'auto', ...extra}});
+const agendaAt = (now, fixture = 'stress', overrides = {}) => load({fixture, now, overrides: {...settingsWith({calendarView: 'agenda'}), ...overrides}});
+// The agenda as read from the wall: a day as its date and its rows' titles, a quiet line as its words, a month heading as
+// "# October".
+const agendaOf = w => w.$('agenda').children.map(el => el.classes.includes('agenda-day')
+  ? {day: el.getAttribute('aria-label'), date: el.querySelector('.agenda-date').textContent, rows: el.querySelectorAll('.item').map(w.row)}
+  : el.classes.includes('agenda-month') ? '# ' + el.textContent : el.textContent);
+
+test('The agenda is one list from tomorrow, grouped by day, and Later folds into it', () => {
+  const w = agendaAt('2026-09-23T15:40:00');
+  assert.equal(w.$('agenda').hidden, false);
+  assert.equal(w.$('strip').hidden, true, 'the columns give way to the list');
+  assert.equal(w.$('later').hidden, true, 'one list, not two');
+  const blocks = agendaOf(w);
+  assert.equal(blocks[0].day, 'Thursday, September 24', 'Today is the left panel; the list starts tomorrow');
+  assert.equal(blocks[0].date, '24Tomorrow');
+  assert.deepEqual(blocks[0].rows.map(r => r.title), ['Theo in Chicago for work', 'Priya’s birthday', 'Gym', 'June to school', 'Design review', 'Lunch with Dana', 'Pickup', 'Dinner at the noodle place', 'Water: plants', '⚽️ Pack: soccer bag']);
+  // Today's one-line rows: a time column that says when (or how long a trip runs), the title, whose it is after it.
+  const rows = blocks[0].rows;
+  assert.ok(rows.every(r => r.classes.includes('compact')));
+  assert.deepEqual(rows.slice(0, 4).map(r => r.meta), ['Until Fri', '', '6 AM', '7:45 AM']);
+  assert.ok(rows[0].classes.includes('continues'), 'a trip already under way reads as still going');
+  const bag = w.$('agenda').querySelectorAll('.item').find(el => w.row(el).title.includes('soccer bag'));
+  assert.ok(bag.querySelector('.item-body').children.some(el => el.classes.includes('avatar')), 'the monogram follows the title');
+  assert.ok(!w.$('agenda').textContent.includes('flight pickup'), 'a timed event belongs to the day it starts');
+  // What Later used to hold is in the list, on its day, under its month.
+  assert.ok(blocks.includes('# October'));
+  const october = blocks.indexOf('# October');
+  assert.equal(blocks[october + 1].day, 'Thursday, October 1');
+  assert.ok(blocks.some(b => b.day === 'Sunday, October 18' && b.rows[0].title === 'Halloween costume shopping'));
+  assert.equal(blocks[blocks.length - 1], 'Nothing else planned through Oct 20', 'as far as the frame has the calendar, and it says so');
+  // A private event keeps its broken rail in the list too.
+  const monday = load({now: '2026-09-22T12:00:00', overrides: settingsWith({calendarView: 'agenda'})});
+  assert.ok(agendaOf(monday)[0].rows.some(r => r.title === 'Busy' && r.classes.includes('busy')));
+});
+
+test('Empty days fold into one quiet line, by weekday this week and by date after it', () => {
+  // Stress: a single empty Saturday.
+  assert.ok(agendaOf(agendaAt('2026-09-23T15:40:00')).includes('Nothing planned Saturday'));
+  // Sparse: nothing until Sunday, then nothing until October.
+  let blocks = agendaOf(agendaAt('2026-09-23T15:40:00', 'sparse'));
+  assert.deepEqual(blocks.map(b => typeof b === 'string' ? b : b.day), ['Nothing planned Thu–Sat', 'Sunday, September 27', 'Nothing planned Sep 28 – Oct 1', '# October', 'Friday, October 2', 'Nothing else planned through Oct 20']);
+  // A run inside one month, past the coming week.
+  assert.ok(agendaOf(agendaAt('2026-09-28T09:30:00')).includes('Nothing planned Oct 4–8'));
+  // One empty day that is tomorrow.
+  assert.equal(agendaOf(agendaAt('2026-09-25T09:30:00', 'sparse'))[0], 'Nothing planned tomorrow');
+  // Nothing at all: one line, never a wall of empty days.
+  assert.deepEqual(agendaOf(agendaAt('2026-09-23T15:40:00', 'empty')), ['Nothing planned through Oct 20']);
+  assert.deepEqual(agendaOf(agendaAt('2026-10-02T16:00:00', 'quiet')), ['Nothing planned through Oct 20']);
+});
+
+test('The agenda reaches exactly as far as the calendar the frame has, and no further', () => {
+  const extra = {...require('./fixtures').stress.calendar};
+  extra.events = extra.events.concat([{id: 'x1', uid: 'x1', title: 'Past the window', calendar: 'mara', start: '2026-10-21T10:00:00-05:00', end: '2026-10-21T11:00:00-05:00', allDay: false, location: ''}]);
+  const w = agendaAt('2026-09-23T15:40:00', 'stress', {'/api/calendar': extra});
+  assert.ok(!w.$('agenda').textContent.includes('Past the window'));
+  const days = agendaOf(w).filter(b => b.day).map(b => b.day);
+  assert.equal(days[days.length - 1], 'Sunday, October 18');
+  assert.equal(w.$('month').textContent, 'Sep – Oct', 'the title names what the list spans, short so the rail stays put');
+  // Everything fits on one page when nothing is measured, so there is nowhere to page to.
+  assert.equal(w.$('next').disabled, true);
+});
+
+test('The agenda is a household setting: chosen in Settings, saved on the server, never changed by itself', () => {
+  const saved = [];
+  const w = load({now: '2026-09-23T15:40:00', overrides: {'POST /api/settings': () => { saved.push('post'); return {rest: 'calendar', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock: 'auto', calendarView: 'agenda'}; }}});
+  assert.equal(w.$('agenda').hidden, true, 'Week is the default');
+  const choice = w.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'calendarView');
+  assert.deepEqual(choice.children.map(b => [b.textContent, b.getAttribute('aria-pressed')]), [['Week', 'true'], ['Agenda', 'false']]);
+  assert.equal(choice.parentNode.firstChild.textContent, 'Calendar');
+  choice.children[1].click();
+  assert.equal(w.$('agenda').hidden, false, 'applies at once');
+  w.server.flush();
+  assert.deepEqual(saved, ['post'], 'and is saved');
+  assert.equal(w.$('agenda').hidden, false);
+  // A frame whose household chose it opens on it, and the resting view is named for the calendar, not the week.
+  const again = agendaAt('2026-09-23T15:40:00');
+  assert.equal(again.$('agenda').hidden, false);
+  const rest = again.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'rest');
+  assert.deepEqual(rest.children.map(b => b.textContent), ['Photos', 'Calendar']);
+});
+
+// The rail as read from the wall: each mark's number and state ('x' crossed off, 'o' today, '.' ahead), '*' for a star.
+const railOf = w => w.$('week-rail').children.map(el => el.textContent + (el.classes.includes('mark-over') ? 'x' : el.classes.includes('mark-now') ? 'o' : '.') + (el.classes.includes('starred') ? '*' : '')).join(' ');
+const house = (country, extra = {}) => ({'/api/household': {name: '', timezone: 'America/Chicago', place: 'Somewhere', ...(country ? {country} : {}), ...extra}});
+
+test('The week rail crosses off the days that are over, rings today, and starts the week as the household\'s country does', () => {
+  const at = (country, now = '2026-09-23T15:40:00') => railOf(load({now, overrides: house(country)}));
+  assert.equal(at('US'), '20x 21x 22x 23o 24. 25. 26.', 'Sunday to Saturday in the US');
+  assert.equal(at(''), '20x 21x 22x 23o 24. 25. 26.', 'and where the country is not known yet');
+  assert.equal(at('GB'), '21x 22x 23o 24. 25. 26. 27.', 'Monday to Sunday in Britain');
+  assert.equal(at('DE'), '21x 22x 23o 24. 25. 26. 27.');
+  assert.equal(at('EG'), '19x 20x 21x 22x 23o 24. 25.', 'Saturday to Friday in Egypt');
+  // Sunday starts a fresh week in the US, and ends one in Britain.
+  assert.equal(at('US', '2026-09-27T09:00:00'), '27o 28. 29. 30. 1. 2. 3.');
+  assert.equal(at('GB', '2026-09-27T09:00:00'), '21x 22x 23x 24x 25x 26x 27o');
+  // In both views, and with the same seven days whichever days the calendar is showing.
+  const w = load({now: '2026-09-23T15:40:00', overrides: {...house('US'), ...settingsWith({calendarView: 'agenda'})}});
+  assert.equal(w.$('week-rail').hidden, false);
+  assert.equal(railOf(w), '20x 21x 22x 23o 24. 25. 26.');
+  w.$('next').onclick();
+  assert.equal(railOf(w), '20x 21x 22x 23o 24. 25. 26.');
+  assert.match(w.$('week-rail').getAttribute('aria-label'), /^This week: Sunday 20, crossed off; .*Wednesday 23, today; Thursday 24; /);
+  // Not on the first-run screen, where there is no household's week yet.
+  const first = load({fixture: 'empty', now: '2026-09-23T10:00:00', overrides: {'/api/household': {name: '', timezone: 'America/Chicago', needsSetup: true, address: 'http://10.0.0.9:4173'}}});
+  assert.equal(first.$('week-rail').hidden, true);
+});
+
+test('A day is crossed off when it ends at midnight house time, whatever the device\'s own clock says', () => {
+  // The device is in London. 23:30 UTC is already Thursday there, and still Wednesday 6:30 PM in Austin.
+  assert.equal(railOf(load({clock: '2026-09-23T23:30:00Z', overrides: house('US')})), '20x 21x 22x 23o 24. 25. 26.');
+  // A minute to midnight in Austin, then midnight.
+  assert.equal(railOf(load({clock: '2026-09-24T04:59:00Z', overrides: house('US')})), '20x 21x 22x 23o 24. 25. 26.');
+  assert.equal(railOf(load({clock: '2026-09-24T05:00:00Z', overrides: house('US')})), '20x 21x 22x 23x 24o 25. 26.');
+  // Saturday night crosses off six; the new week starts clean at midnight.
+  assert.equal(railOf(load({clock: '2026-09-27T04:59:00Z', overrides: house('US')})), '20x 21x 22x 23x 24x 25x 26o');
+  assert.equal(railOf(load({clock: '2026-09-27T05:00:00Z', overrides: house('US')})), '27o 28. 29. 30. 1. 2. 3.');
+});
+
+test('A countdown that lands this week puts a star on its day; one further off does not', () => {
+  const counting = list => house('US', {countdowns: list});
+  let w = load({now: '2026-09-23T15:40:00', overrides: counting([{name: "June's birthday", date: '2026-09-26', word: 'sleeps'}, {name: 'the zoo', date: '2026-10-03', word: 'sleeps'}])});
+  assert.equal(railOf(w), '20x 21x 22x 23o 24. 25. 26.*');
+  assert.equal(w.$('countdown').textContent, '3 sleeps until June’s birthday', 'the rail and the line under Today agree');
+  assert.match(w.$('week-rail').getAttribute('aria-label'), /Saturday 26, June’s birthday$/);
+  const mark = w.$('week-rail').children[6];
+  assert.ok(mark.querySelector('svg'), 'a star, drawn');
+  // On the day itself, today is ringed and starred.
+  w = load({now: '2026-09-26T21:30:00', overrides: counting([{name: 'the pumpkin patch', date: '2026-09-26', word: 'sleeps'}])});
+  assert.equal(railOf(w), '20x 21x 22x 23x 24x 25x 26o*');
+  // Next week's is not this week's.
+  w = load({now: '2026-09-23T15:40:00', overrides: counting([{name: 'the zoo', date: '2026-10-03', word: 'sleeps'}])});
+  assert.ok(!railOf(w).includes('*'));
 });

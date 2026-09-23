@@ -34,3 +34,11 @@ test('Design-review mode keeps settings in memory and never writes the live file
   assert.equal(settings.update({mornings: 9}).mornings, 9);
   assert.equal(fs.existsSync(file), false);
 });
+
+test('The calendar view is a household setting: Week unless chosen, Agenda once chosen, kept across a restart', () => {
+  const file = tempFile(), settings = createSettings({file});
+  assert.equal(settings.read().calendarView, 'week');
+  assert.equal(settings.update({calendarView: 'list'}).calendarView, 'week', 'only the two views are accepted');
+  assert.equal(settings.update({calendarView: 'agenda'}).calendarView, 'agenda');
+  assert.equal(createSettings({file}).read().calendarView, 'agenda', 'survives a restart');
+});

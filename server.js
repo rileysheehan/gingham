@@ -291,7 +291,7 @@ async function serve(req,res){
   }
   if (fixture && pathname.startsWith('/api/')) {
     if (/\/close$/.test(pathname)) return json(res,200,{ok:true});
-    if (pathname === '/api/household') return json(res,200,{name:'Household',timezone:fixturePlace.timezone,place:fixturePlace.label,country:fixturePlace.country});
+    if (pathname === '/api/household') return json(res,200,{name:'Household',timezone:fixturePlace.timezone,place:fixturePlace.label,country:process.env.FRAME_FIXTURE_COUNTRY||fixturePlace.country,countdowns:fixture.countdowns||[]});
     const key = {'/api/calendar':'calendar','/api/tasks':'tasks','/api/weather':'weather','/api/photos':'photos'}[pathname], body = key && fixture[key];
     if (body === 'album') { const d = defaultHousehold(); return json(res,200,{photos:photoList(d ? d.photoManifest() : {photos:[]}),configured:true}); }
     return body ? json(res,200,body) : json(res,503,{error:'Unavailable in this fixture'});

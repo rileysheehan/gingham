@@ -8,6 +8,7 @@ const path = require('node:path');
 const http = require('node:http');
 const {createUpdates, parseVersion, compareVersions, isNewer, summarizeNotes, nextCheckAt, DAY, FIRST_AFTER, START_GAP} = require('../updates');
 const releases = require('./release-fixture');
+const NEXT = releases.newer.tag_name.slice(1);   // the fixture's newer release, one patch past package.json
 
 const scratch = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'updates-test-')), 'updates.json');
 
@@ -92,7 +93,7 @@ test('The timer runs the check when it is due, and never keeps the process alive
   assert.equal(github.seen.length, 1);
   assert.equal(timers.length, 2, 'the next one is scheduled');
   assert.equal(timers[1].ms, DAY, 'a day later');
-  assert.equal(u.status().latest.version, '0.1.2');
+  assert.equal(u.status().latest.version, NEXT);
   await github.close();
 });
 
@@ -114,9 +115,9 @@ test('What is sent: no cookie, no household, a fixed User-Agent, and the ETag on
   assert.equal(first.url, '/repos/rileysheehan/gingham/releases/latest', 'nothing in the address but the repository');
   const s = u.status();
   assert.equal(s.available, true);
-  assert.equal(s.latest.version, '0.1.2');
-  assert.equal(s.latest.url, 'https://github.com/rileysheehan/gingham/releases/tag/v0.1.2');
-  assert.match(s.howTo, /download Gingham 0\.1\.2 from github\.com\/rileysheehan\/gingham\/releases/);
+  assert.equal(s.latest.version, NEXT);
+  assert.equal(s.latest.url, 'https://github.com/rileysheehan/gingham/releases/tag/v' + NEXT);
+  assert.ok(s.howTo.includes('download Gingham ' + NEXT + ' from github.com/rileysheehan/gingham/releases'), s.howTo);
   await github.close();
 });
 
@@ -125,7 +126,7 @@ test('What it learned survives a restart, including the ETag', async () => {
   const file = scratch();
   await checker(github, {file}).check();
   const again = checker(github, {file});
-  assert.equal(again.status().latest.version, '0.1.2');
+  assert.equal(again.status().latest.version, NEXT);
   await again.check();
   assert.equal(github.seen[1].headers['if-none-match'], '"v2"');
   assert.equal((fs.statSync(file).mode & 0o777).toString(8), '600');
@@ -140,7 +141,7 @@ test('Offline, GitHub down, a timeout, a bad answer: silent, harmless, and what 
   // Nothing listening at all.
   const offline = createUpdates({current: '0.1.1', file, env: {GINGHAM_UPDATE_URL: good.url}, timeoutMs: 500, log: m => logged.push(m)});
   assert.deepEqual(await offline.check(), {ok: false, reason: 'offline'});
-  assert.equal(offline.status().latest.version, '0.1.2', 'the last answer is kept');
+  assert.equal(offline.status().latest.version, NEXT, 'the last answer is kept');
   for (const answer of [{status: 500, body: 'oops'}, {status: 502}, {status: 200, body: '{not json'}, {status: 200, body: {tag_name: 'nightly'}}, {status: 200, body: {...releases.newer, tag_name: 'v0.3.0-rc.1'}}, 'hang']) {
     const github = await fakeGitHub(() => answer);
     const u = createUpdates({current: '0.1.1', file, env: {GINGHAM_UPDATE_URL: github.url}, timeoutMs: 300, log: m => logged.push(m)});
@@ -148,7 +149,7 @@ test('Offline, GitHub down, a timeout, a bad answer: silent, harmless, and what 
     const result = await u.check();
     assert.equal(result.ok, false, JSON.stringify(answer).slice(0, 60));
     assert.ok(Date.now() - started < 2000, 'never waits past its timeout');
-    assert.equal(u.status().latest.version, '0.1.2');
+    assert.equal(u.status().latest.version, NEXT);
     await github.close();
   }
   assert.ok(logged.every(m => /^update check: /.test(m)), 'a line in the server log, and nothing anywhere else');
@@ -225,7 +226,7 @@ test('The app’s own version is compared too, and each form says how it is upda
   const u = checker(github, {form: 'container'});
   await u.check();
   assert.equal(u.status('0.1.0').appAvailable, true);
-  assert.equal(u.status('0.1.2').appAvailable, false);
+  assert.equal(u.status(NEXT).appAvailable, false);
   assert.equal(u.status('not a version').app, undefined);
   assert.match(u.status().howTo, /docker pull ghcr\.io\/rileysheehan\/gingham:latest/);
   const app = checker(github, {form: 'app'});

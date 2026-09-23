@@ -35,6 +35,7 @@
       <section class="view" id="view-calendar" aria-label="The days ahead">
         <header class="ahead-head">
           <h1 id="month"></h1>
+          <div class="week-rail" id="week-rail" role="img" hidden></div>
           <div class="legend" id="legend"></div>
           <div class="pager">
             <button id="back-today" class="quiet" hidden>Today</button>
@@ -43,6 +44,7 @@
           </div>
         </header>
         <div class="strip" id="strip"><p class="loading">Loading the calendar…</p></div>
+        <div class="agenda" id="agenda" hidden></div>
         <div class="later" id="later" hidden><h2 class="eyebrow">Later</h2><div class="later-rows" id="later-rows"></div></div>
       </section>
 
@@ -70,7 +72,7 @@
             <div class="setting"><p>Show</p><div class="choices" data-setting="rest"></div></div>
             <div class="setting"><p>Start after</p><div class="choices" data-setting="restAfter"></div></div>
             <div class="setting"><p>Mornings</p><div class="choices" data-setting="mornings"></div></div>
-            <p class="setting-note" id="mornings-note">Shows the week instead of photos from 4 AM until the time you pick.</p>
+            <p class="setting-note" id="mornings-note">Shows the calendar instead of photos from 4 AM until the time you pick.</p>
           </section>
           <section class="setting-group">
             <h2 class="eyebrow">Photos</h2>
@@ -78,6 +80,7 @@
           </section>
           <section class="setting-group">
             <h2 class="eyebrow">Appearance</h2>
+            <div class="setting"><p>Calendar</p><div class="choices" data-setting="calendarView"></div></div>
             <div class="setting"><p>Clock</p><div class="choices" data-setting="clock"></div></div>
             <div class="setting"><p>Theme</p><div class="choices" data-setting="appearance"></div></div>
             <div class="setting"><p>Brightness</p><div class="choices" data-setting="screen"></div></div>

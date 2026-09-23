@@ -18,9 +18,9 @@
   --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;
   --sun:#ffc94d;--rain:#4a97e8;
 }
-.theme-light{--selected:#ffffff;--surface:#f3f6f9;--card:#ffffff;--ink:#10263f;--ink-2:#51647a;--line:#d6dfe7;--accent:#1b66c9;--on-accent:#ffffff;--press:#e6ecf2;--shade:rgba(16,38,63,.14)}
+.theme-light{--selected:#ffffff;--surface:#f3f6f9;--card:#ffffff;--ink:#10263f;--ink-2:#51647a;--line:#d6dfe7;--accent:#1b66c9;--on-accent:#ffffff;--press:#e6ecf2;--shade:rgba(16,38,63,.14);--star:#c2410c}
 /* The selected segment is the lighter pill in both themes, as in Apple's segmented controls. */
-.theme-dark{--selected:#35425f;--surface:#0c111d;--card:#151c2c;--ink:#dfe4ef;--ink-2:#8f9bb3;--line:#273047;--accent:#8db8ff;--on-accent:#0c1a33;--press:#1e2740;--shade:rgba(0,0,0,.5)}
+.theme-dark{--selected:#35425f;--surface:#0c111d;--card:#151c2c;--ink:#dfe4ef;--ink-2:#8f9bb3;--line:#273047;--accent:#8db8ff;--on-accent:#0c1a33;--press:#1e2740;--shade:rgba(0,0,0,.5);--star:#ffb35c}
 
 html{font-size:calc(100vw / 120)}
 @media (min-aspect-ratio:16/9){html{font-size:calc(100vh / 67.5)}}
@@ -62,10 +62,10 @@ svg{display:block}
 .sky-fx .snow{left:0;right:0;bottom:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='%23fff'%3E%3Ccircle cx='14' cy='10' r='2'/%3E%3Ccircle cx='70' cy='30' r='1.6'/%3E%3Ccircle cx='100' cy='72' r='2.2'/%3E%3Ccircle cx='40' cy='60' r='1.4'/%3E%3Ccircle cx='24' cy='100' r='1.8'/%3E%3Ccircle cx='86' cy='110' r='1.5'/%3E%3C/svg%3E")}
 .sky-fx .snow.near{top:-12rem;background-size:12rem 12rem;opacity:.5}
 .sky-fx .snow.far{top:-8rem;background-size:8rem 8rem;opacity:.3}
-.today-weekday{font:600 5.25rem/1 var(--display);letter-spacing:-.03em}
-.today-date{font:400 2.5rem/1.2 var(--display);letter-spacing:-.01em;opacity:.78;margin-top:.5rem}
-.clock{font:300 11.5rem/1 var(--display);letter-spacing:-.045em;margin:2.25rem 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
-.ampm{font-size:2.5rem;font-weight:500;letter-spacing:0;margin-left:.8rem;opacity:.78}
+.today-weekday{font:600 5.25rem/1 var(--display);letter-spacing:-.03em;font-variation-settings:"opsz" 84}
+.today-date{font:500 2.5rem/1.2 var(--display);letter-spacing:0;font-variation-settings:"opsz" 32;opacity:.78;margin-top:.5rem}
+.clock{font:300 11.5rem/1 var(--display);letter-spacing:-.045em;font-variation-settings:"opsz" 96;margin:2.25rem 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ampm{font-size:2.5rem;font-weight:500;letter-spacing:0;font-variation-settings:"opsz" 40;margin-left:.8rem;opacity:.78}
 .now{display:flex;align-items:center;margin-top:1.75rem}
 .wx-icon{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .wx-icon .sun{fill:var(--sun);stroke:var(--sun)}
@@ -73,7 +73,7 @@ svg{display:block}
 .wx-icon .bolt{fill:var(--sun);stroke:none}
 .wx-icon .drop{stroke:var(--rain)}
 .now .wx-icon{width:5rem;height:5rem;flex:none;margin-right:1.1rem}
-.now-temp{font:500 4.5rem/1 var(--display);letter-spacing:-.04em;margin-right:1.4rem}
+.now-temp{font:500 4.5rem/1 var(--display);letter-spacing:-.04em;font-variation-settings:"opsz" 72;margin-right:1.4rem}
 .now-text{font-size:1.75rem;line-height:1.3;font-weight:600}
 .now-detail{font-weight:400;font-size:1.4rem;opacity:.78}
 
@@ -162,10 +162,10 @@ button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:under
 .view{flex:1;min-height:0;display:flex;flex-direction:column}
 /* Every view on the right opens with the same header: a title, what it shows, and paging on the right. */
 .ahead-head,.list-head{display:flex;align-items:center;height:3.5rem;margin-bottom:1.5rem}
-.ahead-head h1,.list-head h1{font:600 2.5rem/1 var(--text);letter-spacing:-.02em;margin-right:2.5rem;white-space:nowrap}
+.ahead-head h1,.list-head h1{font:600 3.25rem/1 var(--display);letter-spacing:-.02em;font-variation-settings:"opsz" 40;margin-right:2.5rem;white-space:nowrap}
 .list-head h1{display:flex;align-items:center}
-.list-head .glyph{width:2.6rem;height:2.6rem;margin-right:1rem;color:var(--ink-2);stroke-width:1.8}
-.list-head .avatar{width:3.2rem;height:3.2rem;margin-right:1rem;font-size:1.7rem}
+.list-head .glyph{width:3rem;height:3rem;margin-right:1rem;color:var(--ink-2);stroke-width:1.8}
+.list-head .avatar{width:3.6rem;height:3.6rem;margin-right:1rem;font-size:1.9rem}
 .list-head p,.view-note{flex:1;font-size:1.35rem;color:var(--ink-2)}
 /* Resting on photos: the dock and the arrows are near-field controls, so the photo takes the whole side until a touch.
    When the photo was taken stays, as a quiet caption on the photo itself, the one thing worth reading from the couch. */
@@ -174,15 +174,17 @@ button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:under
 body[data-rest] .dock,body[data-rest] .photo-view .pager{opacity:0;pointer-events:none}
 body[data-rest] .dock{position:absolute;left:0;right:0;bottom:0;margin:0}
 body[data-rest] .photo-view .ahead-head{position:absolute;left:2.6rem;bottom:2.1rem;z-index:2;height:auto;margin:0}
-body[data-rest] .photo-view .ahead-head h1{font:500 1.6rem/1.2 var(--text);letter-spacing:0;color:#fff;opacity:.9;text-shadow:0 .1rem .7rem rgba(0,0,0,.7)}
+body[data-rest] .photo-view .ahead-head h1{font:500 1.6rem/1.2 var(--text);letter-spacing:0;font-variation-settings:normal;color:#fff;opacity:.9;text-shadow:0 .1rem .7rem rgba(0,0,0,.7)}
 body[data-rest] .ahead{padding:0}
 body[data-rest] .photo-card{border-radius:0}
 /* Night: the panel is backlit, so the whole screen is knocked down rather than switched off. A touch clears it. */
 .nightfall{position:fixed;top:0;right:0;bottom:0;left:0;background:#000;opacity:0;pointer-events:none;z-index:20;-webkit-transition:opacity 3s ease;transition:opacity 3s ease}
 .no-calendar .legend,.no-calendar .pager{visibility:hidden}
-.legend{display:flex;flex:1;font-size:1.3rem;color:var(--ink-2)}
-.legend span{display:flex;align-items:center;margin-right:1.75rem}
+/* The legend takes what the month and the week leave, right of them, and wraps to a second line before it pushes anything. */
+.legend{display:flex;flex:1;min-width:0;flex-wrap:wrap;justify-content:flex-end;align-items:center;font-size:1.3rem;line-height:1.5;color:var(--ink-2);margin-right:1.25rem}
+.legend span{display:flex;align-items:center;margin-left:1.75rem;white-space:nowrap}
 .legend i{width:.85rem;height:.85rem;border-radius:50%;margin-right:.55rem}
+.legend.tight{font-size:1.1rem;line-height:1.2}.legend.tight span{margin-left:1.1rem}.legend.tight i{width:.7rem;height:.7rem;margin-right:.45rem}
 .pager{display:flex;align-items:center}
 /* Photos has no legend to push its arrows out, so they take the far right themselves: paging lives in one place in every view. */
 .photo-view .pager{margin-left:auto}
@@ -220,11 +222,11 @@ body[data-rest] .photo-card{border-radius:0}
 .theme-light{--tint:rgba(16,38,63,.028)}.theme-dark{--tint:rgba(255,255,255,.025)}
 .day-name{display:flex;flex-direction:column;align-items:flex-start;font-family:var(--display);line-height:1}
 .day-name .eyebrow{margin-bottom:.45rem}
-.day-name b{font-weight:600;font-size:2.75rem;letter-spacing:-.04em}
+.day-name b{font-weight:600;font-size:2.75rem;letter-spacing:-.025em;font-variation-settings:"opsz" 36}
 .forecast{display:flex;align-items:center;height:3.2rem;margin:.7rem 0 1.1rem;padding-bottom:1rem;box-sizing:content-box;border-bottom:.0625rem solid var(--line);font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
-.forecast .wx{flex:none;width:2.6rem;margin-right:.6rem;display:flex;flex-direction:column;align-items:center}
-.forecast .wx-icon{width:2.4rem;height:2.4rem;color:var(--ink-2)}
-.forecast small{font-size:1.05rem;line-height:1;font-weight:600;color:var(--rain);margin-top:-.1rem}
+.forecast .wx,.agenda-wx .wx{flex:none;width:2.6rem;margin-right:.6rem;display:flex;flex-direction:column;align-items:center}
+.forecast .wx-icon,.agenda-wx .wx-icon{width:2.4rem;height:2.4rem;color:var(--ink-2)}
+.forecast small,.agenda-wx small{font-size:1.05rem;line-height:1;font-weight:600;color:var(--rain);margin-top:-.1rem}
 .forecast b{color:var(--ink);font-weight:600;margin-right:.45rem}
 .day-items{flex:1;min-height:0;overflow:hidden}
 .day .item{margin-bottom:1.15rem}
@@ -242,6 +244,52 @@ button.item:active{opacity:.6}
 .later-row i{flex:none;width:.8rem;height:.8rem;border-radius:50%;margin-right:.8rem}
 .later-row i.ring{background:none;border:.14rem solid var(--ink-2)}
 .later-note{font-size:1.35rem;line-height:2.4rem;color:var(--ink-2)}
+
+/* ---------- The week, crossed off ----------
+   This calendar week as seven day marks beside the month: the days that are over crossed off with one stroke, as a child
+   crosses off a paper calendar; today ringed; the days ahead plain; a star on a day the household is counting down to.
+   It lives inside the header's fixed 3.5rem, so it never costs the days below it a row. Read at 8 ft: a mark is 3.4rem
+   (about 14 arcminutes), its stroke .4rem, its number 1.75rem in the display face, like every number on the frame. */
+/* The month title keeps one width, the longest month's, so the rail beside it stays in one place all year. */
+#month{min-width:16.5rem;margin-right:1.5rem}
+.week-rail{flex:none;display:flex;align-items:center;margin-right:1.5rem}
+.mark{position:relative;flex:none;display:flex;align-items:center;justify-content:center;width:3.4rem;height:3.4rem;margin-right:.4rem;border-radius:50%;color:var(--ink);font:600 1.75rem/1 var(--display);letter-spacing:-.03em;font-variation-settings:"opsz" 28;font-variant-numeric:tabular-nums}
+.mark:last-child{margin-right:0}
+.mark b{font-weight:inherit}
+/* Crossed off: the number stays, in the secondary colour, under one decisive stroke in full ink. Not a fade. */
+.mark-over{color:var(--ink-2)}
+.mark-over:after{content:"";position:absolute;left:-.1rem;right:-.1rem;top:50%;height:.4rem;margin-top:-.2rem;border-radius:.2rem;background:var(--ink);-webkit-transform:rotate(-55deg);transform:rotate(-55deg)}
+.mark-now{border:.26rem solid var(--accent)}
+.mark .star{position:absolute;top:-.8rem;right:-.85rem;width:2.2rem;height:2.2rem;fill:var(--star);stroke:var(--surface);stroke-width:2.4;stroke-linejoin:round}
+
+/* ---------- Agenda: the days ahead as one list ----------
+   A day is its date, its rows and its weather on one band; a row is Today's one-line row (time column, title, whose it
+   is). Days with nothing planned fold into one quiet line. The card is only as tall as its list (app.js pages it). */
+.agenda{flex:0 1 auto;min-height:0;position:relative;overflow:hidden;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);padding:.35rem 2.25rem}
+.agenda-day{display:flex;align-items:flex-start;padding:.8rem 0;border-top:.0625rem solid var(--line)}
+.agenda-day.weekend{background-color:var(--tint);margin:0 -2.25rem;padding-left:2.25rem;padding-right:2.25rem}
+.agenda>:first-child{border-top:0}
+.agenda-date{flex:0 0 12.5rem;display:flex;align-items:baseline;height:3.1rem;white-space:nowrap}
+.agenda-date b{flex:0 0 3.6rem;font:600 2.5rem/1 var(--display);letter-spacing:-.025em;font-variation-settings:"opsz" 36}
+.agenda-date span{font:600 1.45rem/1 var(--text);color:var(--ink-2)}
+.agenda-items{flex:1;min-width:0;overflow:hidden}
+.agenda .item{align-items:center;min-height:3.1rem}
+.agenda .item+.item{margin-top:.2rem}
+.agenda .item-body{display:flex;align-items:baseline;min-width:0}
+.agenda .item-meta{flex:0 0 9.75rem;padding-right:.6rem;font-size:1.5rem;line-height:1.25;white-space:nowrap;overflow:hidden;color:var(--ink-2);opacity:1}
+.agenda .item-title{flex:0 1 auto;min-width:0;font-size:1.9rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agenda .item-body>.avatar{align-self:center;margin-left:.6rem;width:1.8rem;height:1.8rem;font-size:1rem}
+.agenda .item.event{padding-left:2.7rem}
+.agenda .item.event:before{left:.8rem;top:.35rem;bottom:.35rem}
+.agenda .check{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
+/* A trip on the days after its first: its title in the secondary colour, its rail still its calendar's. */
+.agenda .item.continues .item-title{color:var(--ink-2)}
+.agenda .more{font-size:1.4rem;padding-left:12.45rem}
+.agenda-wx{flex:0 0 11rem;display:flex;align-items:center;justify-content:flex-end;height:3.1rem;font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.agenda-wx b{color:var(--ink);font-weight:600;margin-right:.45rem}
+.agenda-empty{padding:.85rem 0;border-top:.0625rem solid var(--line);font:500 1.5rem/1.3 var(--text);color:var(--ink-2)}
+.agenda-month{padding:1.35rem 0 .35rem;border-top:.0625rem solid var(--line)}
+.agenda-month+.agenda-day,.agenda-month+.agenda-empty{border-top:0}
 
 /* ---------- A list (one Todoist project) ---------- */
 .list-body{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);padding:1.75rem 2.25rem}
@@ -357,7 +405,7 @@ button.item:active{opacity:.6}
 .dialog h2.long{font-size:2.25rem;line-height:1.18}
 .day-sheet{width:52rem;max-height:90vh;display:flex;flex-direction:column}
 #day-eyebrow{margin-bottom:.6rem}
-.day-sheet h2{flex:none;margin-top:0}
+.day-sheet h2{flex:none;margin-top:0;font:600 2.9rem/1.15 var(--display);letter-spacing:-.02em;font-variation-settings:"opsz" 40}
 .day-sheet-list{flex:1;min-height:0;overflow-y:auto}
 .day-sheet-list .item{margin-bottom:1.3rem}
 .day-sheet-list .item-title{font-size:1.9rem}
@@ -369,7 +417,7 @@ button.item:active{opacity:.6}
 /* Adding to a list: at the top, clear of the keyboard. */
 .list-head .quiet{flex:none;height:3rem;padding:0 1.6rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
 .modal.top{align-items:flex-start;padding-top:3rem}
-.dialog.add h2{font-size:2.1rem;margin:0 0 1.2rem}
+.dialog.add h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:0 0 1.2rem}
 .add-row{display:flex;align-items:center}
 .add-row input{flex:1;min-width:0;height:5.2rem;padding:0 1.4rem;border:.12rem solid var(--line);border-radius:1.3rem;background:var(--surface);color:var(--ink);font:400 2.1rem/1 var(--text)}
 .add-row input:focus{outline:none;border-color:var(--accent)}
@@ -379,7 +427,7 @@ button.item:active{opacity:.6}
 /* Manage from a phone: a PIN pad drawn by the page, so no system keyboard slides up over the wall. */
 .ahead-head .quiet{flex:none;height:3rem;padding:0 1.4rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
 .dialog.manage{width:34rem;text-align:center}
-.dialog.manage h2{font-size:2.1rem;margin:.6rem 0 .5rem}
+.dialog.manage h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:.6rem 0 .5rem}
 .dialog.manage p{font-size:1.4rem;color:var(--ink-2)}
 .dialog.manage .eyebrow{font-size:1.15rem}
 .pin-dots{height:2.4rem;margin-top:1.2rem;font-size:1.6rem;letter-spacing:.5em;color:var(--ink)}
@@ -420,6 +468,9 @@ button.item:active{opacity:.6}
   .day-items{overflow:visible}
   .item-title{font-size:1.8rem}.item-meta{font-size:1.4rem}
   .later{display:block;padding:2rem .4rem 0}
+  .agenda{overflow:visible;padding:.4rem 1.6rem}.agenda-day.weekend{margin:0 -1.6rem;padding-left:1.6rem;padding-right:1.6rem}
+  .agenda-date{flex-basis:8.5rem}.agenda-date span{display:none}.agenda-wx{display:none}
+  .week-rail{display:none}
   .later-row{height:auto;padding:.5rem 0;font-size:1.6rem}.later-row .when{flex-basis:11rem}.later-row .time{display:none}
   .list-body{-webkit-column-count:1;column-count:1;overflow:visible;padding:1.2rem 1.6rem}
   .dock{position:fixed;left:0;right:0;bottom:0;margin:0;height:auto;padding:1rem 1.2rem;background:var(--surface);border-top:.0625rem solid var(--line);z-index:7}

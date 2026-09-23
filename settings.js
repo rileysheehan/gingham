@@ -10,9 +10,10 @@ const OPTIONS = {
   photoEvery: [30, 60, 120, 300],        // seconds per photo
   appearance: ['auto', 'light', 'dark'], // auto follows sunrise and sunset where the household lives
   screen: ['auto', 'bright', 'dim'],     // backlight: with the sun, always bright, or always dim
-  clock: ['auto', '12', '24']            // auto is the convention of the household's country; 12-hour until that is known
+  clock: ['auto', '12', '24'],           // auto is the convention of the household's country; 12-hour until that is known
+  calendarView: ['week', 'agenda']       // the days ahead as six columns, or as one list grouped by day
 };
-const DEFAULTS = {rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock: 'auto'};
+const DEFAULTS = {rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock: 'auto', calendarView: 'week'};
 
 function clean(input) {
   const out = {};
