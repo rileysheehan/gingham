@@ -291,7 +291,11 @@
       var due = parse(task.due), timed = hasTime(task.due), overdue = today && due < day;
       if ((due >= day && due < next) || overdue) list.push({ kind: 'task', task: task, allDay: !timed || overdue, at: due, overdue: overdue, rank: overdue ? 3 : timed ? 1 : 2 });
     });
-    return list.sort(function (a, b) { return a.rank - b.rank || a.at - b.at; });
+    list.sort(function (a, b) { return a.rank - b.rank || a.at - b.at; });
+    // One row, at most, says how soon: the next timed thing, when it is within three hours. Every row saying it was a
+    // column of arithmetic; one row saying it is the answer to "do I need to move?".
+    if (today) for (var i = 0; i < list.length; i++) if (!list[i].allDay && list[i].at > t && relative(list[i].at)) { list[i].next = true; break; }
+    return list;
   }
   // The first event or dated chore on or after `from`, within the loaded window.
   function upNext(from) {
@@ -305,6 +309,10 @@
     return 'in ' + Math.floor(mins / 60) + ' hr' + (mins % 60 >= 5 ? ' ' + (mins % 60) + ' min' : '');
   }
   var LEADING_EMOJI = /^((?:[\uD83C-\uDBFF][\uDC00-\uDFFF]|[\u2190-\u2BFF\u2600-\u27BF\u3030\uFE0F])+)\s*/;
+  // A row is a meta line over a title. The meta line holds one fact, when: a time ("4 PM"), a span ("Through Friday") or
+  // a state that stands for a time ("Overdue"). It opens with that fact on every row, so the left edge of a day reads as a
+  // column of times from across the room; a place may trail the time, and nothing else may. Whose it is goes after the
+  // title as a monogram, and a date the section already implies is never repeated.
   function itemNode(item, inToday) {
     var el = node('button', 'item ' + item.kind), body = node('span', 'item-body'), meta = '', note = '', emoji = '';
     if (item.kind === 'event') {
@@ -322,7 +330,7 @@
         meta = clockTime(item.at);
         if (inToday) {
           if (item.at <= now()) { meta = 'Now, until ' + clockTime(item.end); el.className += ' happening'; }
-          else if (relative(item.at)) meta += ' · ' + relative(item.at);
+          else if (item.next) meta += ' · ' + relative(item.at);
           if (item.event.location) meta += ' · ' + item.event.location.split(/\n|,/)[0];
         }
       }
@@ -332,10 +340,11 @@
       el.insertBefore(node('span', 'check'), null);
       el.setAttribute('role', 'checkbox'); el.setAttribute('aria-checked', String(done));
       if (done) el.className += ' done';
-      if (item.overdue) { el.className += ' overdue'; meta = 'Overdue since ' + shortDay(item.at); }
-      else if (!item.allDay) meta = clockTime(item.at);
+      // Under Today the day is given, so an overdue chore says only that it is; its date is in the list view.
+      if (item.overdue) { el.className += ' overdue'; meta = 'Overdue'; }
+      else if (!item.allDay) { meta = clockTime(item.at); if (inToday && item.next) meta += ' · ' + relative(item.at); }
       var owner = listOf(item.task.project);
-      if (owner.person) { if (owner.color) el.style.setProperty('--tick', owner.color); if (!item.inList) meta = owner.name + (meta ? ' · ' + meta : ''); }
+      if (owner.person && owner.color) el.style.setProperty('--tick', owner.color);
       el.onclick = function () { toggleTask(item.task); };
     }
     if (meta) body.appendChild(node('span', 'item-meta', meta));
@@ -344,7 +353,12 @@
     if (emoji) el.appendChild(node('span', 'kid-emoji', emoji));
     var title = node('span', 'item-title', text);
     if (note) title.appendChild(node('span', 'item-note', ' · ' + note));
-    if (item.kind === 'task') { var who = assigneeMark(item.task); if (who) title.appendChild(who); }
+    // Whose: a person's list outside that list, then an assignee, each as the monogram their list carries.
+    if (item.kind === 'task') {
+      var who = assigneeMark(item.task);
+      if (!item.inList && owner.person && !(who && who.title === owner.name)) title.appendChild(personMark(owner.name, owner.color, 'On ' + owner.name + '’s list'));
+      if (who) title.appendChild(who);
+    }
     body.appendChild(title);
     el.appendChild(body);
     return el;
@@ -376,14 +390,16 @@
     var found = (tasks && tasks.lists || []).filter(function (l) { return l.name === name; })[0];
     return found || { name: name, icon: 'list', person: false, color: '' };
   }
-  // A task assigned to someone carries their initial, in the color their calendar uses.
+  // A person, as their initial in the color their calendar uses: the mark their own list carries.
+  function personMark(name, color, label) {
+    var a = node('span', 'avatar', name.charAt(0).toUpperCase());
+    if (color) a.style.backgroundColor = color;
+    a.setAttribute('title', name); a.setAttribute('aria-label', label);
+    return a;
+  }
   function assigneeMark(task) {
     var who = task.assignee && tasks && tasks.people && tasks.people[task.assignee];
-    if (!who) return null;
-    var a = node('span', 'avatar', who.name.charAt(0).toUpperCase());
-    if (who.color) a.style.backgroundColor = who.color;
-    a.setAttribute('title', who.name); a.setAttribute('aria-label', 'Assigned to ' + who.name);
-    return a;
+    return who ? personMark(who.name, who.color, 'Assigned to ' + who.name) : null;
   }
   function listMark(name) {
     var l = listOf(name), svg;
