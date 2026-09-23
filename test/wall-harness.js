@@ -51,7 +51,13 @@ class Element {
   // Every other box counts as not displayed, which is what a zero height means to app.js.
   get offsetParent() { return this.id === 'today-list' ? this.parentNode : null; }
   get offsetWidth() { return 0; } get offsetHeight() { return 0; } get offsetLeft() { return 0; }
-  getBoundingClientRect() { return {top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0}; }
+  // The calendar legend gets a model of the real header as well (Chrome at 1920×1080): a 56 px header, and a legend that
+  // wraps its names into 336 px, or 222 px beside the Today button (364 and 274 set tight), a name taking about 0.54 em a
+  // letter plus its dot and the gap before it.
+  getBoundingClientRect() {
+    const height = this.id === 'legend' ? legendHeight(this) : this.children.some(c => c.id === 'legend') ? 56 : 0;
+    return {top: 0, left: 0, right: 0, bottom: height, width: 0, height};
+  }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   getAttribute(k) { return k in this.attributes ? this.attributes[k] : null; }
   hasAttribute(k) { return k in this.attributes; }
@@ -73,6 +79,18 @@ class Element {
   querySelectorAll(selector) { const parts = selector.trim().split(/\s+/); return [...this.descendants()].filter(el => matchesChain(el, parts, this)); }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   get classes() { return this.className.split(/\s+/).filter(Boolean); }
+}
+
+function legendHeight(legend) {
+  const tight = legend.classes.includes('tight'), font = tight ? 17.6 : 20.8, today = !legend.ownerDocument.getElementById('back-today').hidden;
+  const room = today ? (tight ? 274 : 222) : (tight ? 364 : 336);
+  let lines = 1, x = 0;
+  for (const el of legend.children.filter(c => !c.hidden)) {
+    const w = (tight ? 36 : 50.4) + el.textContent.length * 0.54 * font;
+    if (x && x + w > room) { lines++; x = 0; }
+    x += w;
+  }
+  return legend.children.length ? lines * font * (tight ? 1.15 : 1.5) : 0;
 }
 
 // tag, #id, .class and [attr] compounds joined by descendant spaces: all app.js asks for.

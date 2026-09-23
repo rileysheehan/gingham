@@ -149,6 +149,25 @@ test('Today keeps an empty time column only while another one-line row has a tim
   assert.ok(compact.length >= 2 && compact.every(Boolean), 'every one-line row keeps its time column: ' + JSON.stringify(compact));
 });
 
+test('An all-day event in a one-line row says "All day" when there is a time column to say it in (0.1.3)', () => {
+  const base = require('./fixtures').stress;
+  const event = (id, title, start, end, allDay = false) => ({id, uid: id, title, calendar: 'family', start, end, allDay, location: ''});
+  const chore = {id: 'c1', title: 'Feed the fish', priority: 'p4', due: '2026-09-23', project: 'Chores', section: '', labels: '', recurring: false, assignee: ''};
+  const tasks = {...base.tasks, tasks: [chore]};
+  const soccer = event('e1', 'Soccer practice', '2026-09-23T17:00:00', '2026-09-23T19:30:00'), pictures = event('e0', 'June’s school picture day', '2026-09-23', '2026-09-24', true);
+  const day = events => ({...base.calendar, events: [pictures, ...events]});
+  const compact = w => w.$('today-list').children.filter(el => el.classes.includes('compact')).map(el => [w.row(el).title, el.querySelector('.item-meta') ? el.querySelector('.item-meta').textContent : null]);
+  // Nothing timed among the one-line rows: no column at all, so the rail sits beside its title, as the circle does.
+  let w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([soccer]), '/api/tasks': tasks}});
+  assert.deepEqual(compact(w), [['June’s school picture day', null], ['Feed the fish', null]]);
+  // With a time to line up with, the column stays and the all-day row fills it; an untimed chore leaves it empty.
+  w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([event('e2', 'Dinner', '2026-09-23T19:45:00', '2026-09-23T20:30:00'), event('e3', 'Book club', '2026-09-23T21:00:00', '2026-09-23T22:00:00')]), '/api/tasks': tasks}});
+  assert.deepEqual(compact(w), [['June’s school picture day', 'All day'], ['Book club', '9 PM'], ['Feed the fish', '']]);
+  // "All day" alone is not a time to line up with, but a trip's span is.
+  w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([soccer, event('e4', 'Theo in Chicago', '2026-09-22', '2026-09-26', true)]), '/api/tasks': tasks}});
+  assert.deepEqual(compact(w).map(r => r[1]), ['All day', 'Until Fri', '']);
+});
+
 test('The clock is 12- or 24-hour as the household\'s country writes it, or as Settings says (GA-24)', () => {
   const house = country => ({'/api/household': {name: '', timezone: 'America/Chicago', place: 'Somewhere', ...(country ? {country} : {})}});
   const settings = clock => ({'/api/settings': {rest: 'calendar', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock}});
@@ -166,7 +185,7 @@ test('The clock is 12- or 24-hour as the household\'s country writes it, or as S
   assert.ok(!/AM|PM/.test(w.$('later-rows').textContent));
   const mornings = w.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'mornings');
   assert.deepEqual(mornings.children.map(b => b.textContent), ['Off', 'Until 08:00', 'Until 09:00', 'Until 10:00']);
-  assert.equal(w.$('mornings-note').textContent, 'Shows the calendar instead of photos from 04:00 until the time you pick.');
+  assert.equal(w.$('mornings-note').textContent, 'Shows the calendar instead of photos from 04:00 until the time you\u00a0pick.');
   // An American household, and one whose country is not known yet, keep the 12-hour clock.
   for (const country of ['US', '']) {
     w = load({now: '2026-09-23T22:58:00', overrides: house(country)});
@@ -357,10 +376,11 @@ test('The agenda is one list from tomorrow, grouped by day, and Later folds into
   assert.equal(blocks[0].day, 'Thursday, September 24', 'Today is the left panel; the list starts tomorrow');
   assert.equal(blocks[0].date, '24Tomorrow');
   assert.deepEqual(blocks[0].rows.map(r => r.title), ['Theo in Chicago for work', 'Priya’s birthday', 'Gym', 'June to school', 'Design review', 'Lunch with Dana', 'Pickup', 'Dinner at the noodle place', 'Water: plants', '⚽️ Pack: soccer bag']);
-  // Today's one-line rows: a time column that says when (or how long a trip runs), the title, whose it is after it.
+  // Today's one-line rows: a time column that says when (how long a trip runs, or that it is all day), the title, whose it
+  // is after it.
   const rows = blocks[0].rows;
   assert.ok(rows.every(r => r.classes.includes('compact')));
-  assert.deepEqual(rows.slice(0, 4).map(r => r.meta), ['Until Fri', '', '6 AM', '7:45 AM']);
+  assert.deepEqual(rows.slice(0, 4).map(r => r.meta), ['Until Fri', 'All day', '6 AM', '7:45 AM']);
   assert.ok(rows[0].classes.includes('continues'), 'a trip already under way reads as still going');
   const bag = w.$('agenda').querySelectorAll('.item').find(el => w.row(el).title.includes('soccer bag'));
   assert.ok(bag.querySelector('.item-body').children.some(el => el.classes.includes('avatar')), 'the monogram follows the title');
@@ -473,4 +493,85 @@ test('A countdown that lands this week puts a star on its day; one further off d
   // Next week's is not this week's.
   w = load({now: '2026-09-23T15:40:00', overrides: counting([{name: 'the zoo', date: '2026-10-03', word: 'sleeps'}])});
   assert.ok(!railOf(w).includes('*'));
+});
+
+// 0.1.3: text size, a household setting, and a legend that holds any number of calendars.
+test('Text size is a household setting: Standard unless chosen, applied at once, saved, and kept by the frame', () => {
+  const saved = [];
+  const w = load({now: '2026-09-23T15:40:00', overrides: {'POST /api/settings': () => { saved.push('post'); return {...settingsWith({textSize: 'larger'})['/api/settings'], calendarView: 'week'}; }}});
+  assert.equal(w.document.documentElement.getAttribute('data-text'), 'standard', 'Standard is the default');
+  const choice = w.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'textSize');
+  assert.deepEqual(choice.children.map(b => [b.textContent, b.getAttribute('aria-pressed')]), [['Smaller', 'false'], ['Standard', 'true'], ['Larger', 'false']]);
+  assert.equal(choice.parentNode.firstChild.textContent, 'Text size');
+  assert.equal(choice.parentNode.parentNode.firstChild.textContent, 'Appearance');
+  choice.children[2].click();
+  assert.equal(w.document.documentElement.getAttribute('data-text'), 'larger', 'applies at once');
+  w.server.flush();
+  assert.deepEqual(saved, ['post'], 'and is saved on the server');
+  assert.equal(w.document.documentElement.getAttribute('data-text'), 'larger');
+  // A frame whose household chose it opens with it.
+  const smaller = load({now: '2026-09-23T15:40:00', overrides: settingsWith({textSize: 'smaller'})});
+  assert.equal(smaller.document.documentElement.getAttribute('data-text'), 'smaller');
+  // The agenda's pages were laid out at the old size, so a new size starts it again from tomorrow.
+  const agenda = agendaAt('2026-09-23T15:40:00');
+  const sizes = agenda.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'textSize');
+  sizes.children[0].click();
+  assert.equal(agenda.$('previous').disabled, true);
+});
+
+test('Text size reaches what is read and leaves the glance layer and the layout as they are', () => {
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '../dist/style.css'), 'utf8');
+  assert.match(css, /html\[data-text=smaller\]\{--ts:\.88\}/);
+  assert.match(css, /html\[data-text=larger\]\{--ts:1\.12\}/);
+  const rule = selector => { const at = css.indexOf('\n' + selector + '{'); assert.ok(at >= 0, selector); return css.slice(at, css.indexOf('}', at)); };
+  // What is read follows it, and so do the rows and the time columns that hold it.
+  for (const selector of ['.today .item.compact .item-meta', '.agenda .item-title', '.list-body .item-title', '.later-row', '.setting p', '.dialog p', '.item-meta', '.eyebrow'])
+    assert.match(rule(selector), /var\(--ts\)/, selector + ' scales');
+  // The glance layer and the frame's structure do not.
+  for (const selector of ['.clock', '.today-weekday', '.now-temp', '.ahead-head h1,.list-head h1', '.day-name b', '.mark', '.legend', '.tabs button', '.forecast', '.ahead-head,.list-head', '.dock'])
+    assert.doesNotMatch(rule(selector), /var\(--ts\)/, selector + ' stays');
+});
+
+// The legend as the wall shows it: its step, the names it shows, and its "N more".
+const calendarsNamed = names => { const base = require('./fixtures').stress.calendar; return {'/api/calendar': {...base, calendars: names.map((name, i) => ({id: (base.calendars[i] || {id: 'c' + i}).id, name, color: '#4793e0'}))}}; };
+const legendOf = w => ({step: w.$('legend').className, names: w.$('legend').children.filter(el => el.tagName === 'SPAN' && !el.hidden).map(el => el.textContent), more: (w.$('legend').querySelector('.legend-more') || {textContent: ''}).textContent});
+const LONG = ['Mara’s work', 'Family', 'Theo', 'School events', 'June', 'Soccer club', 'Grandma Rose', 'US Holidays'];
+
+test('The legend steps down to fit the header, and past three tight lines keeps whole names and ends in "N more"', () => {
+  // The fixture's three calendars on the first page: the normal legend.
+  let w = load({now: '2026-09-28T09:30:00'});
+  assert.deepEqual(legendOf(w), {step: 'legend', names: ['Mara', 'Family', 'Theo'], more: ''});
+  // Eight short names beside Today: smaller and closer, every name shown.
+  const SHORT = ['Mara', 'Family', 'Theo', 'School', 'June', 'Soccer', 'Grandma', 'Holidays'];
+  w = load({now: '2026-09-28T09:30:00', overrides: calendarsNamed(SHORT)});
+  w.$('next').click();
+  assert.equal(w.$('back-today').hidden, false);
+  assert.deepEqual(legendOf(w), {step: 'legend tight', names: SHORT, more: ''});
+  // Eight long names beside Today: the names that fit, whole, then how many more.
+  w = load({now: '2026-09-28T09:30:00', overrides: calendarsNamed(LONG)});
+  const first = legendOf(w);
+  w.$('next').click();
+  const paged = legendOf(w);
+  assert.equal(paged.step, 'legend tight');
+  assert.ok(paged.names.length >= 4 && paged.names.length < LONG.length, 'some names, not all: ' + paged.names.join(', '));
+  assert.deepEqual(paged.names, LONG.slice(0, paged.names.length), 'in order, the first ones');
+  assert.equal(paged.more, (LONG.length - paged.names.length) + ' more');
+  // With no Today button there is more room, and more names; going back to the first page gives them back.
+  assert.ok(first.names.length > paged.names.length, first.names.length + ' names, against ' + paged.names.length + ' beside Today');
+  w.$('back-today').click();
+  assert.deepEqual(legendOf(w), first);
+});
+
+test('The legend\'s "N more" opens every calendar with its colour, and closes like any sheet', () => {
+  const w = load({now: '2026-09-28T09:30:00', overrides: calendarsNamed([...LONG, 'Piano lessons'])});
+  w.$('next').click();
+  const more = w.$('legend').querySelector('.legend-more');
+  assert.ok(more, 'too many for the header');
+  assert.match(more.getAttribute('aria-label'), /^\d+ more calendars$/);
+  more.click();
+  assert.equal(w.$('legend-dialog').hidden, false);
+  assert.deepEqual(w.$('legend-list').children.map(el => el.textContent), [...LONG, 'Piano lessons']);
+  assert.ok(w.$('legend-list').children.every(el => el.querySelector('i').style.backgroundColor === '#4793e0'), 'each with its colour');
+  w.$('close-legend').click();
+  assert.equal(w.$('legend-dialog').hidden, true);
 });

@@ -42,3 +42,14 @@ test('The calendar view is a household setting: Week unless chosen, Agenda once 
   assert.equal(settings.update({calendarView: 'agenda'}).calendarView, 'agenda');
   assert.equal(createSettings({file}).read().calendarView, 'agenda', 'survives a restart');
 });
+
+test('Text size is a household setting: Standard unless chosen, one of three, kept across a restart', () => {
+  const file = tempFile(), settings = createSettings({file});
+  assert.equal(settings.read().textSize, 'standard');
+  assert.equal(settings.update({textSize: 'huge'}).textSize, 'standard', 'only the three sizes are accepted');
+  assert.equal(settings.update({textSize: 1.12}).textSize, 'standard', 'a number is not a size');
+  assert.equal(settings.update({textSize: 'smaller'}).textSize, 'smaller');
+  assert.equal(settings.update({calendarView: 'agenda'}).textSize, 'smaller', 'changing another setting keeps it');
+  assert.equal(createSettings({file}).read().textSize, 'smaller', 'survives a restart');
+  assert.equal(settings.update({textSize: 'larger'}).textSize, 'larger');
+});

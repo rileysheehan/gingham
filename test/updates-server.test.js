@@ -84,10 +84,11 @@ test('A household’s data from 0.1.0 reads cleanly in this version', () => {
   const settings = home.settings.read();
   assert.equal(settings.clock, DEFAULTS.clock, 'the new setting takes its default');
   assert.equal(settings.calendarView, 'week', 'and so does 0.1.2’s calendar view: the columns it always had');
+  assert.equal(settings.textSize, 'standard', 'and 0.1.3’s text size: the size it always had');
   assert.equal(settings.rest, 'calendar'); assert.equal(settings.screen, 'dim'); assert.equal(settings.mornings, 8);
   // An older version reading what this one writes: it drops what it does not know and keeps the rest.
   const written = home.settings.update({clock: '24'});
-  const olderClean = input => Object.fromEntries(Object.entries(input).filter(([k]) => k !== 'clock' && k !== 'calendarView'));
+  const olderClean = input => Object.fromEntries(Object.entries(input).filter(([k]) => k !== 'clock' && k !== 'calendarView' && k !== 'textSize'));
   assert.deepEqual(olderClean(written), {rest: 'calendar', restAfter: 10, mornings: 8, photoEvery: 120, appearance: 'dark', screen: 'dim'});
   assert.equal(createSettings({file: path.join(dir, 'settings.json')}).read().clock, '24');
   fs.rmSync(data, {recursive: true, force: true});

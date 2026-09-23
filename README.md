@@ -20,6 +20,8 @@ copy holds that copy's secrets.
   Tasks or Microsoft To Do (those two need an app registered for the server). Add at the wall or from a phone; check things off with a moment to undo. A young child's
   list has big rows and a picture on each.
 - **Photos** from an iCloud shared album, straight from a phone, or from a folder.
+- **Text sized for the room.** Smaller, Standard or Larger, for the rows and the lists; the clock and the layout stay
+  as they are.
 - **It behaves itself.** Brightness follows sunrise and sunset. After a while it drifts to photos and comes back. After a
   power cut, or with the internet down, it shows the last good screen and says from when.
 
@@ -77,7 +79,7 @@ release). Nothing appears on the wall itself, and nothing ever updates on its ow
 
 - **Never forced.** An old frame keeps working. The notice waits in Settings and never grows louder.
 - **Forward, never backward.** A new version reads everything an older one wrote and moves it forward if it must;
-  going back a version is not supported. Everything from 0.1.0 and 0.1.1 carries over to 0.1.2 as it is.
+  going back a version is not supported. Everything from 0.1.0, 0.1.1 and 0.1.2 carries over to 0.1.3 as it is.
 - **Release notes say what a family gets**, in a few plain sentences, not just a version number
   ([RELEASING.md](RELEASING.md)).
 
@@ -94,7 +96,7 @@ WebView cheap frames ship with. `npm test` runs the tests, `npm run check` the s
 
 ## Status
 
-Early, and in daily use on one family's kitchen wall. The current release is 0.1.2. What is coming is in
+Early, and in daily use on one family's kitchen wall. The current release is 0.1.3. What is coming is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licence and security

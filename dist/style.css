@@ -23,6 +23,14 @@
 .theme-dark{--selected:#35425f;--surface:#0c111d;--card:#151c2c;--ink:#dfe4ef;--ink-2:#8f9bb3;--line:#273047;--accent:#8db8ff;--on-accent:#0c1a33;--press:#1e2740;--shade:rgba(0,0,0,.5);--star:#ffb35c}
 
 html{font-size:calc(100vw / 120)}
+/* Text size (Settings -> Appearance), one number: what is read scales, and the rows with it, so Smaller is more rows and
+   Larger fewer. The glance layer (clock, weekday, date, weather now, titles, day numbers, the rail, forecasts) and the
+   layout (the panel split, the header, the dock, the week's grid, controls) do not, which is why sizes that follow it
+   are written calc(Nrem*var(--ts)) and the rest stay plain rem. Smaller is the floor: a one-line row's title there
+   still subtends a 20/20 letter at 8 ft. */
+:root{--ts:1}
+html[data-text=smaller]{--ts:.88}
+html[data-text=larger]{--ts:1.12}
 @media (min-aspect-ratio:16/9){html{font-size:calc(100vh / 67.5)}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -33,7 +41,7 @@ p,h1,h2,h3{margin:0}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;touch-action:manipulation}
 button:disabled{cursor:default}
 /* Eyebrows label a section the way Apple's apps do: small, uppercase, tracked, in the secondary color. */
-.eyebrow{display:block;font:600 1.15rem/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.eyebrow{display:block;font:600 calc(1.15rem*var(--ts))/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
 .today .eyebrow{color:inherit;opacity:.7}
 button:focus-visible,a:focus-visible{outline:.2rem solid var(--accent);outline-offset:.2rem}
 a{color:inherit}
@@ -77,12 +85,12 @@ svg{display:block}
 .now-text{font-size:1.75rem;line-height:1.3;font-weight:600}
 .now-detail{font-weight:400;font-size:1.4rem;opacity:.78}
 
-.countdown{flex:none;margin-top:auto;padding-top:1.25rem;font:600 1.75rem/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.countdown{flex:none;margin-top:auto;padding-top:1.25rem;font:600 calc(1.75rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .countdown:not([hidden])+.sun-line{margin-top:0;padding-top:.7rem}
-.sun-line{flex:none;font:500 1.4rem/1 var(--text);font-variant-numeric:tabular-nums;opacity:.78;margin-top:auto;padding-top:1.25rem}
+.sun-line{flex:none;font:500 calc(1.4rem*var(--ts))/1 var(--text);font-variant-numeric:tabular-nums;opacity:.78;margin-top:auto;padding-top:1.25rem}
 /* An old calendar or list, said once in the panel every view shares: as quiet as the sun line, with a broken rule over it
    so it reads as a caveat on everything above rather than as one more line of news. */
-.stale-line{flex:none;margin-top:1rem;padding-top:.8rem;border-top:.125rem dashed rgba(127,127,127,.5);font:500 1.4rem/1.25 var(--text);font-variant-numeric:tabular-nums}
+.stale-line{flex:none;margin-top:1rem;padding-top:.8rem;border-top:.125rem dashed rgba(127,127,127,.5);font:500 calc(1.4rem*var(--ts))/1.25 var(--text);font-variant-numeric:tabular-nums}
 /* Today takes the room it needs and tomorrow gets the rest (flex-basis 0), so a busy today squeezes tomorrow, never
    the other way round. app.js fits whole items into each and ends with "and N more". */
 .today-label{flex:none;margin-top:2.25rem;padding-top:1.5rem;border-top:.125rem solid rgba(127,127,127,.35);margin-bottom:1.1rem}
@@ -90,14 +98,14 @@ svg{display:block}
 .tomorrow{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-top:1.5rem;padding-top:1.4rem;border-top:.125rem solid rgba(127,127,127,.35)}
 .tomorrow h2{flex:none;margin-bottom:1.1rem}
 .tomorrow-list{flex:1;min-height:0;overflow:hidden}
-.today .tomorrow .item{margin-bottom:1.1rem}
-.today .tomorrow .item-title{font-size:1.9rem}
-.today .tomorrow .item-meta{font-size:1.3rem}
+.today .tomorrow .item{margin-bottom:calc(1.1rem*var(--ts))}
+.today .tomorrow .item-title{font-size:calc(1.9rem*var(--ts))}
+.today .tomorrow .item-meta{font-size:calc(1.3rem*var(--ts))}
 .today .tomorrow .check{width:2.2rem;height:2.2rem}
-.today-empty{font:400 2.25rem/1.2 var(--text);letter-spacing:-.01em;opacity:.75}
-.today .item{margin-bottom:1.5rem}
-.today .item-title{font-size:2.25rem;line-height:1.2}
-.today .item-meta{font-size:1.5rem}
+.today-empty{font:400 calc(2.25rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;opacity:.75}
+.today .item{margin-bottom:calc(1.5rem*var(--ts))}
+.today .item-title{font-size:calc(2.25rem*var(--ts));line-height:1.2}
+.today .item-meta{font-size:calc(1.5rem*var(--ts))}
 /* Today is read at a distance: one line of time and place, at most two of title. The full text is a tap away. */
 .today .item-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today .item:not(.allday) .item-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -105,17 +113,17 @@ svg{display:block}
    30 px, heavier and at full ink, where every other row's time stays small. */
 .item.happening .item-meta{opacity:1;font-weight:600}
 .item.happening:before{width:.45rem}
-.today .item.happening .item-meta,.today .item.next .item-meta{font-size:1.875rem;line-height:1.25;font-weight:650;opacity:1}
+.today .item.happening .item-meta,.today .item.next .item-meta{font-size:calc(1.875rem*var(--ts));line-height:1.25;font-weight:650;opacity:1}
 /* Busy time: a title in ink at a lighter weight, and a broken rail, the way calendars draw time that is only blocked. */
 .item.busy .item-title{font-weight:400}
 .today .check{width:2.5rem;height:2.5rem;margin-top:.1rem}
 /* Today past the now and next rows: one line each, a time column and then the title, as Later is, so the panel holds
    about twice as many rows and an overdue chore reaches the screen. The time column is 7.5rem, wide enough for
    "11:30 PM" and "Overdue"; a row with no time keeps the column empty so every title starts at the same place. */
-.today .item.compact{align-items:center;margin-bottom:.95rem}
+.today .item.compact{align-items:center;margin-bottom:calc(.95rem*var(--ts))}
 .today .item.compact .item-body{display:flex;align-items:baseline;min-width:0}
-.today .item.compact .item-meta{flex:0 0 7.5rem;font-size:1.5rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:clip}
-.today .item.compact .item-title{flex:0 1 auto;min-width:0;display:block;font-size:1.9rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.today .item.compact .item-meta{flex:0 0 calc(7.5rem*var(--ts));font-size:calc(1.5rem*var(--ts));line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.today .item.compact .item-title{flex:0 1 auto;min-width:0;display:block;font-size:calc(1.9rem*var(--ts));line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today .item.compact .item-body>.avatar{align-self:center;margin-left:.6rem;width:1.8rem;height:1.8rem;font-size:1rem}
 .today .item.compact .check{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
 .today .item.event.compact{padding-left:2.7rem}
@@ -129,7 +137,7 @@ svg{display:block}
 /* ---------- Items: events carry a calendar-colored rail, chores a tappable circle ---------- */
 .item{display:flex;width:100%;align-items:flex-start;position:relative;overflow-wrap:break-word;word-wrap:break-word}
 .item-body{flex:1;min-width:0}
-.item-title{display:block;font-weight:600;font-size:1.55rem;line-height:1.22;letter-spacing:-.005em}
+.item-title{display:block;font-weight:600;font-size:calc(1.55rem*var(--ts));line-height:1.22;letter-spacing:-.005em}
 /* All-day and multi-day events frame the day rather than fill it: one line, a lighter weight, and on days after the
    first a quieter tone that reads as "still going". */
 .item.allday .item-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
@@ -138,14 +146,14 @@ svg{display:block}
 /* The week's narrow columns give all-day titles two lines instead of one, so "Sam in …" keeps its meaning. */
 .day .item.allday .item-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .item-note{font-weight:400;opacity:.75}
-.more{display:block;font:500 1.3rem/1.3 var(--text);opacity:.75;padding:.1rem 0 0;text-align:left}
+.more{display:block;font:500 calc(1.3rem*var(--ts))/1.3 var(--text);opacity:.75;padding:.1rem 0 0;text-align:left}
 button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:underline;text-decoration-color:rgba(127,127,127,.5);text-underline-offset:.2em}
-.today .more{font-size:1.5rem}
+.today .more{font-size:calc(1.5rem*var(--ts))}
 /* Times and dates use the display face, like every other number on the frame. */
 /* The type rule: Bricolage only for the big time-and-date type (weekday, date, clock, current temperature, the week's
    day numbers); every word you read is Inter, with fixed-width digits where times line up. */
 .item-meta,.later-row .when,.later-row .time{font-weight:500;font-variant-numeric:tabular-nums}
-.item-meta{display:block;font-size:1.3rem;line-height:1.3;opacity:.75}
+.item-meta{display:block;font-size:calc(1.3rem*var(--ts));line-height:1.3;opacity:.75}
 .item.event{padding-left:1rem}
 .item.event:before{content:"";position:absolute;left:0;top:.2rem;bottom:.2rem;width:.3rem;border-radius:.3rem;background:var(--rail)}
 .item.event.busy:before{width:0;border-radius:0;background:none;border-left:.3rem dashed var(--rail)}
@@ -184,7 +192,17 @@ body[data-rest] .photo-card{border-radius:0}
 .legend{display:flex;flex:1;min-width:0;flex-wrap:wrap;justify-content:flex-end;align-items:center;font-size:1.3rem;line-height:1.5;color:var(--ink-2);margin-right:1.25rem}
 .legend span{display:flex;align-items:center;margin-left:1.75rem;white-space:nowrap}
 .legend i{width:.85rem;height:.85rem;border-radius:50%;margin-right:.55rem}
-.legend.tight{font-size:1.1rem;line-height:1.2}.legend.tight span{margin-left:1.1rem}.legend.tight i{width:.7rem;height:.7rem;margin-right:.45rem}
+/* Tight, for five or more calendars beside Today: smaller and closer, three lines that stand out of the header no more than
+   two normal ones do. It takes back room the normal legend leaves between itself and its neighbours: the first name on a
+   line starts at the legend's edge rather than a gap after it, the gap before the arrows narrows, and so does the Today
+   button's padding, which is at its widest exactly when the legend needs the room. That is enough for eight short names. */
+.legend.tight{font-size:1.1rem;line-height:1.15;margin-left:-1.1rem;margin-right:.6rem}.legend.tight span{margin-left:1.1rem}.legend.tight i{width:.7rem;height:.7rem;margin-right:.45rem}
+.legend.tight~.pager .quiet{padding:0 .8rem;margin-right:.25rem}
+/* Past three tight lines, the names that fit and "N more", a finger's height without making its line any taller. */
+.legend-more{margin:-.75rem 0 -.75rem 1.1rem;padding:.75rem 0;font:inherit;color:var(--ink-2);text-decoration:underline;text-decoration-color:rgba(127,127,127,.5);text-underline-offset:.2em;white-space:nowrap}
+.dialog.calendars{width:34rem}
+.calendar-row{display:flex;align-items:center;padding:.55rem 0}
+.calendar-row i{flex:none;width:1.1rem;height:1.1rem;border-radius:50%;margin-right:.9rem}
 .pager{display:flex;align-items:center}
 /* Photos has no legend to push its arrows out, so they take the far right themselves: paging lives in one place in every view. */
 .photo-view .pager{margin-left:auto}
@@ -195,7 +213,7 @@ body[data-rest] .photo-card{border-radius:0}
 .quiet{font-size:1.3rem;font-weight:600;color:var(--accent);height:3.5rem;padding:0 1.25rem;border-radius:1.75rem;margin-right:.5rem}
 
 .strip{flex:1;min-height:0;display:flex;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);overflow:hidden}
-.loading{padding:2.5rem;font:400 1.6rem/1.35 var(--text);color:var(--ink-2);max-width:48rem}
+.loading{padding:2.5rem;font:400 calc(1.6rem*var(--ts))/1.35 var(--text);color:var(--ink-2);max-width:48rem}
 /* The first-run screen is read once, from a phone in hand: it sits in the middle of the card rather than in its top corner. */
 .pairing{max-width:none;align-self:center}
 .pair-code{font:600 9rem/1 var(--text);letter-spacing:.06em;color:var(--ink);margin:2.5rem 0 1.5rem;font-variant-numeric:tabular-nums}
@@ -203,7 +221,7 @@ body[data-rest] .photo-card{border-radius:0}
 .pair-address{font:600 2.6rem/1.2 var(--text);letter-spacing:-.01em;color:var(--ink);margin-top:1.6rem}
 .pair-address+.pair-code,.pair-or+.pair-code{margin-top:1.4rem}
 .pair-or{font-size:1.5rem;color:var(--ink-2);margin-top:.4rem;font-variant-numeric:tabular-nums}
-.loading-title{font:600 2.1rem/1.3 var(--text);letter-spacing:-.01em;color:var(--ink);margin-bottom:.3rem}
+.loading-title{font:600 calc(2.1rem*var(--ts))/1.3 var(--text);letter-spacing:-.01em;color:var(--ink);margin-bottom:.3rem}
 /* Setup from a phone: the QR code is the way in, always dark on a white plate (a phone's camera reads that in any theme),
    with the typed address beside it as the quieter way. */
 .qr-plate{flex:none;background:#fff;border-radius:1.2rem;padding:.9rem;box-shadow:0 .1rem .3rem var(--shade)}
@@ -221,7 +239,7 @@ body[data-rest] .photo-card{border-radius:0}
 .day.weekend{background-color:var(--tint)}
 .theme-light{--tint:rgba(16,38,63,.028)}.theme-dark{--tint:rgba(255,255,255,.025)}
 .day-name{display:flex;flex-direction:column;align-items:flex-start;font-family:var(--display);line-height:1}
-.day-name .eyebrow{margin-bottom:.45rem}
+.day-name .eyebrow{margin-bottom:.45rem;font-size:1.15rem}
 .day-name b{font-weight:600;font-size:2.75rem;letter-spacing:-.025em;font-variation-settings:"opsz" 36}
 .forecast{display:flex;align-items:center;height:3.2rem;margin:.7rem 0 1.1rem;padding-bottom:1rem;box-sizing:content-box;border-bottom:.0625rem solid var(--line);font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .forecast .wx,.agenda-wx .wx{flex:none;width:2.6rem;margin-right:.6rem;display:flex;flex-direction:column;align-items:center}
@@ -229,21 +247,21 @@ body[data-rest] .photo-card{border-radius:0}
 .forecast small,.agenda-wx small{font-size:1.05rem;line-height:1;font-weight:600;color:var(--rain);margin-top:-.1rem}
 .forecast b{color:var(--ink);font-weight:600;margin-right:.45rem}
 .day-items{flex:1;min-height:0;overflow:hidden}
-.day .item{margin-bottom:1.15rem}
+.day .item{margin-bottom:calc(1.15rem*var(--ts))}
 button.item:active{opacity:.6}
 
 .later{flex:none;display:flex;padding:1.5rem .5rem 0 1.1rem}
-.later h2{flex:0 0 7rem;line-height:2.4rem}
+.later h2{flex:0 0 7rem;line-height:calc(2.4rem*var(--ts))}
 .later-rows{flex:1;min-width:0}
-.later-row{display:flex;align-items:center;width:100%;height:2.4rem;font-size:1.45rem}
-.later-row .when{flex:0 0 9.5rem;color:var(--ink-2);white-space:nowrap}
-.later-row .time{flex:0 0 8rem;color:var(--ink-2);white-space:nowrap}
+.later-row{display:flex;align-items:center;width:100%;height:calc(2.4rem*var(--ts));font-size:calc(1.45rem*var(--ts))}
+.later-row .when{flex:0 0 calc(9.5rem*var(--ts));color:var(--ink-2);white-space:nowrap}
+.later-row .time{flex:0 0 calc(8rem*var(--ts));color:var(--ink-2);white-space:nowrap}
 .later-row .what{flex:1;min-width:0;display:flex;align-items:center;font-weight:600;white-space:nowrap}
 .later-row .what-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .later-row .avatar{margin-left:.6rem;width:1.7rem;height:1.7rem;font-size:.95rem}
 .later-row i{flex:none;width:.8rem;height:.8rem;border-radius:50%;margin-right:.8rem}
 .later-row i.ring{background:none;border:.14rem solid var(--ink-2)}
-.later-note{font-size:1.35rem;line-height:2.4rem;color:var(--ink-2)}
+.later-note{font-size:calc(1.35rem*var(--ts));line-height:calc(2.4rem*var(--ts));color:var(--ink-2)}
 
 /* ---------- The week, crossed off ----------
    This calendar week as seven day marks beside the month: the days that are over crossed off with one stroke, as a child
@@ -269,25 +287,25 @@ button.item:active{opacity:.6}
 .agenda-day{display:flex;align-items:flex-start;padding:.8rem 0;border-top:.0625rem solid var(--line)}
 .agenda-day.weekend{background-color:var(--tint);margin:0 -2.25rem;padding-left:2.25rem;padding-right:2.25rem}
 .agenda>:first-child{border-top:0}
-.agenda-date{flex:0 0 12.5rem;display:flex;align-items:baseline;height:3.1rem;white-space:nowrap}
+.agenda-date{flex:0 0 12.5rem;display:flex;align-items:baseline;height:calc(3.1rem*var(--ts));white-space:nowrap}
 .agenda-date b{flex:0 0 3.6rem;font:600 2.5rem/1 var(--display);letter-spacing:-.025em;font-variation-settings:"opsz" 36}
 .agenda-date span{font:600 1.45rem/1 var(--text);color:var(--ink-2)}
 .agenda-items{flex:1;min-width:0;overflow:hidden}
-.agenda .item{align-items:center;min-height:3.1rem}
-.agenda .item+.item{margin-top:.2rem}
+.agenda .item{align-items:center;min-height:calc(3.1rem*var(--ts))}
+.agenda .item+.item{margin-top:calc(.2rem*var(--ts))}
 .agenda .item-body{display:flex;align-items:baseline;min-width:0}
-.agenda .item-meta{flex:0 0 9.75rem;padding-right:.6rem;font-size:1.5rem;line-height:1.25;white-space:nowrap;overflow:hidden;color:var(--ink-2);opacity:1}
-.agenda .item-title{flex:0 1 auto;min-width:0;font-size:1.9rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agenda .item-meta{flex:0 0 calc(9.75rem*var(--ts));padding-right:.6rem;font-size:calc(1.5rem*var(--ts));line-height:1.25;white-space:nowrap;overflow:hidden;color:var(--ink-2);opacity:1}
+.agenda .item-title{flex:0 1 auto;min-width:0;font-size:calc(1.9rem*var(--ts));line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agenda .item-body>.avatar{align-self:center;margin-left:.6rem;width:1.8rem;height:1.8rem;font-size:1rem}
 .agenda .item.event{padding-left:2.7rem}
 .agenda .item.event:before{left:.8rem;top:.35rem;bottom:.35rem}
 .agenda .check{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
 /* A trip on the days after its first: its title in the secondary colour, its rail still its calendar's. */
 .agenda .item.continues .item-title{color:var(--ink-2)}
-.agenda .more{font-size:1.4rem;padding-left:12.45rem}
-.agenda-wx{flex:0 0 11rem;display:flex;align-items:center;justify-content:flex-end;height:3.1rem;font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.agenda .more{font-size:calc(1.4rem*var(--ts));padding-left:12.45rem}
+.agenda-wx{flex:0 0 11rem;display:flex;align-items:center;justify-content:flex-end;height:calc(3.1rem*var(--ts));font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .agenda-wx b{color:var(--ink);font-weight:600;margin-right:.45rem}
-.agenda-empty{padding:.85rem 0;border-top:.0625rem solid var(--line);font:500 1.5rem/1.3 var(--text);color:var(--ink-2)}
+.agenda-empty{padding:calc(.85rem*var(--ts)) 0;border-top:.0625rem solid var(--line);font:500 calc(1.5rem*var(--ts))/1.3 var(--text);color:var(--ink-2)}
 .agenda-month{padding:1.35rem 0 .35rem;border-top:.0625rem solid var(--line)}
 .agenda-month+.agenda-day,.agenda-month+.agenda-empty{border-top:0}
 
@@ -301,25 +319,25 @@ button.item:active{opacity:.6}
 /* A named section stays together; an unsectioned list flows across both columns. */
 .group{padding-bottom:1.25rem}
 .group.named,.list-body .item{-webkit-column-break-inside:avoid;break-inside:avoid}
-.group h3{font:600 1.15rem/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);padding:.7rem 0 .55rem}
-.list-body .item{min-height:3.6rem;padding:.7rem 0;align-items:center;border-bottom:.0625rem solid var(--line)}
+.group h3{font:600 calc(1.15rem*var(--ts))/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);padding:.7rem 0 .55rem}
+.list-body .item{min-height:calc(3.6rem*var(--ts));padding:calc(.7rem*var(--ts)) 0;align-items:center;border-bottom:.0625rem solid var(--line)}
 .list-body .group .item:last-child,.list-body .item.column-end{border-bottom:0}
-.list-body .item-title{font-size:1.8rem;font-weight:400}
-.list-body .item-meta{font-size:1.25rem}
+.list-body .item-title{font-size:calc(1.8rem*var(--ts));font-weight:400}
+.list-body .item-meta{font-size:calc(1.25rem*var(--ts))}
 .list-body .check{width:2.4rem;height:2.4rem;margin-right:1.1rem}
 /* A five-year-old's list: rows he can hit, a picture he can read, and a moment when he checks one off. */
-.list-body.kid .item{min-height:5.6rem;padding:1.1rem 0}
+.list-body.kid .item{min-height:calc(5.6rem*var(--ts));padding:calc(1.1rem*var(--ts)) 0}
 .list-body.kid .check{width:3.2rem;height:3.2rem;margin-right:1.3rem}
-.list-body.kid .item-title{font-size:2.6rem}
+.list-body.kid .item-title{font-size:calc(2.6rem*var(--ts))}
 .kid-emoji{flex:none;font-size:3.2rem;line-height:1;margin:0 1rem 0 .2rem;order:-1}
 /* The cheer lands over the list that was tapped, anchored where the toast is, not over the seam with the sky window. */
 .cheer{position:fixed;left:66.5%;top:50%;font-size:14rem;line-height:1;opacity:0;pointer-events:none;z-index:30;-webkit-transform:translate(-50%,-50%) scale(.4);transform:translate(-50%,-50%) scale(.4);-webkit-transition:opacity .35s ease,-webkit-transform .5s cubic-bezier(.2,1.5,.45,1);transition:opacity .35s ease,transform .5s cubic-bezier(.2,1.5,.45,1)}
 .cheer.on{opacity:1;-webkit-transform:translate(-50%,-50%) scale(1);transform:translate(-50%,-50%) scale(1)}
-.list-empty{font:400 2.1rem/1.3 var(--text);color:var(--ink-2);padding:.5rem 0;-webkit-column-span:all;column-span:all}
-.list-empty-hint{display:block;max-width:44rem;margin-top:.7rem;font-size:1.5rem;line-height:1.4;opacity:.8}
+.list-empty{font:400 calc(2.1rem*var(--ts))/1.3 var(--text);color:var(--ink-2);padding:.5rem 0;-webkit-column-span:all;column-span:all}
+.list-empty-hint{display:block;max-width:44rem;margin-top:.7rem;font-size:calc(1.5rem*var(--ts));line-height:1.4;opacity:.8}
 
 /* ---------- Dock ---------- */
-.notice{flex:none;margin-top:1rem;padding:.7rem 1.1rem;border-radius:.8rem;font-size:1.3rem;background:var(--press);color:var(--ink)}
+.notice{flex:none;margin-top:1rem;padding:.7rem 1.1rem;border-radius:.8rem;font-size:calc(1.3rem*var(--ts));background:var(--press);color:var(--ink)}
 .dock{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem;height:4rem}
 /* The tabs give way before Settings does: the row shrinks and clips, and Settings stays pinned at the far right. */
 .tabs{display:flex;flex:0 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;background:var(--press);border-radius:2rem;padding:.3rem}
@@ -355,45 +373,46 @@ button.item:active{opacity:.6}
 .setting-group:first-child{border-top:0}
 .setting-group h2{margin-bottom:.55rem}
 .setting{display:flex;align-items:center;min-height:4.4rem}
-.setting p{flex:0 0 24rem;font-size:1.6rem;font-weight:500;padding-right:1.5rem}
+.setting p{flex:0 0 24rem;font-size:calc(1.6rem*var(--ts));font-weight:500;padding-right:1.5rem}
 .choices{display:flex;background:var(--press);border-radius:1.05rem;padding:.25rem}
-.choices button{min-width:8.5rem;height:3.2rem;padding:0 1.5rem;border-radius:.9rem;font-size:1.45rem;font-weight:600;color:var(--ink-2);text-align:center;white-space:nowrap}
+.choices button{min-width:8.5rem;height:3.2rem;padding:0 1.5rem;border-radius:.9rem;font-size:calc(1.45rem*var(--ts));font-weight:600;color:var(--ink-2);text-align:center;white-space:nowrap}
 .choices button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
-.setting-note{font-size:1.3rem;color:var(--ink-2);margin:.2rem 0 0 24rem}
-.setting-hint{margin-left:1.5rem;font-size:1.3rem;color:var(--ink-2)}
+/* A note that runs to two lines at Larger shares them rather than leaving one word under the rest, where the engine can. */
+.setting-note{text-wrap:balance;font-size:calc(1.3rem*var(--ts));color:var(--ink-2);margin:.2rem 0 0 24rem}
+.setting-hint{margin-left:1.5rem;font-size:calc(1.3rem*var(--ts));color:var(--ink-2)}
 /* Status is four short facts, so it sits two by two and Settings fits on one screen. */
 /* Updates: the version, the check's switch, and a notice only when there is something newer. Quiet by design: it lives
    here and nowhere else, and the dot on the Settings button is the most it ever says outside Settings. */
-.setting-value{font-size:1.6rem;font-variant-numeric:tabular-nums}
+.setting-value{font-size:calc(1.6rem*var(--ts));font-variant-numeric:tabular-nums}
 .update-card{margin:1rem 0 .6rem;padding:1.4rem 1.6rem;border-radius:1.2rem;background:var(--surface)}
 .update-head{display:flex;align-items:flex-start}
 .update-text{flex:1;min-width:0;padding-right:1.5rem}
-.update-text h3{font-size:1.9rem;font-weight:600;line-height:1.25}
-.update-text p{margin-top:.25rem;font-size:1.45rem;color:var(--ink-2)}
+.update-text h3{font-size:calc(1.9rem*var(--ts));font-weight:600;line-height:1.25}
+.update-text p{margin-top:.25rem;font-size:calc(1.45rem*var(--ts));color:var(--ink-2)}
 .update-actions{flex:none;display:flex}
-.update-actions button{height:3.6rem;padding:0 1.8rem;border-radius:.9rem;font-size:1.45rem;font-weight:600;text-align:center;white-space:nowrap;margin-left:.75rem}
+.update-actions button{height:3.6rem;padding:0 1.8rem;border-radius:.9rem;font-size:calc(1.45rem*var(--ts));font-weight:600;text-align:center;white-space:nowrap;margin-left:.75rem}
 .update-actions .go{background:var(--accent);color:var(--on-accent)}
 .update-actions .quiet{background:var(--press)}
 .update-progress{height:.6rem;margin-top:1rem;border-radius:.3rem;background:var(--press);overflow:hidden}
 .update-progress span{display:block;height:100%;width:0;background:var(--accent);border-radius:.3rem}
 .update-label{margin-top:1.1rem}
 .update-label:empty{display:none}
-.update-lines p{display:flex;font-size:1.45rem;line-height:1.35;margin-top:.45rem}
+.update-lines p{display:flex;font-size:calc(1.45rem*var(--ts));line-height:1.35;margin-top:.45rem}
 .update-mark{flex:0 0 2rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .update-step .update-mark{font-weight:600;color:var(--ink)}
-.update-foot{margin-top:.8rem;font-size:1.3rem;color:var(--ink-2)}
+.update-foot{margin-top:.8rem;font-size:calc(1.3rem*var(--ts));color:var(--ink-2)}
 .update-foot:empty{display:none}
 #settings-button{position:relative}
 .update-dot{position:absolute;top:.45rem;right:.45rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--accent);box-shadow:0 0 0 .2rem var(--surface)}
 .status-rows{margin:0;display:flex;flex-wrap:wrap}
 .status-rows div{flex:0 0 50%;display:flex;align-items:baseline;padding:.3rem 1.5rem .3rem 0}
-.status-rows dt{flex:0 0 10rem;font-size:1.45rem;font-weight:500}
-.status-rows dd{margin:0;font-size:1.45rem;color:var(--ink-2)}
+.status-rows dt{flex:0 0 10rem;font-size:calc(1.45rem*var(--ts));font-weight:500}
+.status-rows dd{margin:0;font-size:calc(1.45rem*var(--ts));color:var(--ink-2)}
 
 .wide{display:block;width:100%;height:3.4rem;margin-top:.9rem;border-radius:.9rem;text-align:center;font-weight:600;font-size:1.3rem;background:var(--press);color:var(--ink)}
 
 /* ---------- Toast and dialogs ---------- */
-.toast{position:fixed;z-index:30;left:66.5%;bottom:6.75rem;-webkit-transform:translateX(-50%);transform:translateX(-50%);display:flex;align-items:center;max-width:70rem;padding:.5rem .6rem .5rem 1.75rem;border-radius:2.5rem;background:var(--ink);color:var(--surface);font-size:1.5rem;box-shadow:0 .75rem 2.5rem var(--shade)}
+.toast{position:fixed;z-index:30;left:66.5%;bottom:6.75rem;-webkit-transform:translateX(-50%);transform:translateX(-50%);display:flex;align-items:center;max-width:70rem;padding:.5rem .6rem .5rem 1.75rem;border-radius:2.5rem;background:var(--ink);color:var(--surface);font-size:calc(1.5rem*var(--ts));box-shadow:0 .75rem 2.5rem var(--shade)}
 .toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:.9rem 0}
 .toast button{flex:none;margin-left:1.5rem;height:3.4rem;padding:0 1.6rem;border-radius:1.7rem;font-weight:600;background:var(--surface);color:var(--ink)}
 
@@ -401,35 +420,35 @@ button.item:active{opacity:.6}
 .dialog{width:44rem;max-width:100%;padding:2.75rem;background:var(--card);border-radius:1.75rem;box-shadow:0 1.5rem 5rem rgba(0,0,0,.35)}
 .dialog-calendar{display:flex;align-items:center}
 .dialog-calendar i{width:.9rem;height:.9rem;border-radius:50%;margin-right:.6rem}
-.dialog h2{font:600 2.7rem/1.15 var(--text);letter-spacing:-.02em;margin:.9rem 0 1.1rem}
-.dialog h2.long{font-size:2.25rem;line-height:1.18}
+.dialog h2{font:600 calc(2.7rem*var(--ts))/1.15 var(--text);letter-spacing:-.02em;margin:.9rem 0 1.1rem}
+.dialog h2.long{font-size:calc(2.25rem*var(--ts));line-height:1.18}
 .day-sheet{width:52rem;max-height:90vh;display:flex;flex-direction:column}
 #day-eyebrow{margin-bottom:.6rem}
 .day-sheet h2{flex:none;margin-top:0;font:600 2.9rem/1.15 var(--display);letter-spacing:-.02em;font-variation-settings:"opsz" 40}
 .day-sheet-list{flex:1;min-height:0;overflow-y:auto}
-.day-sheet-list .item{margin-bottom:1.3rem}
-.day-sheet-list .item-title{font-size:1.9rem}
-.day-sheet-list .item-meta{font-size:1.35rem}
+.day-sheet-list .item{margin-bottom:calc(1.3rem*var(--ts))}
+.day-sheet-list .item-title{font-size:calc(1.9rem*var(--ts))}
+.day-sheet-list .item-meta{font-size:calc(1.35rem*var(--ts))}
 .day-sheet-list .check{width:2.4rem;height:2.4rem}
 .day-sheet .wide{flex:none}
-.dialog p{font-size:1.75rem;line-height:1.4}
+.dialog p{font-size:calc(1.75rem*var(--ts));line-height:1.4}
 #event-location{color:var(--ink-2);margin-top:.4rem;white-space:pre-line}
 /* Adding to a list: at the top, clear of the keyboard. */
 .list-head .quiet{flex:none;height:3rem;padding:0 1.6rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
 .modal.top{align-items:flex-start;padding-top:3rem}
 .dialog.add h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:0 0 1.2rem}
 .add-row{display:flex;align-items:center}
-.add-row input{flex:1;min-width:0;height:5.2rem;padding:0 1.4rem;border:.12rem solid var(--line);border-radius:1.3rem;background:var(--surface);color:var(--ink);font:400 2.1rem/1 var(--text)}
+.add-row input{flex:1;min-width:0;height:5.2rem;padding:0 1.4rem;border:.12rem solid var(--line);border-radius:1.3rem;background:var(--surface);color:var(--ink);font:400 calc(2.1rem*var(--ts))/1 var(--text)}
 .add-row input:focus{outline:none;border-color:var(--accent)}
 .add-row .key{flex:0 0 9rem;margin:0 0 0 1rem}
-.dialog.add p{min-height:2rem;margin-top:.9rem;font-size:1.4rem;color:var(--ink-2)}
+.dialog.add p{min-height:2rem;margin-top:.9rem;font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
 .dialog.add .wide{margin-top:1.2rem}
 /* Manage from a phone: a PIN pad drawn by the page, so no system keyboard slides up over the wall. */
 .ahead-head .quiet{flex:none;height:3rem;padding:0 1.4rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
 .dialog.manage{width:34rem;text-align:center}
 .dialog.manage h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:.6rem 0 .5rem}
-.dialog.manage p{font-size:1.4rem;color:var(--ink-2)}
-.dialog.manage .eyebrow{font-size:1.15rem}
+.dialog.manage p{font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
+.dialog.manage .eyebrow{font-size:calc(1.15rem*var(--ts))}
 .pin-dots{height:2.4rem;margin-top:1.2rem;font-size:1.6rem;letter-spacing:.5em;color:var(--ink)}
 .keypad{display:flex;flex-wrap:wrap;justify-content:center;margin:1rem auto 0;width:24rem}
 .key{display:flex;align-items:center;justify-content:center;text-align:center;flex:0 0 6.6rem;height:5.2rem;margin:.45rem;border-radius:1.3rem;background:var(--press);color:var(--ink);font:500 2.3rem/1 var(--text);font-variant-numeric:tabular-nums}

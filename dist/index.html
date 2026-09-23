@@ -72,7 +72,7 @@
             <div class="setting"><p>Show</p><div class="choices" data-setting="rest"></div></div>
             <div class="setting"><p>Start after</p><div class="choices" data-setting="restAfter"></div></div>
             <div class="setting"><p>Mornings</p><div class="choices" data-setting="mornings"></div></div>
-            <p class="setting-note" id="mornings-note">Shows the calendar instead of photos from 4 AM until the time you pick.</p>
+            <p class="setting-note" id="mornings-note">Shows the calendar instead of photos from 4 AM until the time you&nbsp;pick.</p>
           </section>
           <section class="setting-group">
             <h2 class="eyebrow">Photos</h2>
@@ -82,6 +82,7 @@
             <h2 class="eyebrow">Appearance</h2>
             <div class="setting"><p>Calendar</p><div class="choices" data-setting="calendarView"></div></div>
             <div class="setting"><p>Clock</p><div class="choices" data-setting="clock"></div></div>
+            <div class="setting"><p>Text size</p><div class="choices" data-setting="textSize"></div></div>
             <div class="setting"><p>Theme</p><div class="choices" data-setting="appearance"></div></div>
             <div class="setting"><p>Brightness</p><div class="choices" data-setting="screen"></div></div>
             <p class="setting-note" id="sun-note">Both follow sunrise and sunset; brightness lifts at a touch.</p>
@@ -168,6 +169,14 @@
       <p id="event-time"></p>
       <p id="event-location"></p>
       <button id="close-dialog" class="wide">Close</button>
+    </div>
+  </div>
+
+  <div id="legend-dialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="legend-title" hidden>
+    <div class="dialog calendars">
+      <h2 id="legend-title">Calendars</h2>
+      <div id="legend-list"></div>
+      <button id="close-legend" class="wide">Close</button>
     </div>
   </div>
 

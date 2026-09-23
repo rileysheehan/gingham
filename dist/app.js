@@ -21,7 +21,7 @@
   var calProblem = false, tasksProblem = false;
   var page = 0, mode = 'calendar', themeChoice = 'auto';
   // Household preferences from the Settings view, stored on the server. These defaults are used until they load.
-  var PREFS = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto', calendarView: 'week' };
+  var PREFS = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto', calendarView: 'week', textSize: 'standard' };
   var prefs = withDefaults({});
   // What the server sends, over these defaults, so a setting it does not send yet still has its value.
   function withDefaults(data) { var out = {}, k; for (k in PREFS) out[k] = PREFS[k]; for (k in data) out[k] = data[k]; return out; }
@@ -178,7 +178,7 @@
     if (v !== version && !undo && !dialogOpen() && Date.now() - lastTouch > 10000) location.reload();
   }
   // Any sheet or dialog up means someone is in the middle of something: a half-typed grocery item, a PIN, a day's chores.
-  function dialogOpen() { return !$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden; }
+  function dialogOpen() { return !$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden || !$('legend-dialog').hidden; }
 
   /* ---------- Sky ---------- */
   var SKY = {
@@ -436,6 +436,9 @@
         // Today's panel says how long a trip runs.
         // So does the agenda, which is one line a row like Today's; the week's columns show it by repeating it, dimmed.
         if (item.through && (inToday || agenda)) meta = compact ? 'Until ' + dayName(item.through) : 'Through ' + DAYS[item.through.getDay()];
+        // A one-line row says so in its time column. Left empty, the column put a hole between the rail and the title, and
+        // the rail stood alone at the far left like a mark that had lost its row.
+        else if (compact) meta = ALL_DAY;
       } else {
         meta = clockTime(item.at);
         if (inToday) {
@@ -475,10 +478,12 @@
     return el;
   }
   // Today's one-line rows share a time column so their titles start at the same place. When none of them has a time (a
-  // chore or two after the now and next rows) the column would be an empty gap between the circle and the title, so it goes.
+  // chore or two after the now and next rows, an all-day event) the column would only be an empty gap between the circle
+  // and the title, or say "All day" to no purpose, so it goes, and the rail or the circle sits right beside its title.
+  var ALL_DAY = 'All day';
   function untimedColumn(nodes) {
     var compact = nodes.filter(function (el) { return /\bcompact\b/.test(el.className); });
-    var timed = compact.some(function (el) { var m = el.querySelector('.item-meta'); return m && m.textContent; });
+    var timed = compact.some(function (el) { var m = el.querySelector('.item-meta'); return m && m.textContent && m.textContent !== ALL_DAY; });
     if (!timed) compact.forEach(function (el) { var m = el.querySelector('.item-meta'); if (m) m.parentNode.removeChild(m); });
     return nodes;
   }
@@ -829,13 +834,33 @@
     (cal ? cal.calendars : []).forEach(function (c) { var s = node('span', '', c.name), dot = node('i'); dot.style.backgroundColor = c.color; s.insertBefore(dot, s.firstChild); legend.appendChild(s); });
   }
   // The legend wraps to a second line before it pushes anything. A third line would spill out of the header, so when two
-  // are not enough (five or more calendars beside the Today button) it is set smaller and closer rather than overflow.
+  // are not enough (five or more calendars beside the Today button) it is set smaller and closer, in three lines at most.
+  // When even three are not enough (seven or eight long names beside Today, or more calendars than that) it keeps the
+  // names that fit, whole and at that size, and ends in "N more", which opens every calendar in a sheet: the wall's rule
+  // for anything that runs out of room. A name is never cut, and a colour never stands without its name.
   function fitLegend() {
-    // Two lines stand about a tenth taller than the header; a third makes it half as tall again, so 1.4 tells them apart.
-    var legend = $('legend'); legend.className = 'legend';
-    var head = legend.parentNode.getBoundingClientRect().height;
-    if (head && legend.getBoundingClientRect().height > head * 1.4) legend.className = 'legend tight';
+    // Two lines stand about a tenth taller than the header, and three set tight about a twelfth; a third line at the
+    // normal size makes it half as tall again, and a fourth tight one nearly so, so 1.4 and 1.25 tell them apart.
+    var legend = $('legend'), spans = legend.querySelectorAll('span'), old = legend.querySelector('.legend-more'), i;
+    if (old) legend.removeChild(old);
+    for (i = 0; i < spans.length; i++) spans[i].hidden = false;
+    legend.className = 'legend';
+    var head = legend.parentNode.getBoundingClientRect().height, tall = function () { return legend.getBoundingClientRect().height; };
+    if (!head || tall() <= head * 1.4) return;
+    legend.className = 'legend tight';
+    if (tall() <= head * 1.25) return;
+    var more = node('button', 'legend-more'), shown = spans.length;
+    more.onclick = openLegend; legend.appendChild(more);
+    do { shown--; spans[shown].hidden = true; more.textContent = (spans.length - shown) + ' more'; } while (shown > 1 && tall() > head * 1.25);
+    more.setAttribute('aria-label', (spans.length - shown) + ' more calendars');
   }
+  // Every calendar, with its colour, reached from the legend's "N more".
+  function openLegend() {
+    var list = $('legend-list'); list.textContent = '';
+    (cal ? cal.calendars : []).forEach(function (c) { var row = node('p', 'calendar-row', c.name), dot = node('i'); dot.style.backgroundColor = c.color; row.insertBefore(dot, row.firstChild); list.appendChild(row); });
+    $('legend-dialog').hidden = false; $('close-legend').focus();
+  }
+  function closeLegend() { $('legend-dialog').hidden = true; }
   function renderTabs() {
     var tabs = $('tabs');
     while (tabs.children.length > 1) tabs.removeChild(tabs.lastChild);
@@ -950,6 +975,7 @@
     appearance: [['auto', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']],
     clock: [['auto', 'Automatic'], ['12', '12-hour'], ['24', '24-hour']],
     calendarView: [['week', 'Week'], ['agenda', 'Agenda']],
+    textSize: [['smaller', 'Smaller'], ['standard', 'Standard'], ['larger', 'Larger']],
     screen: [['auto', 'With the sun'], ['bright', 'Bright'], ['dim', 'Dim']]
   };
   function renderSettings() {
@@ -1173,14 +1199,18 @@
     });
   }
   function closeManage() { $('manage-dialog').hidden = true; pinSoFar = ''; $('manage-code').textContent = ''; $('manage-qr').textContent = ''; }
-  var shownView = prefs.calendarView;
+  var shownView = prefs.calendarView, shownSize = prefs.textSize;
   function applyPrefs() {
     themeChoice = prefs.appearance;
-    // A different view of the calendar starts again from tomorrow.
-    if (prefs.calendarView !== shownView) { shownView = prefs.calendarView; page = 0; agendaStarts = [0]; }
+    // A different view of the calendar starts again from tomorrow, and so does a different text size, since the agenda's
+    // pages were found by laying it out at the old one.
+    if (prefs.calendarView !== shownView || prefs.textSize !== shownSize) { shownView = prefs.calendarView; shownSize = prefs.textSize; page = 0; agendaStarts = [0]; }
+    // Text size is one number in style.css (--ts), set on the root so every rule that reads it follows; the rows are
+    // measured again by the render below, so Today, the days and the lists fit whole rows at the new size.
+    document.documentElement.setAttribute('data-text', prefs.textSize);
     if (mode === 'photos') restartSlideTimer();
     // Every time on the wall follows the clock setting, so a change redraws everything, not only the sky.
-    $('mornings-note').textContent = 'Shows the calendar instead of photos from ' + clockTime(new Date(2000, 0, 1, 4)) + ' until the time you pick.';
+    $('mornings-note').textContent = 'Shows the calendar instead of photos from ' + clockTime(new Date(2000, 0, 1, 4)) + ' until the time you\u00a0pick.';
     renderSettings(); render();
   }
   // A tap applies at once and saves in the background; if the server cannot be reached the choice is put back.
@@ -1373,11 +1403,13 @@
   $('back-today').onclick = function () { page = 0; renderStrip(); };
   $('toast-undo').onclick = function () { if (undo) cancelUndo(); };
   $('close-dialog').onclick = closeEvent;
+  $('close-legend').onclick = closeLegend;
+  $('legend-dialog').onclick = function (e) { if (e.target === $('legend-dialog')) closeLegend(); };
   $('event-dialog').onclick = function (e) { if (e.target === $('event-dialog')) closeEvent(); };
   $('settings-button').onclick = function () { setMode(mode === 'settings' ? 'calendar' : 'settings'); };
   document.addEventListener('keydown', function (e) {
     lastTouch = Date.now();
-    if (e.key === 'Escape') { if (!$('event-dialog').hidden) closeEvent(); else if (!$('day-dialog').hidden) closeDay(); else if (mode !== 'calendar') setMode('calendar'); }
+    if (e.key === 'Escape') { if (!$('event-dialog').hidden) closeEvent(); else if (!$('day-dialog').hidden) closeDay(); else if (!$('legend-dialog').hidden) closeLegend(); else if (mode !== 'calendar') setMode('calendar'); }
     if (e.key === 'Tab' && !$('event-dialog').hidden) { e.preventDefault(); $('close-dialog').focus(); }
   });
 
@@ -1421,7 +1453,7 @@
     // Quiet for two minutes: a list, Settings or a paged-ahead week goes back to this week. Quiet for the time set in
     // Settings: the resting view (photos, or the week on a morning), which also follows the morning hours as they pass.
     // An open day or event used to suspend every timer, so the frame could sit on a dialog all night.
-    if (idle > HOME_AFTER_MS && dialogOpen()) { closeEvent(); closeDay(); closeManage(); closeAdd(); busy = !!undo || installing(); }
+    if (idle > HOME_AFTER_MS && dialogOpen()) { closeEvent(); closeDay(); closeManage(); closeAdd(); closeLegend(); busy = !!undo || installing(); }
     var onList = mode.indexOf('list:') === 0, hold = onList ? LIST_AFTER_MS : HOME_AFTER_MS;
     if (!busy && idle > hold && mode !== 'photos' && (mode !== 'calendar' || page !== 0)) { page = 0; setMode('calendar'); }
     if (!busy && idle > Math.max(prefs.restAfter * 60000, onList ? LIST_AFTER_MS : 0) && (mode !== restingView() || page !== 0)) { page = 0; setMode(restingView()); }
