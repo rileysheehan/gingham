@@ -6,6 +6,7 @@
 (function () {
   'use strict';
 
+  var OVERDUE_UP = 2;         // overdue chores Today moves up, after the next thing; any more wait at the end
   var WINDOW_DAYS = 28;      // keep in step with integrations.js
   var STRIP_DAYS = 6;        // days shown to the right of Today
   var UNDO_MS = 10000;        // long enough to notice a chore checked off by a passing five-year-old
@@ -20,7 +21,7 @@
   var calProblem = false, tasksProblem = false;
   var page = 0, mode = 'calendar', themeChoice = 'auto';
   // Household preferences from the Settings view, stored on the server. These defaults are used until they load.
-  var prefs = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto' };
+  var prefs = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto' };
   var pending = {};          // task id -> true while "done" but not yet sent or not yet refetched
   var undo = null;           // {task, timer}
   var lastTouch = Date.now(), loadedDay = '', version = null, previousFocus = null;
@@ -63,8 +64,35 @@
     return m ? new Date(+m[1], m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : toHouse(new Date(value));
   }
   function houseTime(ms) { return toHouse(new Date(ms)); }
+  function houseMs(value) { return new Date(value).getTime(); }
   function hasTime(value) { return value.length > 10; }
-  function clockTime(d) { var h = d.getHours(), m = d.getMinutes(); return (h % 12 || 12) + (m ? ':' + pad(m) : '') + (h < 12 ? ' AM' : ' PM'); }
+  // 12- or 24-hour, as Settings says; on Automatic, as the household's country writes a time. The country comes from the
+  // place picked on the setup page, and the convention from the browser's own locale data (Unicode CLDR) for that
+  // country's main language: 24-hour in Germany, Britain or Mexico, 12-hour in the US, India or Australia. A household
+  // whose country is not known yet keeps the 12-hour clock it always had.
+  function hours24() { return prefs.clock === '24' || (prefs.clock !== '12' && countryUses24(household.country)); }
+  var clockConvention = {};
+  function countryUses24(country) {
+    if (!/^[A-Z]{2}$/.test(country || '')) return false;
+    if (country in clockConvention) return clockConvention[country];
+    var uses24 = false;
+    try {
+      var tag = 'en-' + country;
+      if (typeof Intl.Locale === 'function') tag = new Intl.Locale('und-' + country).maximize().language + '-' + country;
+      var o = new Intl.DateTimeFormat(tag, { hour: 'numeric' }).resolvedOptions();
+      uses24 = o.hourCycle ? o.hourCycle === 'h23' || o.hourCycle === 'h24' : o.hour12 === false;
+    } catch (e) {}
+    return (clockConvention[country] = uses24);
+  }
+  // "4 PM", "4:30 PM" or "16:00", "16:30": the 12-hour form drops :00 as people say it, the 24-hour form never does.
+  function clockTime(d) { var h = d.getHours(), m = d.getMinutes(); return hours24() ? pad(h) + ':' + pad(m) : (h % 12 || 12) + (m ? ':' + pad(m) : '') + (h < 12 ? ' AM' : ' PM'); }
+  // When something was last true, for a time that may be from another day: "5:39 PM" today, then "yesterday 5:39 PM",
+  // then "Mon, Sep 21, 5:39 PM". After a night's outage a bare "5:39 PM" reads as this afternoon.
+  function since(ms) {
+    var d = houseTime(ms), today = startOfDay(now());
+    if (sameDay(d, today)) return clockTime(d);
+    return (sameDay(d, addDays(today, -1)) ? 'yesterday' : shortDay(d) + ',') + ' ' + clockTime(d);
+  }
   function shortDay(d) { return DAYS[d.getDay()].slice(0, 3) + ', ' + MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
 
   var unpaired = false;      // the server does not know this frame: it was never paired, or was revoked
@@ -116,8 +144,10 @@
   function checkVersion(v) {
     if (!v) return;
     if (version === null) { version = v; return; }
-    if (v !== version && !undo && $('event-dialog').hidden && Date.now() - lastTouch > 10000) location.reload();
+    if (v !== version && !undo && !dialogOpen() && Date.now() - lastTouch > 10000) location.reload();
   }
+  // Any sheet or dialog up means someone is in the middle of something: a half-typed grocery item, a PIN, a day's chores.
+  function dialogOpen() { return !$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden; }
 
   /* ---------- Sky ---------- */
   var SKY = {
@@ -160,34 +190,44 @@
     function grey(c) { var l = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]; return mix(c, [l, l, l * 1.04], cloud); }
     top = grey(top); bottom = grey(bottom);
     var light = luminance(mix(top, bottom, 0.5)) > 0.22;
+    // Around sunrise and sunset the sky passes through mid-tones that neither ink can be read on (dusk's rose bottom holds
+    // cream ink at 4.3:1 and navy at 3.3:1). Either end of the gradient that falls short of SKY_CONTRAST against the ink is
+    // eased away from it, a little darker under cream ink or a little lighter under navy, until it holds.
+    var ink = light ? INK_NAVY : INK_CREAM, away = light ? [255, 255, 255] : [0, 0, 0];
+    function hold(c) { for (var k = 0; k < 40 && contrast(ink, c) < SKY_CONTRAST; k++) c = mix(c, away, 0.05); return c; }
+    top = hold(top); bottom = hold(bottom);
     var style = document.documentElement.style;
     style.setProperty('--sky-top', rgb(top)); style.setProperty('--sky-bottom', rgb(bottom));
-    style.setProperty('--sky-ink', light ? '#0b2545' : '#fdf6ee');
+    style.setProperty('--sky-ink', rgb(ink));
     var dark = forced ? forced === 'night' || forced === 'dusk' : (t < sun.rise - 10 * min || t > sun.set + 5 * min);
     document.body.className = dark ? 'theme-dark' : 'theme-light';
-    paintWeather(code, dark);
+    paintWeather(code, !light, dark);
   }
+  var INK_NAVY = [11, 37, 69], INK_CREAM = [253, 246, 238], SKY_CONTRAST = 8;
+  function contrast(a, b) { var x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
   function skyCode() { return query.wx !== undefined ? Number(query.wx) : weather ? weather.code : 0; }
   // Weather moves in the sky window, faintly: a sun glow or stars, clouds that take minutes to cross, rain, snow or fog.
   // Motion is a position computed from the clock once a second, never a CSS animation. Measured on the Frameo, whose
   // WebView composites on the CPU: smooth CSS drift cost 140% CPU, the same drift stepped by CSS 20%, this under 3%.
   // Rain stays still, since rain at one frame a second reads as flicker, and a storm has no lightning: a flash on a
   // dark kitchen wall pulls the eye, which ambient motion must not. Rebuilt only when the weather changes.
+  // The clouds and the glow take their palette from the ink, not the clock: around sunset the ink is already cream while
+  // the clock still says day, and white day clouds and the sun's glow behind cream ink fell to 1.4:1. Stars wait for dark.
   var fxKind = '', fxItems = [];
-  function paintWeather(code, dark) {
+  function paintWeather(code, creamInk, dark) {
     var kind = code === 0 ? 'clear' : code === 1 ? 'mostly' : code === 2 ? 'partly' : code === 3 ? 'overcast' : code < 50 ? 'fog' :
       code < 60 ? 'drizzle' : code < 70 || (code >= 80 && code < 85) ? 'rain' : code < 90 ? 'snow' : 'storm';
-    var key = kind + (dark ? '-night' : '-day'), box = $('sky-fx'), seed = 7, i;
+    var key = kind + (creamInk ? '-night' : '-day') + (dark ? '-dark' : ''), box = $('sky-fx'), seed = 7, i;
     if (key === fxKind) return;
-    fxKind = key; fxItems = []; box.textContent = ''; box.className = 'sky-fx ' + (dark ? 'night' : 'day');
+    fxKind = key; fxItems = []; box.textContent = ''; box.className = 'sky-fx ' + (creamInk ? 'night' : 'day');
     function random() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
     function add(cls, css, motion) {
       var el = node('div', cls); for (var k in css) el.style[k] = css[k];
       box.appendChild(el); if (motion) { motion.el = el; motion.phase = random(); fxItems.push(motion); } return el;
     }
     if (kind === 'clear' || kind === 'mostly' || kind === 'partly') {
-      if (!dark) add('sun', {}, { kind: 'breathe', period: 16, low: kind === 'partly' ? 0.45 : 0.6, high: kind === 'partly' ? 0.65 : 0.9 });
-      else for (i = 0; i < (kind === 'partly' ? 14 : 26); i++) add('star', { left: (random() * 96) + '%', top: (random() * 58) + '%' }, { kind: 'twinkle', period: 5 + random() * 6 });
+      if (!creamInk) add('sun', {}, { kind: 'breathe', period: 16, low: kind === 'partly' ? 0.45 : 0.6, high: kind === 'partly' ? 0.65 : 0.9 });
+      else if (dark) for (i = 0; i < (kind === 'partly' ? 14 : 26); i++) add('star', { left: (random() * 96) + '%', top: (random() * 58) + '%' }, { kind: 'twinkle', period: 5 + random() * 6 });
     }
     var clouds = { mostly: 1, partly: 2, overcast: 4, drizzle: 3, rain: 3, storm: 4, snow: 3 }[kind] || 0;
     for (i = 0; i < clouds; i++) add('cloud', { top: (4 + i * 17 + random() * 8) + '%', width: (34 + random() * 20) + 'rem', opacity: String(kind === 'overcast' || kind === 'storm' ? 0.75 : 0.55) }, { kind: 'drift', period: 170 + random() * 110 });
@@ -230,7 +270,7 @@
       else if (m.kind === 'sway') st.transform = 'translate3d(' + Math.round(wave * width * 0.08) + 'px,0,0)';
       else if (m.kind === 'fall') st.transform = 'translate3d(0,' + Math.round(cycle * m.tile * rem) + 'px,0)';
       else if (m.kind === 'breathe') { st.opacity = (m.low + (m.high - m.low) * (wave + 1) / 2).toFixed(2); st.transform = 'scale(' + (1 + 0.04 * wave).toFixed(3) + ')'; }
-      else if (m.kind === 'twinkle') st.opacity = (0.3 + 0.2 * wave).toFixed(2);
+      else if (m.kind === 'twinkle') st.opacity = (0.2 + 0.1 * wave).toFixed(2);   // at most 30%: a star behind a letter stays under it
     });
   }
 
@@ -257,9 +297,9 @@
     drawIcon($('now-icon'), weather.code, t < sun.rise || t > sun.set);
     $('now-temp').textContent = Math.round(weather.temperature) + '°';
     $('now-summary').textContent = describe(weather.code);
-    // Non-breaking spaces keep each label with its number when the line wraps ("low 73°", never "low / 73°").
-    // Apple's form: H and L first, then the one extra that matters today (rain, or a big feels-like gap).
-    var feels = Math.round(weather.feelsLike), detail = 'H:' + Math.round(weather.high) + '°  L:' + Math.round(weather.low) + '°';
+    // Apple's form: H and L first, then the one extra that matters today (rain, or a big feels-like gap). "H:104°" has
+    // no space inside it to break at, so a label never wraps away from its number.
+    var feels = Math.round(weather.feelsLike), detail = 'H:' + Math.round(weather.high) + '° L:' + Math.round(weather.low) + '°';
     if (weather.rain >= 20) detail += ' · ' + weather.rain + '% rain';
     else if (Math.abs(feels - Math.round(weather.temperature)) >= 4) detail += ' · Feels like ' + feels + '°';
     $('now-detail').textContent = detail + (weather.stale ? ' · not updating' : '');
@@ -273,29 +313,49 @@
   /* ---------- Items ---------- */
   function calendarOf(id) { var found = null; (cal ? cal.calendars : []).forEach(function (c) { if (c.id === id) found = c; }); return found || { name: 'Calendar', color: '#7f8aa3' }; }
   // Everything that belongs to one day, in the order a glance needs it: all-day events (compact), then anything with
-  // a time, then chores due that day, then overdue chores. `today` drops events that are already over.
+  // a time, then chores due that day, then overdue chores. `today` drops events that are already over, and puts what is
+  // happening now and what is next ahead of everything else.
   function itemsFor(day, today) {
     var next = addDays(day, 1), list = [], t = now();
     (cal ? cal.events : []).forEach(function (e) {
       var start = parse(e.start), end = parse(e.end);
       if (!(start < next && end > day)) return;
-      // A timed event belongs to the day it starts; only one that runs a full day or longer spills onto the next.
-      if (!e.allDay && start < day && end - start < 86400000) return;
+      // A timed event belongs to the day it starts; only one that runs a full day or longer spills onto the next. The
+      // exception is Today while it is still going: at ten past midnight an 11:30 PM pickup is "Now, until 12:30 AM",
+      // not gone. The week's columns keep the rule, so it never shows twice there.
+      var carried = !e.allDay && start < day && end - start < 86400000;
+      if (carried && !(today && end > t)) return;
       if (today && !e.allDay && end <= t) return;
-      var spans = e.allDay || start < day || end - start >= 86400000;
+      var spans = e.allDay || (start < day && !carried) || end - start >= 86400000, continues = start < day && !carried;
       var lastDay = e.allDay ? addDays(end, -1) : startOfDay(end);
-      list.push({ kind: 'event', event: e, allDay: spans, at: start < day ? day : start, end: end, continues: start < day, through: spans && lastDay > day ? lastDay : null, rank: spans ? 0 : 1 });
+      list.push({ kind: 'event', event: e, allDay: spans, at: continues ? day : start, end: end, continues: continues, through: spans && lastDay > day ? lastDay : null, rank: spans ? 0 : 1 });
     });
     (tasks ? tasks.tasks : []).forEach(function (task) {
       if (!task.due) return;
-      var due = parse(task.due), timed = hasTime(task.due), overdue = today && due < day;
+      // A chore with a time is late once its time has passed, not only once its day has: a 4 PM chore at 11 PM is overdue.
+      var due = parse(task.due), timed = hasTime(task.due), overdue = today && (due < day || (timed && due < t));
       if ((due >= day && due < next) || overdue) list.push({ kind: 'task', task: task, allDay: !timed || overdue, at: due, overdue: overdue, rank: overdue ? 3 : timed ? 1 : 2 });
     });
     list.sort(function (a, b) { return a.rank - b.rank || a.at - b.at; });
-    // One row, at most, says how soon: the next timed thing, when it is within three hours. Every row saying it was a
-    // column of arithmetic; one row saying it is the answer to "do I need to move?".
-    if (today) for (var i = 0; i < list.length; i++) if (!list[i].allDay && list[i].at > t && relative(list[i].at)) { list[i].next = true; break; }
-    return list;
+    if (!today) return list;
+    // Today is cut from the bottom when it overflows, so its order is what survives: whatever is happening now, then the
+    // next timed thing, then overdue chores, then anything else with a time in the next three hours, then the rest as
+    // sorted. All-day rows frame the day; at 10:58 PM they must not stand between the family and an 11:30 PM pickup.
+    // Overdue comes straight after next (DESIGN.md, 2026-09-22): a late chore is the thing most likely to need doing and the
+    // one a busy day always hid. At most OVERDUE_UP of them, oldest first, move up; a backlog beyond that would push every
+    // one of the coming hours off the panel, so the rest keep their place at the end, behind "N more". Only the next row
+    // says how soon, and only within three hours: every row saying it was a column of arithmetic; one row saying it is
+    // the answer to "do I need to move?".
+    var happening = [], soon = [], late = [], rest = [], first = null;
+    list.forEach(function (item) {
+      if (item.overdue) late.push(item);
+      else if (item.allDay) rest.push(item);
+      else if (item.at <= t) { item.now = true; happening.push(item); }
+      else if (!first) { first = item; item.next = true; item.countdown = !!relative(item.at); }
+      else if (relative(item.at)) soon.push(item);
+      else rest.push(item);
+    });
+    return happening.concat(first ? [first] : [], late.slice(0, OVERDUE_UP), soon, rest, late.slice(OVERDUE_UP));
   }
   // The first event or dated chore on or after `from`, within the loaded window.
   function upNext(from) {
@@ -312,26 +372,28 @@
   // A row is a meta line over a title. The meta line holds one fact, when: a time ("4 PM"), a span ("Through Friday") or
   // a state that stands for a time ("Overdue"). It opens with that fact on every row, so the left edge of a day reads as a
   // column of times from across the room; a place may trail the time, and nothing else may. Whose it is goes after the
-  // title as a monogram, and a date the section already implies is never repeated.
-  function itemNode(item, inToday) {
+  // title as a monogram, and a date the section already implies is never repeated. A `compact` row (Today, past the now
+  // and next rows) is one line: the same fact in a time column, then the title.
+  function itemNode(item, inToday, compact) {
     var el = node('button', 'item ' + item.kind), body = node('span', 'item-body'), meta = '', note = '', emoji = '';
     if (item.kind === 'event') {
       var c = calendarOf(item.event.calendar);
       el.style.setProperty('--rail', c.color);
-      // A private event is the time it takes and nothing else: set in its calendar's colour, so it reads as taken
-      // rather than as an event called "Busy".
+      // A private event is the time it takes and nothing else. Its rail is broken, the way calendars draw tentative or
+      // blocked time, and its title is lighter, so it reads as taken rather than as an event called "Busy" — in ink, since
+      // a title in the calendar's colour fell to 2:1 on the sky.
       if (item.event.busy) el.className += ' busy';
       if (item.allDay) {
         // All-day and multi-day events are one line: they frame the day rather than fill it.
         el.className += ' allday' + (item.continues ? ' continues' : '');
         // Today's panel says how long a trip runs; the week's columns show it by repeating it, dimmed, on each day.
-        if (item.through && inToday) meta = 'Through ' + DAYS[item.through.getDay()];
+        if (item.through && inToday) meta = compact ? 'Until ' + DAYS[item.through.getDay()].slice(0, 3) : 'Through ' + DAYS[item.through.getDay()];
       } else {
         meta = clockTime(item.at);
         if (inToday) {
           if (item.at <= now()) { meta = 'Now, until ' + clockTime(item.end); el.className += ' happening'; }
-          else if (item.next) meta += ' · ' + relative(item.at);
-          if (item.event.location) meta += ' · ' + item.event.location.split(/\n|,/)[0];
+          else if (item.countdown) meta += ' · ' + relative(item.at);
+          if (item.event.location && !compact) meta += ' · ' + item.event.location.split(/\n|,/)[0];
         }
       }
       el.onclick = function () { openEvent(item.event, el); };
@@ -342,32 +404,34 @@
       if (done) el.className += ' done';
       // Under Today the day is given, so an overdue chore says only that it is; its date is in the list view.
       if (item.overdue) { el.className += ' overdue'; meta = 'Overdue'; }
-      else if (!item.allDay) { meta = clockTime(item.at); if (inToday && item.next) meta += ' · ' + relative(item.at); }
+      else if (!item.allDay) { meta = clockTime(item.at); if (inToday && item.countdown) meta += ' · ' + relative(item.at); }
       var owner = listOf(item.task.project);
       if (owner.person && owner.color) el.style.setProperty('--tick', owner.color);
       el.onclick = function () { toggleTask(item.task); };
     }
-    if (meta) body.appendChild(node('span', 'item-meta', meta));
+    // The next thing's time is the one read from across the room, so it is set larger (see .item.next in style.css).
+    if (inToday && item.next) el.className += ' next';
+    // A compact row keeps its time column even when empty, so every title in it starts at the same place.
+    if (compact) el.className += ' compact';
+    if (meta || compact) body.appendChild(node('span', 'item-meta', meta));
     var text = item.kind === 'event' ? item.event.title : cleanTitle(item.task.title);
     if (item.kid) { var lead = LEADING_EMOJI.exec(text); if (lead) { emoji = lead[1]; text = text.slice(lead[0].length); } }
     if (emoji) el.appendChild(node('span', 'kid-emoji', emoji));
     var title = node('span', 'item-title', text);
     if (note) title.appendChild(node('span', 'item-note', ' · ' + note));
-    // Whose: a person's list outside that list, then an assignee, each as the monogram their list carries.
-    if (item.kind === 'task') {
-      var who = assigneeMark(item.task);
-      if (!item.inList && owner.person && !(who && who.title === owner.name)) title.appendChild(personMark(owner.name, owner.color, 'On ' + owner.name + '’s list'));
-      if (who) title.appendChild(who);
-    }
     body.appendChild(title);
+    // On one line the title is cut before the monogram is, so there the monogram follows the title rather than sits in it.
+    if (item.kind === 'task') whoseMarks(item.task, item.inList).forEach(function (mark) { (compact ? body : title).appendChild(mark); });
     el.appendChild(body);
     return el;
   }
   // Shows as many whole items as fit in `box`, then "and N more" (a button when there is somewhere to go).
-  // Nothing is ever cut mid-line. Skipped while the box is hidden, since a hidden box measures zero.
+  // Nothing is ever cut mid-line. Skipped while the box is hidden, since a hidden box measures zero; a box that is shown
+  // but squeezed to nothing holds nothing, so its caller can drop the heading over it rather than leave it bare.
   function fitItems(box, nodes, onMore) {
     box.textContent = '';
     for (var i = 0; i < nodes.length; i++) box.appendChild(nodes[i]);
+    if (!box.clientHeight && box.offsetParent !== null && nodes.length) { box.textContent = ''; return 0; }
     if (!box.clientHeight || box.scrollHeight <= box.clientHeight + 2) return nodes.length;
     var more = node(onMore ? 'button' : 'p', 'more'), shown = nodes.length;
     if (onMore) more.onclick = onMore;
@@ -401,6 +465,14 @@
     var who = task.assignee && tasks && tasks.people && tasks.people[task.assignee];
     return who ? personMark(who.name, who.color, 'Assigned to ' + who.name) : null;
   }
+  // Whose a chore is, after its title wherever it appears: a person's list outside that list, then an assignee, each as
+  // the monogram their list carries, and one mark when they are the same person.
+  function whoseMarks(task, inList) {
+    var owner = listOf(task.project), who = assigneeMark(task), marks = [];
+    if (!inList && owner.person && !(who && who.getAttribute('title') === owner.name)) marks.push(personMark(owner.name, owner.color, 'On ' + owner.name + '’s list'));
+    if (who) marks.push(who);
+    return marks;
+  }
   function listMark(name) {
     var l = listOf(name), svg;
     if (l.person) { var a = node('span', 'avatar', l.name.charAt(0).toUpperCase()); if (l.color) a.style.backgroundColor = l.color; a.setAttribute('aria-hidden', 'true'); return a; }
@@ -411,6 +483,33 @@
   // Typed titles mix straight and curly apostrophes ("Sam's", "Sam’s"); at wall size the difference shows.
   function tidy(text) { return String(text || '').replace(/(\w)'/g, '$1\u2019').replace(/[ \t]+/g, ' ').replace(/^\s+|\s+$/g, ''); }
 
+  /* ---------- Setup from a phone ---------- */
+  // Wherever the wall asks someone to open the setup page on a phone, it shows a QR code of the whole link, code and all,
+  // so a phone's camera opens it with nothing typed; the typed address stays beside it for a phone without a camera app.
+  // The code rides in the part after "#", which a browser never sends to a server, and the setup page wipes it from the
+  // address as soon as it has read it. The code itself is drawn by qr.js, this project's own encoder.
+  function qrNode(text, label) {
+    var qr = typeof qrMatrix === 'function' ? qrMatrix(text) : null;
+    if (!qr) return null;
+    var n = qr.size, quiet = 4, d = '', ns = 'http://www.w3.org/2000/svg';
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (qr.dark[r][c]) d += 'M' + (c + quiet) + ' ' + (r + quiet) + 'h1v1h-1z';
+    var svg = document.createElementNS(ns, 'svg'), path = document.createElementNS(ns, 'path');
+    svg.setAttribute('viewBox', '0 0 ' + (n + 2 * quiet) + ' ' + (n + 2 * quiet)); svg.setAttribute('class', 'qr');
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label); svg.setAttribute('data-text', text);
+    svg.setAttribute('shape-rendering', 'crispEdges');
+    path.setAttribute('d', d); svg.appendChild(path);
+    return svg;
+  }
+  // The link a phone on the Wi-Fi can open. A tablet running its own server knows its address on the Wi-Fi (and a name
+  // for it, which is kinder to type); anywhere else, the page's own address is the one a phone reaches too.
+  function phoneAddress() {
+    var own = household.address || '', name = household.named || '';
+    var usable = function (a) { return a && !/^https?:\/\/(127\.|localhost|\[::1\])/.test(a); };
+    var origin = usable(location.origin) ? location.origin : '';
+    return { link: usable(own) ? own : origin || (usable(name) ? name : ''), typed: usable(name) ? name : usable(own) ? own : origin };
+  }
+  function bare(url) { return url.replace(/^https?:\/\//, ''); }
+
   /* ---------- Render ---------- */
   // The left panel is the same in every view: the day, the clock, the weather, today, and tomorrow. Today always gets
   // the room it needs; tomorrow gets what is left, and both end in "and N more" rather than a clipped line.
@@ -419,7 +518,8 @@
     $('today-weekday').textContent = DAYS[t.getDay()];
     $('today-date').textContent = MONTHS[t.getMonth()] + ' ' + t.getDate();
     $('clock').textContent = (h % 12 || 12) + ':' + pad(t.getMinutes());
-    $('ampm').textContent = h < 12 ? 'AM' : 'PM';
+    if (hours24()) $('clock').textContent = pad(h) + ':' + pad(t.getMinutes());
+    $('ampm').textContent = hours24() ? '' : h < 12 ? 'AM' : 'PM'; $('ampm').hidden = hours24();
     var sun = sunTimes(t), tomorrowSky = forecastFor(tomorrowDay), line = '';
     if (weather && !query.now) line = t.getTime() < sun.rise ? 'Sunrise ' + clockTime(new Date(sun.rise)) : t.getTime() < sun.set ? 'Sunset ' + clockTime(new Date(sun.set)) : tomorrowSky ? 'Sunrise tomorrow ' + clockTime(houseTime(tomorrowSky.sunrise)) : '';
     $('sun-line').textContent = line;
@@ -429,8 +529,8 @@
     var counting = '';
     for (var ci = 0; ci < countdowns.length && !counting; ci++) {
       var left = Math.round((parse(countdowns[ci].date) - today) / 86400000);
-      if (left === 0) counting = 'Today: ' + countdowns[ci].name;
-      else if (left > 0) counting = left + ' ' + (countdowns[ci].word === 'days' ? (left === 1 ? 'day' : 'days') : (left === 1 ? 'sleep' : 'sleeps')) + ' until ' + countdowns[ci].name;
+      if (left === 0) counting = 'Today: ' + tidy(countdowns[ci].name);
+      else if (left > 0) counting = left + ' ' + (countdowns[ci].word === 'days' ? (left === 1 ? 'day' : 'days') : (left === 1 ? 'sleep' : 'sleeps')) + ' until ' + tidy(countdowns[ci].name);
     }
     $('countdown').textContent = counting; $('countdown').hidden = !counting;
 
@@ -439,8 +539,9 @@
     $('tomorrow').hidden = true;
     if (!todayItems.length) {
       list.textContent = '';
-      list.appendChild(node('p', 'today-empty', cal ? (itemsFor(today, false).length ? 'Nothing else today' : 'Nothing planned') : unpaired ? 'Not set up yet' : calProblem ? 'Can’t reach the calendar' : ''));
-    } else allToday = fitItems(list, todayItems.map(function (item) { return itemNode(item, true); }), function () { openDay(today); }) === todayItems.length;
+      // Before anyone has set it up there is no calendar to be empty, so it says so rather than "Nothing planned".
+      list.appendChild(node('p', 'today-empty', firstRun || unpaired ? 'Not set up yet' : cal ? (itemsFor(today, false).length ? 'Nothing else today' : 'Nothing planned') : calProblem ? 'Can’t reach the calendar' : ''));
+    } else allToday = fitItems(list, todayItems.map(function (item) { return itemNode(item, true, !item.now && !item.next); }), function () { openDay(today); }) === todayItems.length;
     // An empty tomorrow is not shown: "Nothing planned" twice says nothing. When today and tomorrow are both empty, the
     // space answers the next question instead: what is the next thing actually planned?
     var coming = cal && allToday ? itemsFor(tomorrowDay, false) : [], label = 'Tomorrow', onMore = function () { openDay(tomorrowDay); };
@@ -457,16 +558,21 @@
   function renderStrip() {
     $('view-calendar').className = 'view' + (cal && !firstRun ? '' : ' no-calendar');
     if (firstRun) {
-      // A tablet that is its own server, not yet looked after by anyone: say how to become that person.
-      var intro = node('div', 'loading pairing');
-      intro.appendChild(node('p', 'loading-title', 'Set up from a phone'));
-      intro.appendChild(node('p', '', 'On the same Wi-Fi, open this address and enter the code.'));
-      // The name is kinder to type; the numbers always work, and older Android phones need them.
-      var plain = (firstRun.address || location.origin).replace(/^https?:\/\//, '') + '/setup';
-      intro.appendChild(node('p', 'pair-address', firstRun.named ? firstRun.named.replace(/^https?:\/\//, '') + '/setup' : plain));
-      if (firstRun.named) intro.appendChild(node('p', 'pair-or', 'or ' + plain));
-      intro.appendChild(node('p', 'pair-code', firstCode ? firstCode.code : '··· ···'));
-      intro.appendChild(node('p', 'pair-host', 'Your calendar links and tokens stay on this tablet.'));
+      // A tablet that is its own server, not yet looked after by anyone: say how to become that person. The QR code is the
+      // way in; the typed address is the fallback, set quieter. The code links to the numbers, which every phone reaches;
+      // the name is kinder to type, and older Android phones need the numbers, so both are offered to be typed.
+      var at = phoneAddress(), code = firstCode ? firstCode.code : '', qr = code && at.link ? qrNode(at.link + '/setup#code=' + code.replace(/-/g, ''), 'QR code that opens the setup page with this code') : null;
+      var intro = node('div', 'loading pairing welcome' + (qr ? ' with-qr' : '')), words = node('div', 'welcome-words');
+      if (qr) { var plate = node('div', 'qr-plate'); plate.appendChild(qr); intro.appendChild(plate); }
+      words.appendChild(node('p', 'loading-title', 'Set up from a phone'));
+      words.appendChild(node('p', 'welcome-lead', qr ? 'On the same Wi-Fi, point your phone’s camera at this code and open the link it shows.' : 'On the same Wi-Fi, open this address on your phone and enter the code.'));
+      if (qr) words.appendChild(node('p', 'welcome-or', 'No camera? Type this address and enter the code:'));
+      var plain = bare(at.link || firstRun.address || location.origin) + '/setup', typed = at.typed ? bare(at.typed) + '/setup' : plain;
+      words.appendChild(node('p', 'pair-address', typed));
+      if (typed !== plain) words.appendChild(node('p', 'pair-or', 'or ' + plain));
+      words.appendChild(node('p', 'pair-code', code || '··· ···'));
+      words.appendChild(node('p', 'pair-host', 'Your calendar links and tokens stay on this tablet.'));
+      intro.appendChild(words);
       $('strip').textContent = ''; $('strip').appendChild(intro); $('later').hidden = true;
       $('month').textContent = 'Welcome'; return;
     }
@@ -474,10 +580,17 @@
       // The failure could be the server, the network or the calendar's provider, and the frame cannot tell which, so it names none of them.
       var note = node('div', 'loading'); note.appendChild(node('p', 'loading-title', unpaired ? 'This frame isn’t set up yet' : calProblem ? 'Can’t reach the calendar' : 'Loading the calendar…'));
       if (unpaired) {
-        note.className = 'loading pairing';
-        note.appendChild(node('p', '', 'Enter this code on your household’s setup page, or give it to whoever looks after your frames.'));
-        note.appendChild(node('p', 'pair-code', pairing ? pairing.code : '··· ···'));
-        note.appendChild(node('p', 'pair-host', location.host));
+        // A frame waiting to be let into a household: a phone that already manages one scans the code and lands on the
+        // setup page with the code filled in, one tap from adding this frame.
+        var pairAt = phoneAddress().link, pairQr = pairing && pairAt ? qrNode(pairAt + '/setup#pair=' + pairing.code.replace(/-/g, ''), 'QR code that opens the setup page to add this frame') : null;
+        note.className = 'loading pairing' + (pairQr ? ' welcome with-qr' : '');
+        var pairWords = node('div', 'welcome-words'), heading = note.firstChild;
+        if (pairQr) { note.removeChild(heading); pairWords.appendChild(heading); var pairPlate = node('div', 'qr-plate'); pairPlate.appendChild(pairQr); note.appendChild(pairPlate); }
+        if (pairQr) pairWords.appendChild(node('p', 'welcome-lead', 'On a phone that manages your household, point the camera at this code to add this frame.'));
+        pairWords.appendChild(node('p', pairQr ? 'welcome-or' : '', (pairQr ? 'Or enter' : 'Enter') + ' this code on your household’s setup page, or give it to whoever looks after your frames.'));
+        pairWords.appendChild(node('p', 'pair-code', pairing ? pairing.code : '··· ···'));
+        pairWords.appendChild(node('p', 'pair-host', location.host));
+        if (pairQr) note.appendChild(pairWords); else while (pairWords.firstChild) note.appendChild(pairWords.firstChild);
       }
       else if (calProblem) note.appendChild(node('p', '', 'Trying again every minute'));
       $('strip').textContent = ''; $('strip').appendChild(note); $('later').hidden = true;
@@ -531,8 +644,10 @@
       else if (owner.person && owner.color) dot.style.borderColor = owner.color;
       row.appendChild(dot);
       row.appendChild(node('span', 'when', shortDay(r.at))); row.appendChild(node('span', 'time', r.allDay ? '' : clockTime(r.at)));
-      if (owner && owner.person) what.appendChild(node('span', 'owner', owner.name + ' · '));
-      what.appendChild(document.createTextNode(r.title)); row.appendChild(what);
+      // Whose it is follows the title as a monogram, as it does in Today and the week; the title is cut before the mark is.
+      what.appendChild(node('span', 'what-title', r.title));
+      if (r.task) whoseMarks(r.task, false).forEach(function (mark) { what.appendChild(mark); });
+      row.appendChild(what);
       row.onclick = r.event ? function () { openEvent(r.event, row); } : function () { setMode('list:' + r.task.project); };
       box.appendChild(row);
     });
@@ -563,18 +678,23 @@
       p.onclick = function () { setMode(mode === 'photos' ? 'calendar' : 'photos'); };
       tabs.appendChild(p);
     }
-    // More lists than the dock can hold: a list whose mark already says which it is keeps only mark and count; the open
-    // list, and any list with the plain glyph, keep their names.
+    // More lists than the dock can hold: first a list whose mark already says which it is keeps only mark and count, and
+    // the open list and any list with the plain glyph keep their names; then every list but the open one is mark and
+    // count. Settings sits outside the row and never moves, since it is the way to fix the frame at the wall.
+    var room = tabs.parentNode.clientWidth - $('settings-button').offsetWidth - 24;
     tabs.className = 'tabs';
-    if (tabs.scrollWidth + $('settings-button').offsetWidth + 24 > tabs.parentNode.clientWidth) tabs.className = 'tabs compact';
+    if (tabs.scrollWidth > room) tabs.className = 'tabs compact';
+    if (tabs.scrollWidth > room) tabs.className = 'tabs compact tight';
+    clipTabs();
   }
+  function clipTabs() { var tabs = $('tabs'); tabs.className = tabs.className.replace(/ ?clipped/g, '') + (tabs.scrollWidth - tabs.clientWidth - tabs.scrollLeft > 4 ? ' clipped' : ''); }
   function renderList() {
     if (mode.indexOf('list:') !== 0 || !tasks) return;
     var project = mode.slice(5), body = $('list-body'), groups = {}, order = [], style = listOf(project);
     var items = tasks.tasks.filter(function (t) { return t.project === project; });
     var heading = $('list-title'); heading.textContent = ''; heading.appendChild(listMark(project)); heading.appendChild(document.createTextNode(project));
     // The subhead says what the list is for, from its Todoist description; a stale list says so instead.
-    $('list-status').textContent = tasksProblem || tasks.stale ? 'Can’t refresh this list. It is from ' + clockTime(houseTime(tasks.updatedAt)) + '.' : listOf(project).description || 'Tap to check off';
+    $('list-status').textContent = tasksProblem || tasks.stale ? 'Can’t refresh this list. It is from ' + since(tasks.updatedAt) + '.' : listOf(project).description || 'Tap to check off';
     body.textContent = ''; body.className = 'list-body' + (style.kid ? ' kid' : '');
     // The card scrolls; the columns inside it grow with the list, so nothing can end up in a column off to the side.
     var columns = node('div', 'list-columns');
@@ -614,16 +734,21 @@
   }
   function renderNotice() {
     var text = '';
-    if (calProblem || (cal && cal.stale)) text = cal ? 'Can’t refresh the calendar. Showing it from ' + clockTime(houseTime(cal.updatedAt)) + ' and retrying every minute.' : 'Can’t reach the calendar. Trying again every minute.';
+    if (calProblem || (cal && cal.stale)) text = cal ? 'Can’t refresh the calendar. Showing it from ' + since(cal.updatedAt) + ' and retrying every minute.' : 'Can’t reach the calendar. Trying again every minute.';
     // With no calendar at all the card itself says so; the notice is for a calendar that is showing stale data.
     $('notice').textContent = text; $('notice').hidden = !text || !cal || mode !== 'calendar';
-    var updated = function (at, stuck) { return 'Updated ' + clockTime(houseTime(at)) + (stuck ? ', not updating now' : ''); };
+    // The notice lives with the week, and the frame rests on photos most of the day, so the left panel, which is the same
+    // in every view, carries one quiet line as well: Today and its chores are exactly what an old answer gets wrong.
+    var calOld = cal && (cal.stale || calProblem), listsOld = tasks && (tasks.stale || tasksProblem), stale = '';
+    if (calOld || listsOld) stale = (calOld && listsOld ? 'Calendar and lists' : calOld ? 'Calendar' : 'Lists') + ' not updated since ' + since(calOld && listsOld ? Math.min(houseMs(cal.updatedAt), houseMs(tasks.updatedAt)) : calOld ? cal.updatedAt : tasks.updatedAt);
+    $('stale-line').textContent = stale; $('stale-line').hidden = !stale;
+    var updated = function (at, stuck) { return 'Updated ' + since(at) + (stuck ? ', not updating now' : ''); };
     $('status-calendar').textContent = cal ? updated(cal.updatedAt, cal.stale || calProblem) : 'Not loaded yet';
     $('status-tasks').textContent = tasks ? updated(tasks.updatedAt, tasks.stale || tasksProblem) : 'Not loaded yet';
-    $('status-weather').textContent = weather ? 'Open-Meteo, updated ' + clockTime(houseTime(weather.fetchedAt)) + (weather.stale ? ', not updating now' : '') : 'Not loaded yet';
-    $('status-photos').textContent = !photoInfo.configured ? 'No album connected' : !photos.length ? 'The album is empty' : photos.length + ' photos' + (photoInfo.syncedAt ? ', updated ' + clockTime(houseTime(photoInfo.syncedAt)) : '') + (photoInfo.error ? ', can’t reach the album now' : '');
+    $('status-weather').textContent = weather ? 'Open-Meteo, updated ' + since(weather.fetchedAt) + (weather.stale ? ', not updating now' : '') : 'Not loaded yet';
+    $('status-photos').textContent = !photoInfo.configured ? 'No album connected' : !photos.length ? 'The album is empty' : photos.length + ' photos' + (photoInfo.syncedAt ? ', updated ' + since(photoInfo.syncedAt) : '') + (photoInfo.error ? ', can’t reach the album now' : '');
   }
-  function render() { paintSky(); renderNow(); renderToday(); renderLegend(); renderStrip(); renderTabs(); renderList(); renderNotice(); }
+  function render() { paintSky(); renderNow(); renderToday(); renderLegend(); renderStrip(); renderTabs(); renderList(); renderNotice(); if (sheetDay && !$('day-dialog').hidden) fillDay(); }
 
   /* ---------- Modes ---------- */
   function setMode(next) {
@@ -633,7 +758,7 @@
     $('view-calendar').hidden = mode !== 'calendar'; $('view-list').hidden = mode.indexOf('list:') !== 0;
     $('view-photos').hidden = mode !== 'photos'; $('view-settings').hidden = mode !== 'settings';
     $('settings-button').setAttribute('aria-pressed', String(mode === 'settings'));
-    if (mode === 'settings') fadeIfScrolls(document.querySelector('.settings-card'));
+    if (mode === 'settings') { fadeIfScrolls(document.querySelector('.settings-card')); if (leaving !== 'settings') { loadUpdates(); pollInstall(); showUpdateIfDue(); } }
     if (mode === 'photos' && leaving !== 'photos') startSlides();
     if (mode !== 'photos' && leaving === 'photos') stopSlides();
     render();
@@ -643,9 +768,10 @@
   var CHOICES = {
     rest: [['photos', 'Photos'], ['calendar', 'This week']],
     restAfter: [[2, '2 min'], [5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min']],
-    mornings: [[0, 'Off'], [8, 'Until 8 AM'], [9, 'Until 9 AM'], [10, 'Until 10 AM']],
+    mornings: [[0, 'Off'], [8, function () { return 'Until ' + clockTime(new Date(2000, 0, 1, 8)); }], [9, function () { return 'Until ' + clockTime(new Date(2000, 0, 1, 9)); }], [10, function () { return 'Until ' + clockTime(new Date(2000, 0, 1, 10)); }]],
     photoEvery: [[30, '30 sec'], [60, '1 min'], [120, '2 min'], [300, '5 min']],
     appearance: [['auto', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']],
+    clock: [['auto', 'Automatic'], ['12', '12-hour'], ['24', '24-hour']],
     screen: [['auto', 'With the sun'], ['bright', 'Bright'], ['dim', 'Dim']]
   };
   function renderSettings() {
@@ -654,7 +780,7 @@
       var key = box.getAttribute('data-setting');
       box.textContent = '';
       CHOICES[key].forEach(function (choice) {
-        var b = node('button', '', choice[1]);
+        var b = node('button', '', typeof choice[1] === 'function' ? choice[1]() : choice[1]);
         b.setAttribute('aria-pressed', String(prefs[key] === choice[0]));
         b.onclick = function () { saveSetting(key, choice[0]); };
         box.appendChild(b);
@@ -684,6 +810,136 @@
     });
     $('repair-note').textContent = bridge ? 'Still stuck? Unplug it.' : 'Unplug the frame and plug it back in to fix the rest.';
   }
+  /* ---------- Updates ---------- */
+  // Which Gingham this is, and whether a newer one is out. The server asks GitHub once a day (updates.js); this only
+  // shows the answer, in Settings and nowhere else: nothing about an update ever goes over the family's day. When the
+  // page runs in Gingham's Android app, the app installs the update itself on a tap (UpdateInstaller.java): it
+  // downloads the release's file for this tablet, checks it against the release's SHA256SUMS, and hands it to Android,
+  // which asks the person to confirm. Anywhere else the notice says how whoever runs the server updates it.
+  var updateInfo = null;     // /api/updates: {version, form, check, mayChange, checkedAt, latest, available, app, appAvailable, howTo}
+  var install = { state: 'idle' }, installTimer = null;
+  function appBridge() {
+    try { if (typeof fully === 'object' && fully && typeof fully.ginghamApp === 'function') { var a = JSON.parse(fully.ginghamApp()); if (a && a.version) return a; } } catch (e) {}
+    return null;
+  }
+  var app = appBridge();
+  function loadUpdates() {
+    get('/api/updates' + (app ? '?app=' + encodeURIComponent(app.version) : ''), function (data) { if (data.version) { updateInfo = data; renderUpdates(); } }, function () {});
+  }
+  function canInstall() { return !!(app && app.installs && updateInfo && updateInfo.latest && updateInfo.appAvailable); }
+  // The app's own install, as it goes. Asked about once a second while something is happening, and not otherwise.
+  function pollInstall() {
+    clearTimeout(installTimer); installTimer = null;
+    if (!app || typeof fully.updateStatus !== 'function') return;
+    try { install = JSON.parse(fully.updateStatus()) || { state: 'idle' }; } catch (e) { install = { state: 'idle' }; }
+    if (install.state !== 'idle' && install.state !== 'failed') installTimer = setTimeout(pollInstall, 1000);
+    renderUpdates();
+  }
+  function startInstall() {
+    if (!canInstall()) return;
+    try { fully.installUpdate(updateInfo.latest.version); } catch (e) { return; }
+    pollInstall();
+  }
+  function mb(bytes) { return Math.max(1, Math.round(bytes / 1048576)); }
+  var INSTALL_FAILED = {
+    checksum: 'The download didn’t match the checksum published with the release, so it was thrown away.',
+    network: 'The download stopped before it finished. Check the Wi-Fi, then try again.',
+    missing: 'This release has no app for this tablet yet. Try again later.',
+    cancelled: 'The update was cancelled.',
+    install: 'Android didn’t install it.'
+  };
+  function updateButton(box, label, action, primary) {
+    var b = node('button', primary ? 'go' : 'quiet', label); b.onclick = action; box.appendChild(b); return b;
+  }
+  function renderUpdates() {
+    var info = updateInfo;
+    $('update-dot').hidden = !canInstall();
+    if (!info) { $('update-version').textContent = ''; $('update-state').textContent = ''; $('update-card').hidden = true; return; }
+    // The running version. In the app showing a server elsewhere, the two can differ, and both are worth saying.
+    $('update-version').textContent = app && app.version !== info.version && info.form !== 'app' ? 'App ' + app.version + ' · server ' + info.version : 'Gingham ' + info.version;
+    var behind = info.latest && (info.available || info.appAvailable);
+    $('update-state').textContent = !info.check ? 'Not checking' : behind ? '' : info.checkedAt ? 'Up to date, checked ' + since(info.checkedAt) : 'Not checked yet';
+    // On or Off, where this frame may say; on a shared server, only what its operator chose.
+    var box = $('update-check'); box.textContent = ''; box.hidden = !info.mayChange; $('update-locked').hidden = !!info.mayChange;
+    if (!info.mayChange) $('update-locked').textContent = (info.check ? 'On' : 'Off') + ', set by whoever runs this frame’s server';
+    [[true, 'On'], [false, 'Off']].forEach(function (choice) {
+      var b = node('button', '', choice[1]); b.setAttribute('aria-pressed', String(info.check === choice[0]));
+      b.onclick = function () { saveUpdateCheck(choice[0]); }; box.appendChild(b);
+    });
+    renderUpdateCard(info);
+  }
+  function renderUpdateCard(info) {
+    var card = $('update-card'), latest = info.latest, installs = canInstall();
+    // A server that is behind is worth saying only where this page is not the app updating itself as a whole.
+    var serverBehind = !!(latest && info.available && !(app && info.form === 'app'));
+    card.hidden = !latest || !(installs || serverBehind);
+    if (card.hidden) return;
+    var actions = $('update-actions'), lines = $('update-lines'), state = installs ? install.state : 'idle';
+    actions.textContent = ''; lines.textContent = '';
+    $('update-progress').hidden = true; $('update-label').textContent = ''; $('update-foot').textContent = '';
+    var title = 'Gingham ' + latest.version + ' is available', sub = '', showNotes = true;
+    if (!installs) sub = info.howTo;
+    else if (state === 'permission') {
+      title = 'Let Gingham install its update';
+      sub = 'Android asks this once, to keep apps from installing things without you.';
+      showNotes = false;
+      $('update-label').textContent = 'How';
+      ['Tap Open Android settings.', 'Turn on “Allow from this source”.', 'Come back with the back arrow. The update carries on by itself.'].forEach(function (step, i) {
+        var row = node('p', 'update-step'); row.appendChild(node('span', 'update-mark', String(i + 1))); row.appendChild(document.createTextNode(step)); lines.appendChild(row);
+      });
+      updateButton(actions, 'Open Android settings', function () { try { fully.openInstallPermission(); } catch (e) {} }, true);
+      updateButton(actions, 'Cancel', cancelInstall);
+    } else if (state === 'downloading') {
+      title = 'Downloading Gingham ' + latest.version;
+      sub = install.total > 0 ? mb(install.done) + ' of ' + mb(install.total) + ' MB' : 'Starting…';
+      $('update-progress').hidden = false;
+      $('update-bar').style.width = (install.total > 0 ? Math.min(100, Math.round(100 * install.done / install.total)) : 0) + '%';
+      updateButton(actions, 'Cancel', cancelInstall);
+    } else if (state === 'verifying') {
+      title = 'Checking the download';
+      sub = 'Making sure it matches the checksum published with the release.';
+      $('update-progress').hidden = false; $('update-bar').style.width = '100%';
+    } else if (state === 'confirm') {
+      title = 'Confirm on Android’s screen';
+      sub = 'Tap Update (or Install) to finish. The frame starts again on Gingham ' + latest.version + ' with everything as it was.';
+      showNotes = false;
+    } else if (state === 'failed') {
+      title = install.reason === 'cancelled' ? 'Update cancelled' : 'The update didn’t install';
+      sub = (install.reason === 'space' ? 'This tablet needs about ' + (install.needMb || 400) + ' MB free for it. Free up some space, then try again.'
+        : INSTALL_FAILED[install.reason] || INSTALL_FAILED.install) + (install.reason === 'install' && install.detail ? ' Android said: ' + install.detail : '') + ' Nothing on this frame changed.';
+      updateButton(actions, install.reason === 'cancelled' ? 'Install' : 'Try again', startInstall, true);
+    } else {
+      sub = 'Installs over this one. Your calendars, lists, photos and settings stay as they are.';
+      updateButton(actions, 'Install', startInstall, true);
+    }
+    // A shared server behind the app: said once, under the rest.
+    if (installs && serverBehind && info.howTo) $('update-foot').textContent = 'Its server is behind too. ' + info.howTo;
+    $('update-title').textContent = title; $('update-sub').textContent = sub;
+    if (showNotes) {
+      var notes = latest.notes || { lines: [] };
+      if (notes.lines.length) $('update-label').textContent = 'What’s new';
+      notes.lines.forEach(function (text) { var row = node('p', 'update-note'); row.appendChild(node('span', 'update-mark', '•')); row.appendChild(document.createTextNode(text)); lines.appendChild(row); });
+      if (!$('update-foot').textContent) $('update-foot').textContent = (notes.more || !notes.lines.length ? 'The full notes are on ' : 'Release notes: ') + String(latest.url || '').replace(/^https:\/\//, '');
+    }
+  }
+  // An install under way holds Settings on screen, as a dialog holds the wall: someone may be off in Android's own
+  // settings granting the permission, and should come back to where they left.
+  function installing() { return install.state !== 'idle' && install.state !== 'failed'; }
+  // The dot on Settings leads somewhere: opened while this frame can install an update, or while one is under way,
+  // Settings starts at Updates rather than leaving it below the fold.
+  function showUpdateIfDue() {
+    if (!canInstall()) return;
+    var card = document.querySelector('.settings-card'), group = document.querySelector('.setting-group.updates');
+    if (card && group && group.offsetTop) { card.scrollTop = group.offsetTop - card.offsetTop; fadeIfScrolls(card); }
+  }
+  function cancelInstall() { try { fully.cancelUpdate(); } catch (e) {} pollInstall(); }
+  function saveUpdateCheck(on) {
+    post('/api/updates', { check: on }, function (status, data) {
+      if (status === 200 && data.version) { updateInfo = data; renderUpdates(); if (on) setTimeout(loadUpdates, 5000); }
+      else toast(data.error || 'Couldn’t save that setting. The frame’s server isn’t answering.', false);
+    });
+  }
+
   // Adding to a list at the wall, whichever kind of list it is. The dialog sits at the top of the screen so the
   // keyboard, which takes the bottom half of a wall display, never covers what is being typed; it stays open,
   // because a grocery list is rarely one thing.
@@ -710,7 +966,7 @@
   function openManage() {
     pinSoFar = ''; drawPin();
     $('manage-title').textContent = 'Enter the household PIN'; $('manage-note').textContent = 'Set on your household’s setup page.';
-    $('keypad').hidden = false; $('pin-dots').hidden = false; $('manage-code').hidden = true;
+    $('keypad').hidden = false; $('pin-dots').hidden = false; $('manage-code').hidden = true; $('manage-qr').hidden = true; $('manage-typed').hidden = true;
     var pad = $('keypad'); pad.textContent = '';
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', 'OK'].forEach(function (key) {
       var b = node('button', key === 'OK' ? 'key go' : 'key', key);
@@ -729,17 +985,22 @@
     post('/api/owner-code', { pin: pinSoFar }, function (status, data) {
       pinSoFar = ''; drawPin();
       if (status !== 200) { $('manage-note').textContent = data.error || 'Can’t reach the server. Try again.'; return; }
-      $('manage-title').textContent = 'On your phone, open ' + location.host + '/setup';
-      $('manage-note').textContent = 'Enter this code there. It works once, for ten minutes.';
+      var at = phoneAddress(), qr = at.link ? qrNode(at.link + '/setup#code=' + String(data.code).replace(/-/g, ''), 'QR code that opens the setup page with this code') : null;
       $('keypad').hidden = true; $('pin-dots').hidden = true;
+      $('manage-qr').textContent = ''; if (qr) $('manage-qr').appendChild(qr); $('manage-qr').hidden = !qr;
+      $('manage-title').textContent = qr ? 'Point your phone’s camera at this code' : 'On your phone, open ' + bare(at.typed || location.origin) + '/setup';
+      $('manage-note').textContent = qr ? 'It opens the setup page on your phone. It works once, for ten minutes.' : 'Enter this code there. It works once, for ten minutes.';
+      $('manage-typed').textContent = qr ? 'No camera? Open ' + bare(at.typed || at.link) + '/setup and enter the code.' : ''; $('manage-typed').hidden = !qr;
       $('manage-code').textContent = data.code; $('manage-code').hidden = false;
     });
   }
-  function closeManage() { $('manage-dialog').hidden = true; pinSoFar = ''; $('manage-code').textContent = ''; }
+  function closeManage() { $('manage-dialog').hidden = true; pinSoFar = ''; $('manage-code').textContent = ''; $('manage-qr').textContent = ''; }
   function applyPrefs() {
-    themeChoice = prefs.appearance; paintSky();
+    themeChoice = prefs.appearance;
     if (mode === 'photos') restartSlideTimer();
-    renderSettings();
+    // Every time on the wall follows the clock setting, so a change redraws everything, not only the sky.
+    $('mornings-note').textContent = 'Shows the week instead of photos from ' + clockTime(new Date(2000, 0, 1, 4)) + ' until the time you pick.';
+    renderSettings(); render();
   }
   // A tap applies at once and saves in the background; if the server cannot be reached the choice is put back.
   function saveSetting(key, value) {
@@ -805,17 +1066,27 @@
   function closeEvent() { $('event-dialog').hidden = true; if (previousFocus && document.body.contains(previousFocus)) previousFocus.focus(); }
 
   /* ---------- Day sheet ---------- */
-  // Everything on one day, reached from any "and N more".
+  // Everything on one day, reached from any "and N more". The sheet is drawn again on every render while it is open, so
+  // a chore checked off in it shows its check, a second tap is a visible undo, and the minute's refresh reaches it too.
+  var sheetDay = null;
   function openDay(day) {
-    var isToday = sameDay(day, now()), list = $('day-list');
+    sheetDay = day; fillDay();
+    $('day-dialog').hidden = false; $('day-list').scrollTop = 0; fadeIfScrolls($('day-list')); $('close-day').focus();
+  }
+  function fillDay() {
+    var day = sheetDay, isToday = sameDay(day, now()), list = $('day-list');
     var isTomorrow = sameDay(day, addDays(startOfDay(now()), 1));
+    // Redrawing replaces the rows, so the one that had focus hands it to its replacement.
+    var rows = list.children, focused = -1;
+    for (var i = 0; i < rows.length; i++) if (rows[i] === document.activeElement) focused = i;
     $('day-eyebrow').textContent = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : DAYS[day.getDay()];
     $('day-title').textContent = (isToday || isTomorrow ? DAYS[day.getDay()] + ', ' : '') + MONTHS[day.getMonth()] + ' ' + day.getDate();
-    list.textContent = '';
+    var scroll = list.scrollTop; list.textContent = '';
     itemsFor(day, isToday).forEach(function (item) { list.appendChild(itemNode(item, isToday)); });
-    $('day-dialog').hidden = false; list.scrollTop = 0; fadeIfScrolls(list); $('close-day').focus();
+    list.scrollTop = scroll; fadeIfScrolls(list);
+    if (focused >= 0 && list.children[Math.min(focused, list.children.length - 1)]) list.children[Math.min(focused, list.children.length - 1)].focus();
   }
-  function closeDay() { $('day-dialog').hidden = true; }
+  function closeDay() { $('day-dialog').hidden = true; sheetDay = null; }
 
   /* ---------- Photos ---------- */
   // Photos is a view on the right like the calendar and the lists: the left panel stays, and so does the dock.
@@ -878,8 +1149,9 @@
       var wasNew = firstRun; firstRun = data.needsSetup ? { address: data.address || '', named: data.named || '' } : null;
       if (firstRun && !wasNew) firstRunStep();
       if (!firstRun && wasNew) { loadCalendar(); loadTasks(); loadWeather(); loadPhotos(); }
-      household = { name: data.name || '', timezone: data.timezone, place: data.place || '' };
-      countdowns = data.countdowns || []; renderToday();
+      var countryChanged = (data.country || '') !== (household.country || '');
+      household = { name: data.name || '', timezone: data.timezone, place: data.place || '', country: data.country || '', address: data.address || '', named: data.named || '' };
+      countdowns = data.countdowns || []; if (countryChanged) applyPrefs(); else renderToday();
       if (household.name) document.title = household.name;
       try { localStorage.setItem('frame.household', JSON.stringify(household)); } catch (e) {}
       if (changed) { location.reload(); return; }
@@ -942,6 +1214,7 @@
   onSwipe($('strip'), function () { $('next').onclick(); }, function () { $('previous').onclick(); });
   onSwipe($('photo-card'), function () { $('photo-next').onclick(); }, function () { $('photo-prev').onclick(); });
   // Anything that scrolls fades at the bottom until it has been scrolled to the end.
+  $('tabs').addEventListener('scroll', clipTabs, { passive: true });
   [$('list-body'), $('day-list'), document.querySelector('.settings-card')].forEach(function (box) {
     box.addEventListener('scroll', function () { fadeIfScrolls(box); }, { passive: true });
   });
@@ -956,7 +1229,7 @@
 
   var lastMinute = -1;
   setInterval(function () {
-    var t = now(), idle = Date.now() - lastTouch, busy = !$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden || !!undo;
+    var t = now(), idle = Date.now() - lastTouch, busy = dialogOpen() || !!undo || installing();
     tickSky();
     if (t.getMinutes() !== lastMinute) {
       lastMinute = t.getMinutes();
@@ -966,7 +1239,7 @@
     // Quiet for two minutes: a list, Settings or a paged-ahead week goes back to this week. Quiet for the time set in
     // Settings: the resting view (photos, or the week on a morning), which also follows the morning hours as they pass.
     // An open day or event used to suspend every timer, so the frame could sit on a dialog all night.
-    if (idle > HOME_AFTER_MS && (!$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden)) { closeEvent(); closeDay(); closeManage(); closeAdd(); busy = !!undo; }
+    if (idle > HOME_AFTER_MS && dialogOpen()) { closeEvent(); closeDay(); closeManage(); closeAdd(); busy = !!undo || installing(); }
     var onList = mode.indexOf('list:') === 0, hold = onList ? LIST_AFTER_MS : HOME_AFTER_MS;
     if (!busy && idle > hold && mode !== 'photos' && (mode !== 'calendar' || page !== 0)) { page = 0; setMode('calendar'); }
     if (!busy && idle > Math.max(prefs.restAfter * 60000, onList ? LIST_AFTER_MS : 0) && (mode !== restingView() || page !== 0)) { page = 0; setMode(restingView()); }
@@ -986,8 +1259,8 @@
   if (query.tab) { mode = 'list:' + query.tab; $('view-calendar').hidden = true; $('view-list').hidden = false; }
   // Layout is measured to fit whole items, so measure again once the web fonts have arrived.
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(); });
-  renderSettings(); render(); loadHousehold(); loadSettings(); loadCalendar(); loadTasks(); loadWeather(); loadPhotos();
-  setInterval(loadHousehold, 600000); setInterval(loadCalendar, 60000); setInterval(loadTasks, 60000); setInterval(loadWeather, 900000); setInterval(loadPhotos, 60000); setInterval(loadSettings, 60000); setInterval(loadHousehold, 3600000);
+  renderSettings(); render(); loadHousehold(); loadSettings(); loadCalendar(); loadTasks(); loadWeather(); loadPhotos(); loadUpdates(); pollInstall();
+  setInterval(loadUpdates, 600000); setInterval(loadHousehold, 600000); setInterval(loadCalendar, 60000); setInterval(loadTasks, 60000); setInterval(loadWeather, 900000); setInterval(loadPhotos, 60000); setInterval(loadSettings, 60000);
   window.addEventListener('online', function () { loadCalendar(); loadTasks(); loadWeather(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { loadCalendar(); loadTasks(); } });
 })();

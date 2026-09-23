@@ -41,8 +41,8 @@ import android.widget.TextView;
  *
  * What a kiosk browser was doing for the frame, and nothing else: start on boot (it is also the launcher), stay
  * full screen with the display awake, come back by itself when the network or the page fails, let the page dim the
- * backlight, and keep hands out of any settings. There are no permissions to grant and nothing to configure but one
- * setup link, which the frame's server issues.
+ * backlight, and keep hands out of any settings. There is nothing to configure but one setup link, which the frame's
+ * server issues, and one permission Android asks for only when someone first installs an update from Settings.
  */
 public class FrameActivity extends Activity {
     private static final String PREFS = "frame", KEY_URL = "url";
@@ -175,6 +175,8 @@ public class FrameActivity extends Activity {
      */
     private final Runnable saveCookies = new Runnable() { @Override public void run() { CookieManager.getInstance().flush(); handler.postDelayed(this, 30_000); } };
     @Override protected void onPause() { super.onPause(); CookieManager.getInstance().flush(); }
+    // Back from Android's "install unknown apps" page or its install dialog: an update in hand carries on, or says why not.
+    @Override protected void onResume() { super.onResume(); UpdateInstaller.get(this).resumed(); }
 
     private static boolean sameHost(String home, Uri other) {
         String host = Uri.parse(home).getHost();
@@ -219,6 +221,19 @@ public class FrameActivity extends Activity {
         @JavascriptInterface public void restartApp() {
             runOnUiThread(new Runnable() { @Override public void run() { start(); } });
         }
+
+        // Updating this app, from Settings (UpdateInstaller). Fully Kiosk has none of these, which is how the page
+        // tells the two apart. The page names a version and nothing else: where the file comes from, and whether it
+        // may be installed, is decided on this side.
+        /** {"version":"0.1.1","variant":"32bit","installs":true} */
+        @JavascriptInterface public String ginghamApp() { return UpdateInstaller.get(FrameActivity.this).describe(); }
+        @JavascriptInterface public void installUpdate(String version) { UpdateInstaller.get(FrameActivity.this).install(version); }
+        /** {"state":"idle|permission|downloading|verifying|confirm|failed", "version", "reason", "done", "total", ...} */
+        @JavascriptInterface public String updateStatus() { return UpdateInstaller.get(FrameActivity.this).status(); }
+        @JavascriptInterface public void openInstallPermission() {
+            runOnUiThread(new Runnable() { @Override public void run() { UpdateInstaller.get(FrameActivity.this).openPermission(); } });
+        }
+        @JavascriptInterface public void cancelUpdate() { UpdateInstaller.get(FrameActivity.this).cancel(); }
     }
 
     // ---------------------------------------------------------------- first run

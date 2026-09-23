@@ -20,7 +20,7 @@ function world() {
     feed: async link => { asked.push(link); if (/broken/.test(link)) throw Error('The calendar link answered 404'); return {status: 200, text: ICS}; },
     fetchImpl: async (url, options) => /todoist/.test(url)
       ? (options.headers.Authorization === 'Bearer good-token' ? new Response(JSON.stringify({results: [{id: 'P1', name: 'Home'}, {id: 'P2', name: 'Chores', parent_id: 'P1'}, {id: 'P3', name: 'Inbox', inbox_project: true}]})) : new Response('', {status: 401}))
-      : new Response(JSON.stringify({results: [{name: 'Austin', admin1: 'Texas', country: 'United States', latitude: 30.27, longitude: -97.74, timezone: 'America/Chicago'}, {name: 'Nowhere', timezone: 'Not/AZone', latitude: 0, longitude: 0}]}))});
+      : new Response(JSON.stringify({results: [{name: 'Austin', admin1: 'Texas', country: 'United States', country_code: 'US', latitude: 30.27, longitude: -97.74, timezone: 'America/Chicago'}, {name: 'Nowhere', timezone: 'Not/AZone', latitude: 0, longitude: 0}]}))});
   const grant = (scope, household) => grants.verify(grants.add({scope, household, label: scope}).secret);
   const call = (g, method, p, body) => setup.handle({method, url: new URL('http://x' + p), grant: g, body});
   return {data, households, grants, setup, asked, grant, call};
@@ -68,6 +68,13 @@ test('Place, lists, photos, frames and devices', async () => {
   assert.equal((await w.call(owner, 'POST', '/api/setup/household', {name: 'The Alphas', place: 'Austin', latitude: 30.27, longitude: -97.74, timezone: 'Mars/Base'})).status, 400);
   const saved = await w.call(owner, 'POST', '/api/setup/household', {name: 'The Alphas', place: 'Austin', latitude: 30.27, longitude: -97.74, timezone: 'America/Chicago'});
   assert.deepEqual(saved.body.setup.household, {id: 'alpha', name: 'The Alphas', timezone: 'America/Chicago', place: 'Austin'});
+  // The country the place search named is kept, because it decides whether the frame's clock is 12- or 24-hour.
+  assert.equal((await w.call(owner, 'GET', '/api/setup/places?q=Aus')).body.places[0].country, 'US');
+  assert.equal(w.households.get('alpha').place().country, '', 'not known until a place is picked with one');
+  await w.call(owner, 'POST', '/api/setup/household', {name: 'The Alphas', place: 'Austin', latitude: 30.27, longitude: -97.74, timezone: 'America/Chicago', country: 'US'});
+  assert.equal(w.households.get('alpha').place().country, 'US');
+  await w.call(owner, 'POST', '/api/setup/household', {name: 'The Alphas', place: 'Austin', latitude: 30.27, longitude: -97.74, timezone: 'America/Chicago', country: 'not a country'});
+  assert.equal(w.households.get('alpha').place().country, '', 'anything but two capital letters is dropped');
   assert.equal((await w.call(owner, 'POST', '/api/setup/todoist', {token: 'wrong'})).status, 400);
   const todoist = await w.call(owner, 'POST', '/api/setup/todoist', {token: 'good-token'});
   assert.deepEqual(todoist.body.projects, [{id: 'P1', name: 'Home', under: ''}, {id: 'P2', name: 'Chores', under: 'Home'}], 'the inbox is not offered');

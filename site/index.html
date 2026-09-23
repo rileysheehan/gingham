@@ -16,6 +16,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="The Gingham wall display of a made-up family: the sky window with the day, the clock and the weather beside the week ahead.">
   <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://gingham.rileysheehan.co/">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preload" href="fonts/bricolage-grotesque-var.woff2" as="font" type="font/woff2" crossorigin>
@@ -35,23 +37,18 @@
         <rect x="0" y="0" width="32" height="8"/><rect x="0" y="16" width="32" height="8"/>
       </g>
     </symbol>
-    <symbol id="wx-partly" viewBox="0 0 64 64">
-      <g class="sun"><circle cx="40" cy="22" r="8"/><path d="M40 8v-4m0 36v-4M26 22h-4m36 0h-4M30 12l-3-3m26 26-3-3M30 32l-3 3m26-26-3 3"/></g>
-      <path d="M17 52h24a9 9 0 0 0 1-18 13 13 0 0 0-25 2 8 8 0 0 0 0 16z" fill="var(--s-card,#fff)"/>
-    </symbol>
-    <symbol id="wx-partly-night" viewBox="0 0 64 64">
-      <g transform="translate(14,-6) scale(.62)"><path class="moon" d="M38 10a22 22 0 1 0 16 36 18 18 0 0 1-16-36Z"/></g>
-      <path d="M18 46a10 10 0 0 1-1-20 15 15 0 0 1 28-2 11 11 0 1 1 4 22Z" fill="var(--s-card,#fff)"/>
-    </symbol>
-    <symbol id="wx-sun" viewBox="0 0 64 64">
-      <g class="sun"><circle cx="32" cy="32" r="11"/><path d="M32 11V6m0 52v-5M11 32H6m52 0h-5M17 17l-3.5-3.5m37 37L47 47M17 47l-3.5 3.5m37-37L47 17"/></g>
-    </symbol>
-    <symbol id="wx-cloud" viewBox="0 0 64 64"><path d="M18 48h28a10 10 0 0 0 1-20 15 15 0 0 0-29 2 9 9 0 0 0 0 18z"/></symbol>
-    <symbol id="wx-rain" viewBox="0 0 64 64"><path d="M18 42h28a10 10 0 0 0 1-20 15 15 0 0 0-29 2 9 9 0 0 0 0 18z"/><path class="drop" d="M24 50l-2 7m12-7-2 7m12-7-2 7"/></symbol>
-    <symbol id="g-house" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 9.8V20h13V9.8"/><path d="M10 20v-5.5h4V20"/></symbol>
-    <symbol id="g-repeat" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a2 2 0 0 1 2-2h16"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a2 2 0 0 1-2 2H3"/></symbol>
-    <symbol id="g-cart" viewBox="0 0 24 24"><path d="M3 4h2.5l2.3 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 8H6.3"/><circle cx="10" cy="20.5" r="1.3"/><circle cx="17" cy="20.5" r="1.3"/></symbol>
-    <symbol id="g-sliders" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6"/><circle cx="15" cy="17" r="2.6"/></symbol>
+    <!-- The weather and list drawings are the product's own (app.js drawIcon and GLYPHS), path for path. A <use> copy
+         cannot be reached by a descendant selector, so colour rides in on inline styles that read custom properties,
+         which do inherit into it: --sun and --rain from :root, currentColor from the <svg>. -->
+    <symbol id="wx-sun" viewBox="0 0 64 64"><circle cx="32" cy="32" r="11" style="fill:var(--sun);stroke:var(--sun)"/><path d="M32 11V6m0 52v-5M11 32H6m52 0h-5M17 17l-3.5-3.5m37 37L47 47M17 47l-3.5 3.5m37-37L47 17" style="fill:var(--sun);stroke:var(--sun)"/></symbol>
+    <symbol id="wx-partly" viewBox="0 0 64 64"><g transform="translate(14,-6) scale(.62)"><circle cx="32" cy="32" r="11" style="fill:var(--sun);stroke:var(--sun)"/><path d="M32 11V6m0 52v-5M11 32H6m52 0h-5M17 17l-3.5-3.5m37 37L47 47M17 47l-3.5 3.5m37-37L47 17" style="fill:var(--sun);stroke:var(--sun)"/></g><path d="M18 46a10 10 0 0 1-1-20 15 15 0 0 1 28-2 11 11 0 1 1 4 22Z"/></symbol>
+    <symbol id="wx-partly-night" viewBox="0 0 64 64"><g transform="translate(14,-6) scale(.62)"><path d="M38 10a22 22 0 1 0 16 36 18 18 0 0 1-16-36Z" style="fill:#f1e6c3;stroke:#f1e6c3;stroke-width:1"/></g><path d="M18 46a10 10 0 0 1-1-20 15 15 0 0 1 28-2 11 11 0 1 1 4 22Z"/></symbol>
+    <symbol id="wx-cloud" viewBox="0 0 64 64"><path d="M18 46a10 10 0 0 1-1-20 15 15 0 0 1 28-2 11 11 0 1 1 4 22Z"/></symbol>
+    <symbol id="wx-rain" viewBox="0 0 64 64"><path d="M18 46a10 10 0 0 1-1-20 15 15 0 0 1 28-2 11 11 0 1 1 4 22Z"/><path d="m22 52-3 7m15-7-3 7m15-7-3 7" style="stroke:var(--rain)"/></symbol>
+    <symbol id="g-house" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9v10.5h12V9"/><path d="M10 19.5v-5h4v5"/></symbol>
+    <symbol id="g-repeat" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3"/><path d="M4 11.5v-1a5 5 0 0 1 5-5h11"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 12.5v1a5 5 0 0 1-5 5H4"/></symbol>
+    <symbol id="g-cart" viewBox="0 0 24 24"><path d="M2.5 4h2.6l2.3 10.5h10.2L20 7.5H6"/><path d="M8 19.5a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0"/><path d="M15 19.5a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0"/></symbol>
+    <symbol id="g-sliders" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6" style="fill:var(--s-surface)"/><circle cx="15" cy="17" r="2.6" style="fill:var(--s-surface)"/></symbol>
     <symbol id="g-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="g-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="heart" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2 0 3.6 1.1 5.3 3 1.7-1.9 3.3-3 5.3-3 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z"/></symbol>
@@ -73,42 +70,37 @@
       <h1 class="h1">Bring your own screen.</h1>
       <p class="lede">Put Gingham on an Android photo frame or an old tablet and it becomes the centerpiece of the kitchen: calendar, lists, weather and photos. The app is its own server. No hub, no account, no subscription.</p>
       <div class="ctas">
-        <a class="btn primary" href="https://github.com/rileysheehan/gingham/releases/latest" aria-describedby="app-note">Get the app</a>
-        <a class="btn quiet" href="#set-up">How it's set up</a>
+        <a class="btn primary" href="https://github.com/rileysheehan/gingham/releases/latest/download/gingham-either.apk" aria-describedby="app-note">Download the app</a>
+        <a class="btn quiet" href="#set-up">How it’s set up</a>
       </div>
-      <p class="note" id="app-note">Free and open source. Android 8.0 or later.</p>
+      <p class="note" id="app-note">Free and open source, for any Android 8.0 or later (45&nbsp;MB). Smaller 32‑bit and 64‑bit builds are on the <a href="https://github.com/rileysheehan/gingham/releases/latest">release page</a>.</p>
     </div>
     <div class="wrap">
       <div class="stage">
         <div class="bezel">
           <div class="screen-box">
           <div class="screen" id="screen" role="group" aria-label="The wall display of an invented household, the Ashbys. The tabs in its dock switch what the right side shows.">
-            <aside class="s-today" aria-label="The left panel, which never changes">
+            <div class="s-today">
               <div class="s-sky" aria-hidden="true"><i class="s-stars"></i><i class="s-sun"></i><i class="s-cloud c1"></i><i class="s-cloud c2"></i></div>
               <p class="s-weekday">Thursday</p>
               <p class="s-date">October 8</p>
-              <p class="s-clock">5:42<span>PM</span></p>
+              <p class="s-clock">5:42<span><i class="s-gap"> </i>PM</span></p>
               <div class="s-now">
                 <svg class="s-wx day" aria-hidden="true"><use href="#wx-partly"/></svg><svg class="s-wx night" aria-hidden="true"><use href="#wx-partly-night"/></svg>
                 <p class="s-temp">74°</p>
                 <div class="s-nowtext"><p>Partly cloudy</p><p class="s-nowdetail">H:81° L:62°</p></div>
               </div>
               <p class="s-eyebrow s-todaylabel">Today</p>
-              <div class="s-item event happening" style="--rail:#d9782f"><div><span class="s-meta">Now, until 6:30 PM · Northside fields</span><span class="s-title">Soccer practice</span></div></div>
-              <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span></div></div>
-              <div class="s-tomorrow">
-                <p class="s-eyebrow">Tomorrow</p>
-                <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-meta">12:30 PM</span><span class="s-title">Early release</span></div></div>
-                <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Pizza night</span></div></div>
-              </div>
-              <p class="s-countdown">3 sleeps until June's birthday</p>
+              <div class="s-item event happening" style="--rail:#d9782f"><div><span class="s-meta">Now, until 7:30 PM · Northside fields</span><span class="s-title">Soccer practice</span></div></div>
+              <div class="s-item chore compact"><i class="s-check"></i><div><span class="s-meta"></span><span class="s-title">Trash to the curb</span></div></div>
+              <p class="s-countdown">3 sleeps until June’s birthday</p>
               <p class="s-sunline">Sunset 7:04 PM</p>
-            </aside>
+            </div>
 
             <div class="s-ahead">
-              <section class="s-view" data-view="calendar" aria-label="Calendar view">
-                <header class="s-head">
-                  <h3>October</h3>
+              <div class="s-view" data-view="calendar">
+                <div class="s-head">
+                  <p class="s-h">October</p>
                   <div class="s-legend">
                     <span style="--rail:#d9782f"><i></i>Family</span>
                     <span style="--rail:#3f9a6e"><i></i>Mara</span>
@@ -116,7 +108,7 @@
                     <span style="--rail:#4a8fd9"><i></i>School</span>
                   </div>
                   <div class="s-pager"><span class="s-arrow off"><svg aria-hidden="true"><use href="#g-left"/></svg></span><span class="s-arrow"><svg aria-hidden="true"><use href="#g-right"/></svg></span></div>
-                </header>
+                </div>
                 <div class="s-card s-strip">
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Tomorrow</span><b>9</b></div>
@@ -141,8 +133,9 @@
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Mon</span><b>12</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-cloud"/></svg></span><b>77°</b>61°</div>
+                    <div class="s-item event busy" style="--rail:#8a63c9"><div><span class="s-meta">1 PM</span><span class="s-title busy">Busy</span></div></div>
                     <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-meta">3:15 PM</span><span class="s-title">Dentist</span></div></div>
-                    <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" aria-label="Theo">T</span></span></div></div>
+                    <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></span></div></div>
                   </div>
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Tue</span><b>13</b></div>
@@ -159,79 +152,99 @@
                 <div class="s-later">
                   <p class="s-eyebrow">Later</p>
                   <div class="s-laterrows">
+                    <div class="s-laterrow"><i class="ring"></i><span class="when">Fri, Oct 16</span><span class="time"></span><span class="what">Book the campsite</span></div>
                     <div class="s-laterrow" style="--rail:#d9782f"><i></i><span class="when">Sat, Oct 17</span><span class="time">10 AM</span><span class="what">Pumpkin patch</span></div>
                     <div class="s-laterrow" style="--rail:#d9782f"><i></i><span class="when">Fri, Oct 23</span><span class="time"></span><span class="what">Camping</span></div>
-                    <div class="s-laterrow"><i class="ring"></i><span class="when">Sat, Oct 31</span><span class="time">5 PM</span><span class="what">Carve the pumpkins</span></div>
                   </div>
                 </div>
-              </section>
+              </div>
 
-              <section class="s-view" data-view="family" hidden aria-label="Family list">
-                <header class="s-head s-listhead"><h3><svg class="s-glyph" aria-hidden="true"><use href="#g-house"/></svg>Family</h3><p class="s-sub">Things for the house</p><span class="s-add">Add</span></header>
+              <div class="s-view" data-view="family" hidden>
+                <div class="s-head s-listhead"><p class="s-h"><svg class="s-glyph" aria-hidden="true"><use href="#g-house"/></svg>Family</p><p class="s-sub">Things for the house</p><span class="s-add">Add</span></div>
                 <div class="s-card s-listbody">
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Book the campsite</span><span class="s-meta">Fri, Oct 16</span></div></div>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Return the library books</span></div></div>
-                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Hang the porch light</span></div></div>
+                  <div class="s-cols">
+                    <div class="s-set">
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Book the campsite</span><span class="s-meta">Fri, Oct 16</span></div></div>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Return the library books</span></div></div>
+                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Hang the porch light</span></div></div>
+                    </div>
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              <section class="s-view" data-view="chores" hidden aria-label="Chores list">
-                <header class="s-head s-listhead"><h3><svg class="s-glyph" aria-hidden="true"><use href="#g-repeat"/></svg>Chores</h3><p class="s-sub">Everything on a schedule</p><span class="s-add">Add</span></header>
+              <div class="s-view" data-view="chores" hidden>
+                <div class="s-head s-listhead"><p class="s-h"><svg class="s-glyph" aria-hidden="true"><use href="#g-repeat"/></svg>Chores</p><p class="s-sub">Everything on a schedule</p><span class="s-add">Add</span></div>
                 <div class="s-card s-listbody">
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Thu, Oct 8 · repeats</span></div></div>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Fri, Oct 9 · repeats</span></div></div>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" aria-label="Theo">T</span></span><span class="s-meta">Mon, Oct 12</span></div></div>
-                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Recycling</span><span class="s-meta">Wed, Oct 14 · repeats</span></div></div>
+                  <div class="s-cols">
+                    <div class="s-set">
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Thu, Oct 8 · repeats</span></div></div>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Fri, Oct 9 · repeats</span></div></div>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></span><span class="s-meta">Mon, Oct 12</span></div></div>
+                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Recycling</span><span class="s-meta">Wed, Oct 14 · repeats</span></div></div>
+                    </div>
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              <section class="s-view" data-view="grocery" hidden aria-label="Grocery list">
-                <header class="s-head s-listhead"><h3><svg class="s-glyph" aria-hidden="true"><use href="#g-cart"/></svg>Grocery</h3><p class="s-sub">Tap to check off</p><span class="s-add">Add</span></header>
-                <div class="s-card s-listbody two">
-                  <p class="s-group">Produce</p>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Tomatoes</span></div></div>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Limes</span></div></div>
-                  <div class="s-item done"><i class="s-check"></i><div><span class="s-title">Cilantro</span></div></div>
-                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">A big bag of apples</span></div></div>
-                  <p class="s-group">Dairy</p>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Milk</span></div></div>
-                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Butter</span></div></div>
-                  <p class="s-group">Party</p>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Balloons</span></div></div>
-                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Sprinkles</span></div></div>
-                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
+              <div class="s-view" data-view="grocery" hidden>
+                <div class="s-head s-listhead"><p class="s-h"><svg class="s-glyph" aria-hidden="true"><use href="#g-cart"/></svg>Grocery</p><p class="s-sub">Tap to check off</p><span class="s-add">Add</span></div>
+                <div class="s-card s-listbody">
+                  <div class="s-cols">
+                    <div class="s-set">
+                      <p class="s-group">Produce</p>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Tomatoes</span></div></div>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Limes</span></div></div>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Cilantro</span></div></div>
+                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">A big bag of apples</span></div></div>
+                    </div>
+                    <div class="s-set">
+                      <p class="s-group">Dairy</p>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Milk</span></div></div>
+                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Butter</span></div></div>
+                    </div>
+                    <div class="s-set">
+                      <p class="s-group">Party</p>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Balloons</span></div></div>
+                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Sprinkles</span></div></div>
+                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
+                    </div>
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              <section class="s-view" data-view="june" hidden aria-label="June's list">
-                <header class="s-head s-listhead"><h3><span class="s-avatar" style="--who:#e2a83a" aria-hidden="true">J</span>June</h3><p class="s-sub">Before bed</p><span class="s-add">Add</span></header>
+              <div class="s-view" data-view="june" hidden>
+                <div class="s-head s-listhead"><p class="s-h"><span class="s-avatar" style="--who:#e2a83a" aria-hidden="true">J</span>June</p><p class="s-sub">Before bed</p><span class="s-add">Add</span></div>
                 <div class="s-card s-listbody kid">
-                  <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🦷</span><div><span class="s-title">Brush teeth</span></div></div>
-                  <div class="s-item done"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🧸</span><div><span class="s-title">Tidy up</span></div></div>
-                  <div class="s-item last"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">📚</span><div><span class="s-title">Pick a book</span></div></div>
+                  <div class="s-cols">
+                    <div class="s-set">
+                      <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🦷</span><div><span class="s-title">Brush teeth</span></div></div>
+                      <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🧸</span><div><span class="s-title">Tidy up</span></div></div>
+                      <div class="s-item last"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">📚</span><div><span class="s-title">Pick a book</span></div></div>
+                    </div>
+                  </div>
                 </div>
-              </section>
+              </div>
 
-              <section class="s-view" data-view="photos" hidden aria-label="Photos view">
-                <header class="s-head"><h3>June 2025</h3><span class="s-sub"></span><div class="s-pager"><span class="s-arrow"><svg aria-hidden="true"><use href="#g-left"/></svg></span><span class="s-arrow"><svg aria-hidden="true"><use href="#g-right"/></svg></span></div></header>
+              <div class="s-view" data-view="photos" hidden>
+                <div class="s-head"><p class="s-h">June 2025</p><span class="s-sub"></span><div class="s-pager"><span class="s-arrow"><svg aria-hidden="true"><use href="#g-left"/></svg></span><span class="s-arrow"><svg aria-hidden="true"><use href="#g-right"/></svg></span></div></div>
                 <div class="s-card s-photo">
                   <!-- Photo: Jennifer Kalenberg on Unsplash (unsplash.com/photos/D1ZtQGk3AB8), free under the Unsplash License. -->
 <div class="fill" style="background-image:url(photo-june.jpg)"></div>
                   <div class="pic" role="img" aria-label="A family photo: five people walking hand in hand along a lake beach, seen from behind"><img src="photo-june.jpg" alt="" width="900" height="1200" loading="lazy" decoding="async"></div>
                 </div>
-              </section>
+              </div>
 
-              <nav class="s-dock" aria-label="Views on the wall">
+              <div class="s-dock" role="group" aria-label="Views on the wall">
                 <div class="s-tabs">
                   <button type="button" data-tab="calendar" aria-pressed="true">Calendar</button>
-                  <button type="button" data-tab="family" aria-pressed="false"><svg class="s-glyph" aria-hidden="true"><use href="#g-house"/></svg>Family<b>3</b></button>
-                  <button type="button" data-tab="chores" aria-pressed="false"><svg class="s-glyph" aria-hidden="true"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
-                  <button type="button" data-tab="grocery" aria-pressed="false"><svg class="s-glyph" aria-hidden="true"><use href="#g-cart"/></svg>Grocery<b>8</b></button>
-                  <button type="button" data-tab="june" aria-pressed="false"><span class="s-avatar" style="--who:#e2a83a" aria-hidden="true">J</span>June<b>2</b></button>
+                  <button type="button" data-tab="family" aria-pressed="false" aria-label="Family, 3 to do"><svg class="s-glyph" aria-hidden="true"><use href="#g-house"/></svg>Family<b>3</b></button>
+                  <button type="button" data-tab="chores" aria-pressed="false" aria-label="Chores, 4 to do"><svg class="s-glyph" aria-hidden="true"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
+                  <button type="button" data-tab="grocery" aria-pressed="false" aria-label="Grocery, 9 to buy"><svg class="s-glyph" aria-hidden="true"><use href="#g-cart"/></svg>Grocery<b>9</b></button>
+                  <button type="button" data-tab="june" aria-pressed="false" aria-label="June’s list, 3 to do"><span class="s-avatar" style="--who:#e2a83a" aria-hidden="true">J</span>June<b>3</b></button>
                   <button type="button" data-tab="photos" aria-pressed="false">Photos</button>
                 </div>
                 <span class="s-gear" aria-hidden="true"><svg><use href="#g-sliders"/></svg></span>
-              </nav>
+              </div>
             </div>
           </div>
           </div>
@@ -251,11 +264,11 @@
         </div>
         <div>
           <h3>The screen is the server</h3>
-          <p>The server runs inside the app, on the screen itself. Nothing else in the house has to be on. Calendar links and tokens stay in the app's own private storage.</p>
+          <p>The server runs inside the app, on the screen itself. Nothing else in the house has to be on. Calendar links and tokens stay in the app’s own private storage.</p>
         </div>
         <div>
           <h3>No Gingham cloud</h3>
-          <p>Nothing is tracked and nothing phones home. When the internet is out, the wall keeps the last good screen and says from when.</p>
+          <p>Nothing is tracked. Besides your own calendars and lists, a frame only asks the internet for the weather and, once a day, whether a newer Gingham exists. You can turn that check off in Settings. When the internet is out, the wall keeps the last good screen and says from when.</p>
         </div>
       </div>
     </div>
@@ -270,66 +283,79 @@
       </div>
       <div class="crop right" role="img" aria-label="The grocery list on the wall, with Cilantro just checked off and a toast reading Checked off Cilantro, with Undo">
         <div class="s-ahead">
-          <section class="s-view">
-            <header class="s-head s-listhead"><h3><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery</h3><p class="s-sub">Tap to check off</p><span class="s-add">Add</span></header>
-            <div class="s-card s-listbody two">
-              <p class="s-group">Produce</p>
-              <div class="s-item"><i class="s-check"></i><div><span class="s-title">Tomatoes</span></div></div>
-              <div class="s-item"><i class="s-check"></i><div><span class="s-title">Limes</span></div></div>
-              <div class="s-item done"><i class="s-check"></i><div><span class="s-title">Cilantro</span></div></div>
-              <div class="s-item last"><i class="s-check"></i><div><span class="s-title">A big bag of apples</span></div></div>
-              <p class="s-group">Dairy</p>
-              <div class="s-item"><i class="s-check"></i><div><span class="s-title">Milk</span></div></div>
-              <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Butter</span></div></div>
-              <p class="s-group">Party</p>
-              <div class="s-item"><i class="s-check"></i><div><span class="s-title">Balloons</span></div></div>
-              <div class="s-item"><i class="s-check"></i><div><span class="s-title">Sprinkles</span></div></div>
-              <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
+          <div class="s-view">
+            <div class="s-head s-listhead"><p class="s-h"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery</p><p class="s-sub">Tap to check off</p><span class="s-add">Add</span></div>
+            <div class="s-card s-listbody">
+              <div class="s-cols">
+                <div class="s-set">
+                  <p class="s-group">Produce</p>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Tomatoes</span></div></div>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Limes</span></div></div>
+                  <div class="s-item done"><i class="s-check"></i><div><span class="s-title">Cilantro</span></div></div>
+                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">A big bag of apples</span></div></div>
+                </div>
+                <div class="s-set">
+                  <p class="s-group">Dairy</p>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Milk</span></div></div>
+                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Butter</span></div></div>
+                </div>
+                <div class="s-set">
+                  <p class="s-group">Party</p>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Balloons</span></div></div>
+                  <div class="s-item"><i class="s-check"></i><div><span class="s-title">Sprinkles</span></div></div>
+                  <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
+                </div>
+              </div>
             </div>
-          </section>
-          <div class="s-toast">Checked off “Cilantro”<b>Undo</b></div>
-          <nav class="s-dock">
+          </div>
+          <div class="s-toast"><span>Checked off “Cilantro”</span><b>Undo</b></div>
+          <div class="s-dock">
             <div class="s-tabs">
               <button type="button" tabindex="-1" aria-pressed="false">Calendar</button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-house"/></svg>Family<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
               <button type="button" tabindex="-1" aria-pressed="true"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>8</b></button>
-              <button type="button" tabindex="-1" aria-pressed="false"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>2</b></button>
+              <button type="button" tabindex="-1" aria-pressed="false"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="false">Photos</button>
             </div>
             <span class="s-gear"><svg><use href="#g-sliders"/></svg></span>
-          </nav>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="room flip" id="kids">
       <div class="words">
-        <h2 class="h2">A list a five-year-old can run.</h2>
+        <h2 class="h2">A list a five‑year‑old can run.</h2>
         <p class="lede">Big rows, a picture on each, and a little cheer when something gets done.</p>
       </div>
-      <div class="crop right" role="img" aria-label="June's list on the wall: Brush teeth, Tidy up checked off, Pick a book, with a celebration">
+      <div class="crop right" role="img" aria-label="June’s list on the wall: Brush teeth, Tidy up just checked off with a celebration and a toast offering Undo, Pick a book">
         <div class="s-ahead">
-          <section class="s-view">
-            <header class="s-head s-listhead"><h3><span class="s-avatar" style="--who:#e2a83a">J</span>June</h3><p class="s-sub">Before bed</p><span class="s-add">Add</span></header>
+          <div class="s-view">
+            <div class="s-head s-listhead"><p class="s-h"><span class="s-avatar" style="--who:#e2a83a">J</span>June</p><p class="s-sub">Before bed</p><span class="s-add">Add</span></div>
             <div class="s-card s-listbody kid">
-              <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji">🦷</span><div><span class="s-title">Brush teeth</span></div></div>
-              <div class="s-item done"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji">🧸</span><div><span class="s-title">Tidy up</span></div></div>
-              <div class="s-item last"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji">📚</span><div><span class="s-title">Pick a book</span></div></div>
+              <div class="s-cols">
+                <div class="s-set">
+                  <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji">🦷</span><div><span class="s-title">Brush teeth</span></div></div>
+                  <div class="s-item done"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji">🧸</span><div><span class="s-title">Tidy up</span></div></div>
+                  <div class="s-item last"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji">📚</span><div><span class="s-title">Pick a book</span></div></div>
+                </div>
+              </div>
             </div>
-          </section>
+          </div>
           <span class="s-cheer">🎉</span>
-          <nav class="s-dock">
+          <div class="s-toast"><span>Checked off “🧸 Tidy up”</span><b>Undo</b></div>
+          <div class="s-dock">
             <div class="s-tabs">
               <button type="button" tabindex="-1" aria-pressed="false">Calendar</button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-house"/></svg>Family<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
-              <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>8</b></button>
+              <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>9</b></button>
               <button type="button" tabindex="-1" aria-pressed="true"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>2</b></button>
               <button type="button" tabindex="-1" aria-pressed="false">Photos</button>
             </div>
             <span class="s-gear"><svg><use href="#g-sliders"/></svg></span>
-          </nav>
+          </div>
         </div>
       </div>
     </section>
@@ -340,19 +366,19 @@
         <p class="lede">Google, Apple, Outlook or any ICS feed. An event marked private shows as Busy.</p>
       </div>
       <div class="crop left noon" role="img" aria-label="The left panel on a Monday: the clock, the weather, and Today with an event shown only as Busy, a dentist appointment, and a chore assigned to Theo">
-        <aside class="s-today">
-          <div class="s-sky"><i class="s-sun"></i><i class="s-cloud c1"></i></div>
+        <div class="s-today">
+          <div class="s-sky"><i class="s-cloud c1"></i><i class="s-cloud c2"></i><i class="s-cloud c3"></i><i class="s-cloud c4"></i></div>
           <p class="s-weekday">Monday</p>
           <p class="s-date">October 12</p>
-          <p class="s-clock">12:20<span>PM</span></p>
-          <div class="s-now"><svg class="s-wx"><use href="#wx-cloud"/></svg><p class="s-temp">72°</p><div class="s-nowtext"><p>Cloudy</p><p class="s-nowdetail">H:77° L:61°</p></div></div>
+          <p class="s-clock">12:20<span><i class="s-gap"> </i>PM</span></p>
+          <div class="s-now"><svg class="s-wx"><use href="#wx-cloud"/></svg><p class="s-temp">72°</p><div class="s-nowtext"><p>Overcast</p><p class="s-nowdetail">H:77° L:61°</p></div></div>
           <p class="s-eyebrow s-todaylabel">Today</p>
-          <div class="s-item event" style="--rail:#8a63c9"><div><span class="s-meta">1 PM · in 40 min</span><span class="s-title busy">Busy</span></div></div>
-          <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-meta">3:15 PM</span><span class="s-title">Dentist</span></div></div>
-          <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-owner" style="--who:#8a63c9" aria-label="Theo">T</span></span></div></div>
+          <div class="s-item event busy next" style="--rail:#8a63c9"><div><span class="s-meta">1 PM · in 40 min</span><span class="s-title busy">Busy</span></div></div>
+          <div class="s-item event compact" style="--rail:#3f9a6e"><div><span class="s-meta">3:15 PM</span><span class="s-title">Dentist</span></div></div>
+          <div class="s-item chore compact"><i class="s-check"></i><div><span class="s-meta"></span><span class="s-title">Water the tomatoes</span><span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></div></div>
           <p class="s-countdown">11 sleeps until Camping</p>
           <p class="s-sunline">Sunset 6:59 PM</p>
-        </aside>
+        </div>
       </div>
     </section>
 
@@ -363,25 +389,25 @@
       </div>
       <div class="crop right" role="img" aria-label="Photos on the wall: a picture captioned June 2025, shown whole over a blurred copy of itself">
         <div class="s-ahead">
-          <section class="s-view">
-            <header class="s-head"><h3>June 2025</h3><span class="s-sub"></span><div class="s-pager"><span class="s-arrow"><svg><use href="#g-left"/></svg></span><span class="s-arrow"><svg><use href="#g-right"/></svg></span></div></header>
+          <div class="s-view">
+            <div class="s-head"><p class="s-h">June 2025</p><span class="s-sub"></span><div class="s-pager"><span class="s-arrow"><svg><use href="#g-left"/></svg></span><span class="s-arrow"><svg><use href="#g-right"/></svg></span></div></div>
             <div class="s-card s-photo">
               <!-- Photo: Jennifer Kalenberg on Unsplash (unsplash.com/photos/D1ZtQGk3AB8), free under the Unsplash License. -->
 <div class="fill" style="background-image:url(photo-june.jpg)"></div>
               <div class="pic"><img src="photo-june.jpg" alt="" width="900" height="1200" loading="lazy" decoding="async"></div>
             </div>
-          </section>
-          <nav class="s-dock">
+          </div>
+          <div class="s-dock">
             <div class="s-tabs">
               <button type="button" tabindex="-1" aria-pressed="false">Calendar</button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-house"/></svg>Family<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-repeat"/></svg>Chores<b>4</b></button>
-              <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>8</b></button>
-              <button type="button" tabindex="-1" aria-pressed="false"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>2</b></button>
+              <button type="button" tabindex="-1" aria-pressed="false"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery<b>9</b></button>
+              <button type="button" tabindex="-1" aria-pressed="false"><span class="s-avatar" style="--who:#e2a83a">J</span>June<b>3</b></button>
               <button type="button" tabindex="-1" aria-pressed="true">Photos</button>
             </div>
             <span class="s-gear"><svg><use href="#g-sliders"/></svg></span>
-          </nav>
+          </div>
         </div>
       </div>
     </section>
@@ -394,28 +420,34 @@
         <div class="words">
           <h2 class="h2">Set up from a phone. No accounts, no passwords, no email.</h2>
           <ol class="steps">
-            <li class="step"><b>1</b><span>Put it on the wall. It shows <code>gingham.local</code> and a code.</span></li>
-            <li class="step"><b>2</b><span>Enter the code on a phone on the same Wi‑Fi.</span></li>
+            <li class="step"><b>1</b><span>Put it on the wall. It shows a QR code.</span></li>
+            <li class="step"><b>2</b><span>Scan it with a phone on the same Wi‑Fi. No camera? Type the address beside it and enter the code.</span></li>
             <li class="step"><b>3</b><span>Paste your calendar links, make a list, pick an album.</span></li>
           </ol>
         </div>
-        <div class="crop right" role="img" aria-label="The screen before it is set up, headed Welcome: Set up from a phone, the address gingham.local slash setup, and the code K7W-PX4">
+        <div class="crop right" role="img" aria-label="The screen before it is set up, headed Welcome: a QR code to scan with a phone, and beside it, for a phone without a camera, the address gingham.local:4173/setup and the code K7W-PX4">
           <div class="s-ahead">
-            <section class="s-view">
-              <header class="s-head"><h3>Welcome</h3></header>
-              <div class="s-card s-strip"><div class="pair">
-                <p class="t">Set up from a phone</p>
-                <p class="p">On the same Wi‑Fi, open this address and enter the code.</p>
-                <p class="addr">gingham.local/setup</p>
-                <p class="or">or 192.168.4.23:4173/setup</p>
-                <p class="code">K7W-PX4</p>
-                <p class="host">Your calendar links and tokens stay on this tablet.</p>
+            <div class="s-view">
+              <div class="s-head"><p class="s-h">Welcome</p></div>
+              <div class="s-card s-strip"><div class="welcome">
+                <!-- A real, scannable code, drawn by the product's own encoder (dist/qr.js) for the invented tablet's
+                     link, http://192.168.4.23:4173/setup#code=K7WPX4, exactly as the wall draws it. -->
+                <div class="qr-plate"><svg viewBox="0 0 37 37" shape-rendering="crispEdges" aria-hidden="true"><path fill="#0b1a2e" d="M4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM8 4h1v1h-1zM9 4h1v1h-1zM10 4h1v1h-1zM12 4h1v1h-1zM13 4h1v1h-1zM16 4h1v1h-1zM17 4h1v1h-1zM19 4h1v1h-1zM20 4h1v1h-1zM23 4h1v1h-1zM26 4h1v1h-1zM27 4h1v1h-1zM28 4h1v1h-1zM29 4h1v1h-1zM30 4h1v1h-1zM31 4h1v1h-1zM32 4h1v1h-1zM4 5h1v1h-1zM10 5h1v1h-1zM12 5h1v1h-1zM16 5h1v1h-1zM17 5h1v1h-1zM18 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM15 6h1v1h-1zM17 6h1v1h-1zM18 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM26 6h1v1h-1zM28 6h1v1h-1zM29 6h1v1h-1zM30 6h1v1h-1zM32 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM16 7h1v1h-1zM17 7h1v1h-1zM20 7h1v1h-1zM21 7h1v1h-1zM22 7h1v1h-1zM24 7h1v1h-1zM26 7h1v1h-1zM28 7h1v1h-1zM29 7h1v1h-1zM30 7h1v1h-1zM32 7h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM14 8h1v1h-1zM19 8h1v1h-1zM21 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h1v1h-1zM29 8h1v1h-1zM30 8h1v1h-1zM32 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM18 9h1v1h-1zM21 9h1v1h-1zM23 9h1v1h-1zM26 9h1v1h-1zM32 9h1v1h-1zM4 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM27 10h1v1h-1zM28 10h1v1h-1zM29 10h1v1h-1zM30 10h1v1h-1zM31 10h1v1h-1zM32 10h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM16 11h1v1h-1zM20 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM4 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM13 12h1v1h-1zM16 12h1v1h-1zM17 12h1v1h-1zM18 12h1v1h-1zM20 12h1v1h-1zM21 12h1v1h-1zM23 12h1v1h-1zM24 12h1v1h-1zM26 12h1v1h-1zM29 12h1v1h-1zM31 12h1v1h-1zM32 12h1v1h-1zM4 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM18 13h1v1h-1zM20 13h1v1h-1zM21 13h1v1h-1zM22 13h1v1h-1zM23 13h1v1h-1zM26 13h1v1h-1zM28 13h1v1h-1zM32 13h1v1h-1zM4 14h1v1h-1zM5 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM10 14h1v1h-1zM11 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM17 14h1v1h-1zM22 14h1v1h-1zM24 14h1v1h-1zM25 14h1v1h-1zM30 14h1v1h-1zM31 14h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM22 15h1v1h-1zM29 15h1v1h-1zM32 15h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM10 16h1v1h-1zM13 16h1v1h-1zM14 16h1v1h-1zM15 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM21 16h1v1h-1zM23 16h1v1h-1zM24 16h1v1h-1zM25 16h1v1h-1zM27 16h1v1h-1zM29 16h1v1h-1zM30 16h1v1h-1zM7 17h1v1h-1zM8 17h1v1h-1zM11 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM19 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM25 17h1v1h-1zM26 17h1v1h-1zM27 17h1v1h-1zM31 17h1v1h-1zM32 17h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM9 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM12 18h1v1h-1zM13 18h1v1h-1zM16 18h1v1h-1zM17 18h1v1h-1zM21 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM28 18h1v1h-1zM29 18h1v1h-1zM30 18h1v1h-1zM31 18h1v1h-1zM32 18h1v1h-1zM4 19h1v1h-1zM8 19h1v1h-1zM11 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM14 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM31 19h1v1h-1zM4 20h1v1h-1zM5 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM13 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM27 20h1v1h-1zM28 20h1v1h-1zM31 20h1v1h-1zM5 21h1v1h-1zM9 21h1v1h-1zM15 21h1v1h-1zM18 21h1v1h-1zM19 21h1v1h-1zM30 21h1v1h-1zM31 21h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM7 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM11 22h1v1h-1zM12 22h1v1h-1zM14 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM26 22h1v1h-1zM29 22h1v1h-1zM30 22h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM11 23h1v1h-1zM12 23h1v1h-1zM13 23h1v1h-1zM14 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM21 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM26 23h1v1h-1zM27 23h1v1h-1zM30 23h1v1h-1zM5 24h1v1h-1zM7 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM11 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM15 24h1v1h-1zM20 24h1v1h-1zM21 24h1v1h-1zM22 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM25 24h1v1h-1zM26 24h1v1h-1zM27 24h1v1h-1zM28 24h1v1h-1zM29 24h1v1h-1zM30 24h1v1h-1zM12 25h1v1h-1zM18 25h1v1h-1zM20 25h1v1h-1zM23 25h1v1h-1zM24 25h1v1h-1zM28 25h1v1h-1zM29 25h1v1h-1zM30 25h1v1h-1zM31 25h1v1h-1zM32 25h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM6 26h1v1h-1zM7 26h1v1h-1zM8 26h1v1h-1zM9 26h1v1h-1zM10 26h1v1h-1zM12 26h1v1h-1zM15 26h1v1h-1zM16 26h1v1h-1zM20 26h1v1h-1zM21 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM26 26h1v1h-1zM28 26h1v1h-1zM29 26h1v1h-1zM31 26h1v1h-1zM4 27h1v1h-1zM10 27h1v1h-1zM12 27h1v1h-1zM14 27h1v1h-1zM15 27h1v1h-1zM16 27h1v1h-1zM17 27h1v1h-1zM19 27h1v1h-1zM20 27h1v1h-1zM23 27h1v1h-1zM24 27h1v1h-1zM28 27h1v1h-1zM29 27h1v1h-1zM4 28h1v1h-1zM6 28h1v1h-1zM7 28h1v1h-1zM8 28h1v1h-1zM10 28h1v1h-1zM15 28h1v1h-1zM16 28h1v1h-1zM19 28h1v1h-1zM21 28h1v1h-1zM24 28h1v1h-1zM25 28h1v1h-1zM26 28h1v1h-1zM27 28h1v1h-1zM28 28h1v1h-1zM29 28h1v1h-1zM30 28h1v1h-1zM31 28h1v1h-1zM32 28h1v1h-1zM4 29h1v1h-1zM6 29h1v1h-1zM7 29h1v1h-1zM8 29h1v1h-1zM10 29h1v1h-1zM12 29h1v1h-1zM14 29h1v1h-1zM15 29h1v1h-1zM16 29h1v1h-1zM18 29h1v1h-1zM19 29h1v1h-1zM21 29h1v1h-1zM22 29h1v1h-1zM28 29h1v1h-1zM30 29h1v1h-1zM32 29h1v1h-1zM4 30h1v1h-1zM6 30h1v1h-1zM7 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM12 30h1v1h-1zM16 30h1v1h-1zM18 30h1v1h-1zM20 30h1v1h-1zM22 30h1v1h-1zM24 30h1v1h-1zM25 30h1v1h-1zM32 30h1v1h-1zM4 31h1v1h-1zM10 31h1v1h-1zM13 31h1v1h-1zM15 31h1v1h-1zM16 31h1v1h-1zM17 31h1v1h-1zM18 31h1v1h-1zM19 31h1v1h-1zM24 31h1v1h-1zM27 31h1v1h-1zM28 31h1v1h-1zM31 31h1v1h-1zM4 32h1v1h-1zM5 32h1v1h-1zM6 32h1v1h-1zM7 32h1v1h-1zM8 32h1v1h-1zM9 32h1v1h-1zM10 32h1v1h-1zM12 32h1v1h-1zM13 32h1v1h-1zM14 32h1v1h-1zM18 32h1v1h-1zM20 32h1v1h-1zM22 32h1v1h-1zM24 32h1v1h-1zM27 32h1v1h-1zM28 32h1v1h-1zM29 32h1v1h-1zM31 32h1v1h-1z"/></svg></div>
+                <div class="welcome-words">
+                  <p class="t">Set up from a phone</p>
+                  <p class="lead">On the same Wi‑Fi, point your phone’s camera at this code and open the link it shows.</p>
+                  <p class="or-type">No camera? Type this address and enter the code:</p>
+                  <p class="addr">gingham.local:4173/setup</p>
+                  <p class="or">or 192.168.4.23:4173/setup</p>
+                  <p class="code">K7W-PX4</p>
+                  <p class="host">Your calendar links and tokens stay on this tablet.</p>
+                </div>
               </div></div>
-            </section>
-            <nav class="s-dock">
+            </div>
+            <div class="s-dock">
               <div class="s-tabs"><button type="button" tabindex="-1" aria-pressed="true">Calendar</button></div>
               <span class="s-gear"><svg><use href="#g-sliders"/></svg></span>
-            </nav>
+            </div>
           </div>
         </div>
       </div>
@@ -451,7 +483,7 @@
         <li>Adding and editing events at the wall</li>
         <li>Calendars by sign-in as well as by link, and more places for photos</li>
         <li>Lights and scenes through Home Assistant</li>
-        <li>What's for dinner</li>
+        <li>What’s for dinner</li>
       </ul>
     </section>
   </div>

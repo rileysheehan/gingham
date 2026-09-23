@@ -11,6 +11,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const net = require('node:net');
 const {groups} = require('./safe-fetch');
+const {createUpdates} = require('./updates');
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || '0.0.0.0';
 const distDir = path.join(__dirname,'dist');
@@ -20,6 +21,15 @@ const log = m => console.error(new Date().toISOString()+' '+m);
 const fixture = process.env.FRAME_FIXTURE ? require('./test/fixtures')[process.env.FRAME_FIXTURE] : null;
 if (process.env.FRAME_FIXTURE && !fixture) throw Error('Unknown fixture ' + process.env.FRAME_FIXTURE);
 const fixtureSettings = createSettings({persist: false});
+
+// Whether a newer Gingham is out (updates.js): asked of GitHub once shortly after start and then once a day, for the
+// whole server, unless Settings or GINGHAM_UPDATE_CHECK=off says not to. Design review never asks GitHub; it is given a
+// release (FRAME_FIXTURE_UPDATE=available for a newer one) and checks against that at once.
+const VERSION = require('./package.json').version;
+const FORM = ['app', 'container'].includes(process.env.GINGHAM_FORM) ? process.env.GINGHAM_FORM : 'node';
+const updates = fixture
+  ? createUpdates({current: VERSION, form: FORM, env: {}, fetchImpl: async () => { const r = require('./test/release-fixture'); return new Response(JSON.stringify(process.env.FRAME_FIXTURE_UPDATE === 'available' ? r.newer : r.same(VERSION)), {status: 200}); }})
+  : createUpdates({current: VERSION, form: FORM, file: path.join(dataDir, 'updates.json'), log});
 
 // Who is asking decides whose data they get. A device that was paired (grants.js) carries its secret in a cookie and
 // gets its own household. On the home network (FRAME_AUTH unset) an unpaired browser gets the default household, as
@@ -85,7 +95,7 @@ const readBody = (req, max = 2000) => new Promise((resolve, reject) => { let bod
 
 // Weather is for where the household lives, fetched at most every fifteen minutes each.
 const weatherCaches = new Map();
-const fixturePlace = {timezone:'America/Chicago',label:'Austin'};   // the design-review fixtures are written for this zone
+const fixturePlace = {timezone:'America/Chicago',label:'Austin',country:'US'};   // the design-review fixtures are written for this zone
 async function weather(id, place) {
   if (place.latitude === null || place.longitude === null) throw Error('This household has not said where it lives');
   let weatherCache = weatherCaches.get(id);
@@ -188,7 +198,7 @@ async function serve(req,res){
     const asking = whoIs(req);
     if (!asking.grant || !asking.household) return json(res,401,{error:'This frame is not set up yet.'});
     const lock = pinLocks.get(asking.household.id) || {fails: 0, until: 0, locks: 0};
-    if (Date.now() < lock.until) return json(res,429,{error:'Too many wrong PINs. Try again in ' + Math.ceil((lock.until - Date.now()) / 60000) + ' minutes.'});
+    if (Date.now() < lock.until) { const wait = Math.ceil((lock.until - Date.now()) / 60000); return json(res,429,{error:'Too many wrong PINs. Try again in ' + wait + (wait === 1 ? ' minute.' : ' minutes.')}); }
     let pin = ''; try { pin = String(JSON.parse(await readBody(req)).pin || ''); } catch(e) {}
     // The very first owner: asked for by the tablet's own screen, while nobody looks after the household, there is
     // no PIN to ask for and nobody who could have set one. The code still has to be read off that screen.
@@ -267,9 +277,21 @@ async function serve(req,res){
     req.on('end', () => { try { return json(res,200,settings.update(JSON.parse(body || '{}'))); } catch(e) { return json(res,400,{error:'Send settings as JSON'}); } });
     return;
   }
+  // The version this is, and whether a newer one is out. `app` is the Android app's own version when the page runs in
+  // it, which can differ from the server's when the app shows a server elsewhere. The check is the whole server's, so
+  // a frame may turn it off only where the server has one household: on a shared server it is its operator's to set.
+  if (pathname === '/api/updates') {
+    if (req.method === 'GET') return json(res,200,{...updates.status(url.searchParams.get('app')),mayChange:!updates.status().locked&&(!!fixture||households.list().length<=1)});
+    if (req.method !== 'POST') return json(res,405,{error:'Use GET or POST'});
+    if (!fromOurPages(req)) return json(res,403,{error:'Not allowed'});
+    if (!fixture && (updates.status().locked || households.list().length > 1)) return json(res,403,{error:'Whoever runs this frame’s server decides this.'});
+    let body = {}; try { body = JSON.parse(await readBody(req) || '{}'); } catch(e) { return json(res,400,{error:'Send JSON'}); }
+    if (typeof body.check !== 'boolean') return json(res,400,{error:'Send {"check": true} or {"check": false}'});
+    return json(res,200,{...updates.setEnabled(body.check),mayChange:true});
+  }
   if (fixture && pathname.startsWith('/api/')) {
     if (/\/close$/.test(pathname)) return json(res,200,{ok:true});
-    if (pathname === '/api/household') return json(res,200,{name:'Household',timezone:fixturePlace.timezone,place:fixturePlace.label});
+    if (pathname === '/api/household') return json(res,200,{name:'Household',timezone:fixturePlace.timezone,place:fixturePlace.label,country:fixturePlace.country});
     const key = {'/api/calendar':'calendar','/api/tasks':'tasks','/api/weather':'weather','/api/photos':'photos'}[pathname], body = key && fixture[key];
     if (body === 'album') { const d = defaultHousehold(); return json(res,200,{photos:photoList(d ? d.photoManifest() : {photos:[]}),configured:true}); }
     return body ? json(res,200,body) : json(res,503,{error:'Unavailable in this fixture'});
@@ -313,11 +335,12 @@ async function serve(req,res){
   // What the page needs to keep house time and name the place: nothing here is secret within the household.
   if (pathname === '/api/household') {
     const p = home.place(), local = !!(who.grant && who.grant.id === 'local');
-    // A tablet running its own server, with nobody looking after the household yet: the page walks them through it.
+    // A tablet running its own server: where a phone on the Wi-Fi finds it, for the QR codes its screen shows; and, while
+    // nobody looks after the household yet, that the page should walk them through it.
     const named = networkName && networkName.host() ? 'http://' + networkName.host() + ':' + port : '';
     const address = process.env.FRAME_URL || (interfaces().filter(a=>a.family==='IPv4'&&!a.internal).map(a=>'http://'+a.address+':'+port)[0] || '');
     const counting = upcoming(home.sources().countdowns, dayIn(p.timezone, Date.now()));
-    return json(res,200,{name:p.name,timezone:p.timezone,place:p.label,...(counting.length?{countdowns:counting}:{}),...(local && !hasOwner(home.id) ? {needsSetup:true,address,...(named?{named}:{})} : {})});
+    return json(res,200,{name:p.name,timezone:p.timezone,place:p.label,...(p.country?{country:p.country}:{}),...(counting.length?{countdowns:counting}:{}),...(local ? {address,...(named?{named}:{})} : {}),...(local && !hasOwner(home.id) ? {needsSetup:true} : {})});
   }
   if (pathname === '/api/photos') {
     if (!mayViewPhotos(req, who)) return json(res,403,{photos:[],error:'Photos are shown only on paired frames'});
@@ -376,4 +399,5 @@ function backgroundSync() {
   });
 }
 const syncAllPhotos = () => households.list().map(id=>households.get(id)).filter(Boolean).forEach(h=>h.syncPhotos());
-if (!fixture) { backgroundSync();setInterval(backgroundSync,60000); syncAllPhotos();setInterval(syncAllPhotos,15*60000); }
+if (!fixture) { backgroundSync();setInterval(backgroundSync,60000); syncAllPhotos();setInterval(syncAllPhotos,15*60000); updates.start(); }
+else updates.check();

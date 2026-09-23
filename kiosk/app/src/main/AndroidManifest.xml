@@ -6,6 +6,9 @@
     <!-- To hear "who is frame.local?" asked of the whole Wi-Fi; Android drops such packets otherwise. -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- To hand a newer Gingham to Android's own installer when someone taps Install in Settings. Android still asks
+         the person to allow it once, and to confirm every install; nothing installs silently. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- A frame on the home network is served over plain http; a hosted one is always https. -->
     <application
@@ -51,6 +54,8 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- Android's answers about an update being installed (UpdateInstaller). -->
+        <receiver android:name=".UpdateReceiver" android:exported="false" />
         <!-- Ends the main process and opens the frame again; in a process of its own so that it survives doing so. -->
         <activity
             android:name=".RestartActivity"

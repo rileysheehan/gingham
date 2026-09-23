@@ -13,5 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      # For test/update-java.test.js, which compiles the Android app's update arithmetic; without a JDK it skips.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
       - run: npm run check
       - run: npm test

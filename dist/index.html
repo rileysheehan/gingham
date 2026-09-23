@@ -28,6 +28,7 @@
       <div class="tomorrow" id="tomorrow" hidden><h2 class="eyebrow" id="tomorrow-label">Tomorrow</h2><div class="tomorrow-list" id="tomorrow-list"></div></div>
       <p class="countdown" id="countdown" hidden></p>
       <p class="sun-line" id="sun-line"></p>
+      <p class="stale-line" id="stale-line" role="status" hidden></p>
     </aside>
 
     <main class="ahead">
@@ -69,7 +70,7 @@
             <div class="setting"><p>Show</p><div class="choices" data-setting="rest"></div></div>
             <div class="setting"><p>Start after</p><div class="choices" data-setting="restAfter"></div></div>
             <div class="setting"><p>Mornings</p><div class="choices" data-setting="mornings"></div></div>
-            <p class="setting-note">Shows the week instead of photos from 4 AM until the time you pick.</p>
+            <p class="setting-note" id="mornings-note">Shows the week instead of photos from 4 AM until the time you pick.</p>
           </section>
           <section class="setting-group">
             <h2 class="eyebrow">Photos</h2>
@@ -77,9 +78,26 @@
           </section>
           <section class="setting-group">
             <h2 class="eyebrow">Appearance</h2>
+            <div class="setting"><p>Clock</p><div class="choices" data-setting="clock"></div></div>
             <div class="setting"><p>Theme</p><div class="choices" data-setting="appearance"></div></div>
             <div class="setting"><p>Brightness</p><div class="choices" data-setting="screen"></div></div>
             <p class="setting-note" id="sun-note">Both follow sunrise and sunset; brightness lifts at a touch.</p>
+          </section>
+          <section class="setting-group updates" aria-live="polite">
+            <h2 class="eyebrow">Updates</h2>
+            <div class="setting"><p>Version</p><span class="setting-value" id="update-version"></span><span class="setting-hint" id="update-state"></span></div>
+            <div class="setting"><p>Check for updates</p><div class="choices" id="update-check"></div><span class="setting-hint" id="update-locked" hidden>Set by whoever runs this frame’s server</span></div>
+            <p class="setting-note">Once a day this frame asks GitHub whether a newer Gingham exists. It sends nothing about your household.</p>
+            <div class="update-card" id="update-card" hidden>
+              <div class="update-head">
+                <div class="update-text"><h3 id="update-title"></h3><p id="update-sub"></p></div>
+                <div class="update-actions" id="update-actions"></div>
+              </div>
+              <div class="update-progress" id="update-progress" hidden><span id="update-bar"></span></div>
+              <p class="eyebrow update-label" id="update-label"></p>
+              <div class="update-lines" id="update-lines"></div>
+              <p class="update-foot" id="update-foot"></p>
+            </div>
           </section>
           <section class="setting-group status" aria-live="polite">
             <h2 class="eyebrow">Status</h2>
@@ -99,7 +117,7 @@
       <nav class="dock" aria-label="Views">
         <div class="tabs" id="tabs"><button id="tab-calendar" aria-pressed="true">Calendar</button></div>
         <div class="dock-end">
-          <button id="settings-button" class="icon-button" aria-label="Settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6"/><circle cx="15" cy="17" r="2.6"/></svg></button>
+          <button id="settings-button" class="icon-button" aria-label="Settings" aria-pressed="false"><span class="update-dot" id="update-dot" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6"/><circle cx="15" cy="17" r="2.6"/></svg></button>
         </div>
       </nav>
 
@@ -133,7 +151,9 @@
       <p id="manage-note"></p>
       <p class="pin-dots" id="pin-dots" aria-hidden="true"></p>
       <div class="keypad" id="keypad"></div>
+      <div class="qr-plate" id="manage-qr" hidden></div>
       <p class="pair-code" id="manage-code" hidden></p>
+      <p id="manage-typed" hidden></p>
       <button id="close-manage" class="wide quiet">Close</button>
     </div>
   </div>
@@ -148,6 +168,7 @@
     </div>
   </div>
 
+  <script src="/qr.js"></script>
   <script src="/app.js"></script>
 <div class="nightfall" id="nightfall" aria-hidden="true"></div>
 <div class="cheer" id="cheer" aria-hidden="true"></div>

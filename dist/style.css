@@ -49,16 +49,16 @@ svg{display:block}
 .today>.sky-fx{position:absolute;top:0;right:0;bottom:0;left:0;z-index:0;overflow:hidden;pointer-events:none}
 .sky-fx div{position:absolute}
 .sky-fx.day{--cloud:rgba(255,255,255,.62)}
-.sky-fx.night{--cloud:rgba(196,206,236,.16)}
+.sky-fx.night{--cloud:rgba(196,206,236,.12)}
 .sky-fx .sun{top:-16rem;right:-14rem;width:44rem;height:44rem;background:radial-gradient(closest-side,rgba(255,246,220,.75),rgba(255,246,220,0))}
-.sky-fx .star{width:.22rem;height:.22rem;border-radius:50%;background:#fff;opacity:.3}
+.sky-fx .star{width:.22rem;height:.22rem;border-radius:50%;background:#fff;opacity:.2}
 .sky-fx .cloud{left:0;height:15rem;background-image:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;transform:translate3d(-100%,0,0)}
 .sky-fx .fog{left:-20%;width:140%;height:14rem;background:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));opacity:.7}
 .sky-fx .rain{top:0;left:0;right:0;bottom:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg stroke='%23fff' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M12 4l-2 16M52 34l-2 16M92 14l-2 16M32 74l-2 16M72 64l-2 16M108 94l-2 16M20 100l-2 16M84 102l-2 16M60 2l-2 14'/%3E%3C/g%3E%3C/svg%3E")}
 .sky-fx .rain.near{background-size:12rem 12rem;opacity:.2}
 .sky-fx .rain.far{background-size:8rem 8rem;background-position:3rem 5rem;opacity:.12}
-.sky-fx.night .rain.near{opacity:.1}
-.sky-fx.night .rain.far{opacity:.06}
+.sky-fx.night .rain.near{opacity:.07}
+.sky-fx.night .rain.far{opacity:.045}
 .sky-fx .snow{left:0;right:0;bottom:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='%23fff'%3E%3Ccircle cx='14' cy='10' r='2'/%3E%3Ccircle cx='70' cy='30' r='1.6'/%3E%3Ccircle cx='100' cy='72' r='2.2'/%3E%3Ccircle cx='40' cy='60' r='1.4'/%3E%3Ccircle cx='24' cy='100' r='1.8'/%3E%3Ccircle cx='86' cy='110' r='1.5'/%3E%3C/svg%3E")}
 .sky-fx .snow.near{top:-12rem;background-size:12rem 12rem;opacity:.5}
 .sky-fx .snow.far{top:-8rem;background-size:8rem 8rem;opacity:.3}
@@ -80,6 +80,9 @@ svg{display:block}
 .countdown{flex:none;margin-top:auto;padding-top:1.25rem;font:600 1.75rem/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .countdown:not([hidden])+.sun-line{margin-top:0;padding-top:.7rem}
 .sun-line{flex:none;font:500 1.4rem/1 var(--text);font-variant-numeric:tabular-nums;opacity:.78;margin-top:auto;padding-top:1.25rem}
+/* An old calendar or list, said once in the panel every view shares: as quiet as the sun line, with a broken rule over it
+   so it reads as a caveat on everything above rather than as one more line of news. */
+.stale-line{flex:none;margin-top:1rem;padding-top:.8rem;border-top:.125rem dashed rgba(127,127,127,.5);font:500 1.4rem/1.25 var(--text);font-variant-numeric:tabular-nums}
 /* Today takes the room it needs and tomorrow gets the rest (flex-basis 0), so a busy today squeezes tomorrow, never
    the other way round. app.js fits whole items into each and ends with "and N more". */
 .today-label{flex:none;margin-top:2.25rem;padding-top:1.5rem;border-top:.125rem solid rgba(127,127,127,.35);margin-bottom:1.1rem}
@@ -98,11 +101,30 @@ svg{display:block}
 /* Today is read at a distance: one line of time and place, at most two of title. The full text is a tap away. */
 .today .item-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today .item:not(.allday) .item-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-/* What is happening now reads first. */
+/* What is happening now reads first, and the time of it, and of the next thing, is the time read from across the room:
+   30 px, heavier and at full ink, where every other row's time stays small. */
 .item.happening .item-meta{opacity:1;font-weight:600}
 .item.happening:before{width:.45rem}
-.item.busy .item-title{font-weight:500;color:var(--rail)}
+.today .item.happening .item-meta,.today .item.next .item-meta{font-size:1.875rem;line-height:1.25;font-weight:650;opacity:1}
+/* Busy time: a title in ink at a lighter weight, and a broken rail, the way calendars draw time that is only blocked. */
+.item.busy .item-title{font-weight:400}
 .today .check{width:2.5rem;height:2.5rem;margin-top:.1rem}
+/* Today past the now and next rows: one line each, a time column and then the title, as Later is, so the panel holds
+   about twice as many rows and an overdue chore reaches the screen. The time column is 7.5rem, wide enough for
+   "11:30 PM" and "Overdue"; a row with no time keeps the column empty so every title starts at the same place. */
+.today .item.compact{align-items:center;margin-bottom:.95rem}
+.today .item.compact .item-body{display:flex;align-items:baseline;min-width:0}
+.today .item.compact .item-meta{flex:0 0 7.5rem;font-size:1.5rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.today .item.compact .item-title{flex:0 1 auto;min-width:0;display:block;font-size:1.9rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.today .item.compact .item-body>.avatar{align-self:center;margin-left:.6rem;width:1.8rem;height:1.8rem;font-size:1rem}
+.today .item.compact .check{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
+.today .item.event.compact{padding-left:2.7rem}
+.today .item.event.compact:before{left:.8rem;top:.25rem;bottom:.25rem}
+/* On the sky, secondary text is the ink at 85%, never fainter: the sky itself is only held to 7:1 against the ink (see
+   paintSky), and at 70% an eyebrow over dawn fell to 4.3:1. Hierarchy here comes from size and weight first. */
+.today .eyebrow,.today-date,.ampm,.now-detail,.sun-line,.today-empty,.today .more,.today .item-meta{opacity:.85}
+/* On the sky the ring is Today's only "tap this", so it is drawn in full ink and heavier; whose it is is the monogram. */
+.today .check{opacity:1;border-width:.22rem;border-color:currentColor}
 
 /* ---------- Items: events carry a calendar-colored rail, chores a tappable circle ---------- */
 .item{display:flex;width:100%;align-items:flex-start;position:relative;overflow-wrap:break-word;word-wrap:break-word}
@@ -111,7 +133,8 @@ svg{display:block}
 /* All-day and multi-day events frame the day rather than fill it: one line, a lighter weight, and on days after the
    first a quieter tone that reads as "still going". */
 .item.allday .item-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
-.item.allday.continues{opacity:.62}
+/* Dimmed only in the week, where a trip repeats on each of its days; in Today it is still very much on. */
+.day .item.allday.continues{opacity:.62}
 /* The week's narrow columns give all-day titles two lines instead of one, so "Sam in …" keeps its meaning. */
 .day .item.allday .item-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .item-note{font-weight:400;opacity:.75}
@@ -125,6 +148,8 @@ button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:under
 .item-meta{display:block;font-size:1.3rem;line-height:1.3;opacity:.75}
 .item.event{padding-left:1rem}
 .item.event:before{content:"";position:absolute;left:0;top:.2rem;bottom:.2rem;width:.3rem;border-radius:.3rem;background:var(--rail)}
+.item.event.busy:before{width:0;border-radius:0;background:none;border-left:.3rem dashed var(--rail)}
+.item.event.busy.happening:before{border-left-width:.45rem}
 .check{flex:none;width:1.9rem;height:1.9rem;margin:.05rem .7rem 0 0;border:.16rem solid var(--tick,currentColor);border-radius:50%;opacity:.6;position:relative}
 .item.done .check{opacity:1;background:var(--tick,currentColor)}
 .item.done .check:after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--card);border-width:0 .2rem .2rem 0;-webkit-transform:rotate(42deg);transform:rotate(42deg)}
@@ -177,6 +202,18 @@ body[data-rest] .photo-card{border-radius:0}
 .pair-address+.pair-code,.pair-or+.pair-code{margin-top:1.4rem}
 .pair-or{font-size:1.5rem;color:var(--ink-2);margin-top:.4rem;font-variant-numeric:tabular-nums}
 .loading-title{font:600 2.1rem/1.3 var(--text);letter-spacing:-.01em;color:var(--ink);margin-bottom:.3rem}
+/* Setup from a phone: the QR code is the way in, always dark on a white plate (a phone's camera reads that in any theme),
+   with the typed address beside it as the quieter way. */
+.qr-plate{flex:none;background:#fff;border-radius:1.2rem;padding:.9rem;box-shadow:0 .1rem .3rem var(--shade)}
+.qr{display:block;width:100%;height:100%}
+.qr path{fill:#0b1a2e}
+.welcome.with-qr{display:flex;align-items:center}
+.welcome.with-qr .qr-plate{width:27rem;height:27rem;margin-right:4rem}
+.welcome-words{min-width:0}
+.welcome-lead{font-size:1.9rem;line-height:1.3;color:var(--ink);max-width:36rem;margin-top:.4rem}
+.welcome-or{font-size:1.5rem;line-height:1.35;color:var(--ink-2);max-width:36rem;margin-top:2.4rem}
+.with-qr .pair-address{font-size:2.1rem;margin-top:.5rem}
+.with-qr .pair-code{font-size:4.5rem;margin:1.2rem 0 1.5rem}
 .day{flex:1 1 0;min-width:0;display:flex;flex-direction:column;padding:1.4rem 1.1rem 1rem;border-left:.0625rem solid var(--line)}
 .day:first-child{border-left:0}
 .day.weekend{background-color:var(--tint)}
@@ -199,10 +236,11 @@ button.item:active{opacity:.6}
 .later-row{display:flex;align-items:center;width:100%;height:2.4rem;font-size:1.45rem}
 .later-row .when{flex:0 0 9.5rem;color:var(--ink-2);white-space:nowrap}
 .later-row .time{flex:0 0 8rem;color:var(--ink-2);white-space:nowrap}
-.later-row .what{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.later-row .what{flex:1;min-width:0;display:flex;align-items:center;font-weight:600;white-space:nowrap}
+.later-row .what-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.later-row .avatar{margin-left:.6rem;width:1.7rem;height:1.7rem;font-size:.95rem}
 .later-row i{flex:none;width:.8rem;height:.8rem;border-radius:50%;margin-right:.8rem}
 .later-row i.ring{background:none;border:.14rem solid var(--ink-2)}
-.later-row .owner{color:var(--ink-2);font-weight:400}
 .later-note{font-size:1.35rem;line-height:2.4rem;color:var(--ink-2)}
 
 /* ---------- A list (one Todoist project) ---------- */
@@ -235,7 +273,12 @@ button.item:active{opacity:.6}
 /* ---------- Dock ---------- */
 .notice{flex:none;margin-top:1rem;padding:.7rem 1.1rem;border-radius:.8rem;font-size:1.3rem;background:var(--press);color:var(--ink)}
 .dock{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem;height:4rem}
-.tabs{display:flex;background:var(--press);border-radius:2rem;padding:.3rem}
+/* The tabs give way before Settings does: the row shrinks and clips, and Settings stays pinned at the far right. */
+.tabs{display:flex;flex:0 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;background:var(--press);border-radius:2rem;padding:.3rem}
+.tabs::-webkit-scrollbar{display:none}
+/* Past what even the second tier holds (about a dozen lists), the row scrolls sideways and fades at its end until it has. */
+.tabs.clipped{-webkit-mask-image:linear-gradient(to right,#000 90%,transparent);mask-image:linear-gradient(to right,#000 90%,transparent)}
+.dock-end{flex:none;margin-left:1.5rem}
 .tabs button{display:flex;align-items:center;height:3.4rem;padding:0 1.4rem;border-radius:1.7rem;font-size:1.4rem;font-weight:600;color:var(--ink-2);white-space:nowrap}
 /* A list's mark: a glyph for a household list, a monogram in the person's color for a person's list. */
 .glyph{flex:none;width:1.75rem;height:1.75rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -245,6 +288,10 @@ button.item:active{opacity:.6}
 .today .item-title .avatar,.list-body .item-title .avatar{width:2rem;height:2rem;font-size:1.1rem}
 .tabs.compact .marked:not([aria-pressed=true]) .label{display:none}
 .tabs.compact .marked:not([aria-pressed=true]) b{margin-left:0}
+/* Second tier, for ten lists and more: every list but the open one is its mark and count, on a tighter pill. */
+.tabs.tight button{padding:0 .75rem}
+.tabs.tight .list-tab:not([aria-pressed=true]) .label{display:none}
+.tabs.tight .list-tab:not([aria-pressed=true]) b{margin-left:0}
 .tabs button b{font:600 1.45rem/1 var(--text);font-variant-numeric:tabular-nums;margin-left:.55rem;color:var(--ink)}
 .tabs button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
 .dock-end{display:flex;align-items:center}
@@ -267,6 +314,29 @@ button.item:active{opacity:.6}
 .setting-note{font-size:1.3rem;color:var(--ink-2);margin:.2rem 0 0 24rem}
 .setting-hint{margin-left:1.5rem;font-size:1.3rem;color:var(--ink-2)}
 /* Status is four short facts, so it sits two by two and Settings fits on one screen. */
+/* Updates: the version, the check's switch, and a notice only when there is something newer. Quiet by design: it lives
+   here and nowhere else, and the dot on the Settings button is the most it ever says outside Settings. */
+.setting-value{font-size:1.6rem;font-variant-numeric:tabular-nums}
+.update-card{margin:1rem 0 .6rem;padding:1.4rem 1.6rem;border-radius:1.2rem;background:var(--surface)}
+.update-head{display:flex;align-items:flex-start}
+.update-text{flex:1;min-width:0;padding-right:1.5rem}
+.update-text h3{font-size:1.9rem;font-weight:600;line-height:1.25}
+.update-text p{margin-top:.25rem;font-size:1.45rem;color:var(--ink-2)}
+.update-actions{flex:none;display:flex}
+.update-actions button{height:3.6rem;padding:0 1.8rem;border-radius:.9rem;font-size:1.45rem;font-weight:600;text-align:center;white-space:nowrap;margin-left:.75rem}
+.update-actions .go{background:var(--accent);color:var(--on-accent)}
+.update-actions .quiet{background:var(--press)}
+.update-progress{height:.6rem;margin-top:1rem;border-radius:.3rem;background:var(--press);overflow:hidden}
+.update-progress span{display:block;height:100%;width:0;background:var(--accent);border-radius:.3rem}
+.update-label{margin-top:1.1rem}
+.update-label:empty{display:none}
+.update-lines p{display:flex;font-size:1.45rem;line-height:1.35;margin-top:.45rem}
+.update-mark{flex:0 0 2rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.update-step .update-mark{font-weight:600;color:var(--ink)}
+.update-foot{margin-top:.8rem;font-size:1.3rem;color:var(--ink-2)}
+.update-foot:empty{display:none}
+#settings-button{position:relative}
+.update-dot{position:absolute;top:.45rem;right:.45rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--accent);box-shadow:0 0 0 .2rem var(--surface)}
 .status-rows{margin:0;display:flex;flex-wrap:wrap}
 .status-rows div{flex:0 0 50%;display:flex;align-items:baseline;padding:.3rem 1.5rem .3rem 0}
 .status-rows dt{flex:0 0 10rem;font-size:1.45rem;font-weight:500}
@@ -318,6 +388,8 @@ button.item:active{opacity:.6}
 .key:active{background:var(--line)}
 .key.go{background:var(--accent);color:var(--on-accent);font-size:1.7rem;font-weight:600}
 .dialog.manage .pair-code{font-size:6rem;margin:2rem 0 .5rem;color:var(--ink)}
+.dialog.manage .qr-plate{width:20rem;height:20rem;margin:1.4rem auto .4rem}
+.dialog.manage .qr-plate:not([hidden])+.pair-code{font-size:3rem;margin:1rem 0 .3rem}
 .dialog .wide{margin-top:2.25rem;height:4rem;font-size:1.5rem}
 
 /* Photos is a card like the week and the lists: the photo whole, over a blurred copy of itself. */

@@ -1,12 +1,12 @@
 {
   "name": "gingham",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "license": "AGPL-3.0-only",
   "description": "A family wall display for any Android tablet or photo frame: calendar, lists, weather and photos, self-hosted.",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check integrations.js && node --check dist/app.js && node --check api-client.js && node --check album.js && node --check households.js && node --check grants.js && node --check admin.js && node --check zone.js && node --check ics.js && node --check safe-fetch.js && node --check vault.js && node --check setup.js && node --check lists.js && node --check mdns.js && node --check folder.js && node --check countdowns.js && node --check microsoft.js && node --check caldav.js && node --check homeassistant.js && node --check googletasks.js && node --check uploads.js && node --check admin-api.js && node --check dist/setup-page.js && node --check dist/lists-page.js && node --check dist/admin-page.js && node --check dist/sw.js && node --check dist/photos-page.js",
+    "check": "node --check server.js && node --check integrations.js && node --check dist/app.js && node --check api-client.js && node --check album.js && node --check households.js && node --check grants.js && node --check admin.js && node --check zone.js && node --check ics.js && node --check safe-fetch.js && node --check vault.js && node --check setup.js && node --check lists.js && node --check mdns.js && node --check folder.js && node --check countdowns.js && node --check microsoft.js && node --check caldav.js && node --check homeassistant.js && node --check googletasks.js && node --check uploads.js && node --check admin-api.js && node --check dist/setup-page.js && node --check dist/lists-page.js && node --check dist/admin-page.js && node --check dist/sw.js && node --check dist/photos-page.js && node --check dist/qr.js && node --check updates.js",
     "test": "node --test test/*.test.js"
   }
 }

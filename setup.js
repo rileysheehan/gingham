@@ -67,7 +67,9 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
       if (!validZone(body.timezone)) throw fail(400, 'Pick a place from the list.');
       const latitude = Number(body.latitude), longitude = Number(body.longitude);
       if (!(Math.abs(latitude) <= 90) || !(Math.abs(longitude) <= 180)) throw fail(400, 'Pick a place from the list.');
-      update(home, s => { s.name = name; s.timezone = body.timezone; s.place = {label: text(body.place, 40) || name, latitude, longitude}; });
+      // The country, when the place search gave one, decides the clock's convention (12- or 24-hour) on the frame.
+      const country = /^[A-Z]{2}$/.test(String(body.country || '')) ? body.country : undefined;
+      update(home, s => { s.name = name; s.timezone = body.timezone; s.place = {label: text(body.place, 40) || name, latitude, longitude, ...(country ? {country} : {})}; });
     },
     async 'household-name'(home, body) {
       const name = text(body.name, 40); if (!name) throw fail(400, 'Give the household a name.');
@@ -259,7 +261,7 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
     const q = text(query, 60); if (q.length < 2) return [];
     const response = await fetchImpl('https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name=' + encodeURIComponent(q), {signal: AbortSignal.timeout(10000)});
     if (!response.ok) throw fail(502, 'Place search is not answering.');
-    return ((await response.json()).results || []).filter(r => validZone(r.timezone)).map(r => ({place: r.name, detail: [r.admin1, r.country].filter(Boolean).join(', '), latitude: r.latitude, longitude: r.longitude, timezone: r.timezone}));
+    return ((await response.json()).results || []).filter(r => validZone(r.timezone)).map(r => ({place: r.name, detail: [r.admin1, r.country].filter(Boolean).join(', '), latitude: r.latitude, longitude: r.longitude, timezone: r.timezone, country: /^[A-Z]{2}$/.test(String(r.country_code || '').toUpperCase()) ? String(r.country_code).toUpperCase() : ''}));
   }
 
   // Which household this request may manage: an owner's own, or the one an admin names.

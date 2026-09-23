@@ -60,7 +60,8 @@ function createHouseholds({root = path.join(__dirname, 'data/households'), log =
       place() {
         const s = sources(), p = s.place || {};
         return {name: String(s.name || id).slice(0, 40), timezone: validZone(s.timezone) ? s.timezone : 'UTC', label: String(p.label || '').slice(0, 40),
-          latitude: Number.isFinite(p.latitude) ? p.latitude : null, longitude: Number.isFinite(p.longitude) ? p.longitude : null};
+          latitude: Number.isFinite(p.latitude) ? p.latitude : null, longitude: Number.isFinite(p.longitude) ? p.longitude : null,
+          country: /^[A-Z]{2}$/.test(String(p.country || '')) ? p.country : ''};
       },
       calendar: service.calendar, tasks: service.tasks, closeTask: service.closeTask, addTask: service.addTask, lists: local,
       settings: createSettings({file: path.join(dir, 'settings.json')}),

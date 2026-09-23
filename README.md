@@ -22,11 +22,20 @@ copy holds that copy's secrets.
 - **It behaves itself.** Brightness follows sunrise and sunset. After a while it drifts to photos and comes back. After a
   power cut, or with the internet down, it shows the last good screen and says from when.
 
+## What it talks to
+
+Only what you connect, and three things more. The calendars and list services a household adds; **Open-Meteo**, for
+the weather and to find the town you type on the setup page; the **iCloud** shared album, if you use one; and, once a
+day, **GitHub**, to ask whether a newer Gingham exists. That last one is an unauthenticated request for the latest
+release of this repository and sends nothing about your household. Turn it off in the frame's Settings, under Updates
+("Check for updates"), or for a whole server with `GINGHAM_UPDATE_CHECK=off`. There is no Gingham account, no
+analytics and nothing else.
+
 ## Two ways to run it
 
 1. **The tablet is the server.** The Android app carries the server inside it. Nothing else in the house has to be
-   switched on, and calendar links and tokens stay on the tablet. On first start it shows an address and a code;
-   enter the code on a phone on the same Wi-Fi and you are the household's owner.
+   switched on, and calendar links and tokens stay on the tablet. On first start it shows a QR code: point a phone
+   on the same Wi-Fi at it and you are the household's owner. The address and code are there to type as well.
 2. **One server for several households**, run with Docker by someone who likes this sort of thing, for their parents,
    their sister, a friend. Each household is a folder of its own and pairs its own screens.
 
@@ -57,20 +66,34 @@ on a 15.6-inch 1920×1080 photo frame with 1 GB of memory. Signed builds are in 
 and `gingham-either.apk` works on any. To build it yourself, `kiosk/` builds with Gradle (see its build file for the
 Node runtime it expects).
 
+### Updates
+
+Gingham is not in an app store, so it tells you itself when there is a newer one: Settings shows the version it is
+running and, when a newer release is out, what is new in it. In the Android app, **Install** downloads the release's
+file for that tablet, checks it against the release's `SHA256SUMS`, and hands it to Android, which asks you to confirm;
+it updates in place and keeps everything. A server says how it is updated instead (pull the new image, or download the
+release). Nothing appears on the wall itself, and nothing ever updates on its own.
+
+- **Never forced.** An old frame keeps working. The notice waits in Settings and never grows louder.
+- **Forward, never backward.** A new version reads everything an older one wrote and moves it forward if it must;
+  going back a version is not supported. Everything from 0.1.0 carries over to 0.1.1 as it is.
+- **Release notes say what a family gets**, in a few plain sentences, not just a version number
+  ([RELEASING.md](RELEASING.md)).
+
 ## How it is built
 
 Plain Node with no dependencies and no build step; the pages are plain HTML, CSS and JavaScript, written for the old
 WebView cheap frames ship with. `npm test` runs the tests, `npm run check` the syntax check.
 
 - `server.js` serves the frame and the setup pages; `households.js`, `grants.js` and `vault.js` keep households,
-  who may do what, and sealed secrets.
+  who may do what, and sealed secrets; `updates.js` is the daily update check.
 - `integrations.js` gathers calendars and lists; `ics.js`, `caldav.js`, `homeassistant.js`, `googletasks.js` and
   `microsoft.js` speak to each source. Why each signs in the way it does: [docs/SIGN-IN.md](docs/SIGN-IN.md).
 - `dist/` is the frame and the phone pages; `site/` is the product page; `kiosk/` the Android app.
 
 ## Status
 
-Early, and in daily use on one family's kitchen wall. The first release is 0.1.0. What is coming is in
+Early, and in daily use on one family's kitchen wall. The current release is 0.1.1. What is coming is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licence and security

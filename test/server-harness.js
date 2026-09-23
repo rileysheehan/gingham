@@ -26,7 +26,10 @@ const SERVER = path.join(__dirname, '..', 'server.js');
 // must not run different tests from everyone else, so each is dropped and only what a test asks for is put back.
 const PRODUCT_ENV = ['FLY_APP_NAME', 'FRAME_ALLOW_PRIVATE_FEEDS', 'FRAME_AUTH', 'FRAME_DATA', 'FRAME_FIXTURE', 'FRAME_HOUSEHOLD',
   'FRAME_LOCAL_FRAME', 'FRAME_MASTER_KEY', 'FRAME_MDNS', 'FRAME_TRUST_PROXY', 'FRAME_URL', 'GINGHAM_GOOGLE_CLIENT_ID',
-  'GINGHAM_GOOGLE_CLIENT_SECRET', 'GINGHAM_MS_CLIENT_ID', 'HOST', 'PORT'];
+  'GINGHAM_GOOGLE_CLIENT_SECRET', 'GINGHAM_MS_CLIENT_ID', 'HOST', 'PORT', 'GINGHAM_FORM', 'GINGHAM_UPDATE_CHECK', 'GINGHAM_UPDATE_URL',
+  'FRAME_FIXTURE_UPDATE'];
+// A test server never asks GitHub whether a newer Gingham is out, unless the test says where to ask instead.
+const QUIET = {GINGHAM_UPDATE_URL: 'http://127.0.0.1:9/nothing-listens-here'};
 
 const makeData = (prefix = 'frame-test-') => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
@@ -80,7 +83,7 @@ async function startServer({data = makeData(), env = {}, attempts = 5, timeoutMs
     const port = await freePort();
     // Where it listens and where it keeps its data are the harness's to say, so a test cannot take back the port and
     // leave the handshake below waiting for a line that will never come.
-    const child = spawn(process.execPath, [SERVER], {env: {...clean, ...env, FRAME_DATA: data, HOST: '127.0.0.1', PORT: String(port)}, stdio: ['ignore', 'pipe', 'pipe']});
+    const child = spawn(process.execPath, [SERVER], {env: {...clean, ...QUIET, ...env, FRAME_DATA: data, HOST: '127.0.0.1', PORT: String(port)}, stdio: ['ignore', 'pipe', 'pipe']});
     const output = {text: ''};
     for (const stream of [child.stdout, child.stderr]) { stream.setEncoding('utf8'); stream.on('data', chunk => { output.text += chunk; }); }
     const exited = once(child, 'exit');

@@ -21,20 +21,17 @@
     }
   }
 
-  // After dark the hero screen shows the product's evening, so its clock reads later and soccer runs under the lights.
-  // The rest of the Thursday stays; only what a later hour would change changes.
+  // After dark the hero screen shows the product's evening, so its clock reads later. The rest of the Thursday stays;
+  // soccer runs until 7:30 either way, so only the clock and the sun line change.
   var clockEl = screen && screen.querySelector('.s-clock');
-  var soccer = screen && screen.querySelector('.s-item.happening .s-meta');
   var sunline = screen && screen.querySelector('.s-sunline');
-  if (clockEl && soccer && sunline && window.matchMedia) {
+  if (clockEl && sunline && window.matchMedia) {
     var dark = window.matchMedia('(prefers-color-scheme: dark)');
-    var day = { clock: clockEl.firstChild.nodeValue, soccer: soccer.textContent, sun: sunline.textContent };
+    var day = { clock: clockEl.firstChild.nodeValue, sun: sunline.textContent };
     function hour() {
-      var night = dark.matches && document.documentElement.getAttribute('data-theme') !== 'light' || document.documentElement.getAttribute('data-theme') === 'dark';
-      clockEl.firstChild.nodeValue = night ? '7:16' : day.clock;
-      soccer.textContent = night ? 'Now, until 8 PM · Northside fields' : day.soccer;
+      clockEl.firstChild.nodeValue = dark.matches ? '7:16' : day.clock;
       // After sunset the product's sun line looks ahead to the morning.
-      sunline.textContent = night ? 'Sunrise tomorrow 7:26 AM' : day.sun;
+      sunline.textContent = dark.matches ? 'Sunrise tomorrow 7:26 AM' : day.sun;
     }
     hour();
     if (dark.addEventListener) dark.addEventListener('change', hour);

@@ -13,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The number a frame shows in Settings, and compares with the latest release, is package.json's; a tag that
+      # disagrees would ship a frame that offers itself its own update, forever.
+      - name: The tag matches package.json
+        run: test "v$(jq -r .version package.json)" = "${{ github.ref_name }}" || { echo "Tag ${{ github.ref_name }} but package.json says $(jq -r .version package.json)"; exit 1; }
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -53,17 +57,26 @@ jobs:
           cp $OUT/app-universal-release.apk apks/gingham-either.apk
           for APK in apks/*.apk; do "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify "$APK"; done
           (cd apks && sha256sum *.apk > SHA256SUMS)
+      # The notes are what a frame shows under "What's new" (the first few bullets), so they are written for a family:
+      # releases/<tag>.md, see RELEASING.md. Without one, GitHub's list of changes stands in.
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" apks/* --verify-tag --title "${{ github.ref_name }}" --generate-notes \
-            --notes "Most frames and cheap tablets want gingham-32bit.apk; gingham-either.apk works on any. The server: docker pull ghcr.io/rileysheehan/gingham:${{ github.ref_name }}"
+          WHICH="**Which file:** most frames and cheap tablets want gingham-32bit.apk; gingham-either.apk works on any. A frame running 0.1.1 or later offers the update itself, in Settings. **The server:** docker pull ghcr.io/rileysheehan/gingham:${{ github.ref_name }}"
+          if [ -f "releases/${{ github.ref_name }}.md" ]; then
+            { cat "releases/${{ github.ref_name }}.md"; printf '\n\n%s\n' "$WHICH"; } > "$RUNNER_TEMP/notes.md"
+            gh release create "${{ github.ref_name }}" apks/* --verify-tag --title "Gingham ${{ github.ref_name }}" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "${{ github.ref_name }}" apks/* --verify-tag --title "Gingham ${{ github.ref_name }}" --generate-notes --notes "$WHICH"
+          fi
 
   image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: The tag matches package.json
+        run: test "v$(jq -r .version package.json)" = "${{ github.ref_name }}" || { echo "Tag ${{ github.ref_name }} but package.json says $(jq -r .version package.json)"; exit 1; }
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3

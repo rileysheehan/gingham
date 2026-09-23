@@ -23,6 +23,8 @@
   --ink-2:#5b6b7d;
   --line:#dfe4ea;
   --butter:#f2be3c;
+  /* Keyboard focus: ink on the white page (butter on white is 1.7:1), butter on the dark one. */
+  --focus:#10263f;
   --button:#10263f;
   --button-ink:#ffffff;
   --bezel:#141a24;
@@ -34,33 +36,25 @@
   /* The wall screen's own palette, from the product's stylesheet: its light theme, by day. */
   --s-surface:#f3f6f9;--s-card:#ffffff;--s-ink:#10263f;--s-ink-2:#51647a;--s-line:#d6dfe7;--s-accent:#1b66c9;
   --s-press:#e6ecf2;--s-selected:#ffffff;--s-shade:rgba(16,38,63,.14);--s-tint:rgba(16,38,63,.028);
-  --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;--sun:#ffc94d;--rain:#4a97e8;--moon:#f1e6c3;
+  /* The sky is the product's own at 5:42 PM under partly cloudy: its day-to-dusk blend, drained 30% toward grey by the
+     cloud cover and each end held to 8:1 against the ink (app.js paintSky), read off the real app with the mock's household. */
+  --sky-top:#a4bed9;--sky-bottom:#cfd0dd;--sky-ink:#0b2545;--sun:#ffc94d;--rain:#4a97e8;
   --cloud:rgba(255,255,255,.62);--sunglow:1;--stars:0;--photo-dim:1;--fill-dim:.55;--day-icon:block;--night-icon:none;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
+  :root{
     --ground:#070a10;--band:#0e141e;--ink:#eef1f6;--ink-2:#a3adbd;--line:#222c40;
-    --button:#f2be3c;--button-ink:#10263f;--bezel:#000000;--bezel-rim:rgba(255,255,255,.14);--edge:rgba(255,255,255,.16);
+    --button:#f2be3c;--focus:#f2be3c;--button-ink:#10263f;--bezel:#000000;--bezel-rim:rgba(255,255,255,.14);--edge:rgba(255,255,255,.16);
     --crop-shadow:0 0 0 1px var(--edge),0 0 90px -10px rgba(120,140,220,.16),0 24px 60px -20px rgba(0,0,0,.7);
     --glow:1;
     --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
     --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);
-    --sky-top:#26306a;--sky-bottom:#b5566b;--sky-ink:#fdf6ee;
-    --cloud:rgba(196,206,236,.16);--sunglow:0;--stars:1;--photo-dim:.68;--fill-dim:.3;--day-icon:none;--night-icon:block;
+    /* 7:16 PM: dusk into night, greyed by the cloud and held to 8:1 against the cream ink, as the product paints it. */
+    --sky-top:#202545;--sky-bottom:#66404f;--sky-ink:#fdf6ee;
+    --cloud:rgba(196,206,236,.12);--sunglow:0;--stars:1;--photo-dim:.68;--fill-dim:.3;--day-icon:none;--night-icon:block;
     color-scheme:dark;
   }
-}
-:root[data-theme="dark"]{
-  --ground:#070a10;--band:#0e141e;--ink:#eef1f6;--ink-2:#a3adbd;--line:#222c40;
-  --button:#f2be3c;--button-ink:#10263f;--bezel:#000000;--bezel-rim:rgba(255,255,255,.14);--edge:rgba(255,255,255,.16);
-  --crop-shadow:0 0 0 1px var(--edge),0 0 90px -10px rgba(120,140,220,.16),0 24px 60px -20px rgba(0,0,0,.7);
-  --glow:1;
-  --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
-  --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);
-  --sky-top:#26306a;--sky-bottom:#b5566b;--sky-ink:#fdf6ee;
-  --cloud:rgba(196,206,236,.16);--sunglow:0;--stars:1;--photo-dim:.68;--fill-dim:.3;--day-icon:none;--night-icon:block;
-  color-scheme:dark;
 }
 
 *{box-sizing:border-box}
@@ -72,7 +66,7 @@ ul,ol{padding:0;list-style:none}
 img,svg{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
-:focus-visible{outline:3px solid var(--butter);outline-offset:3px;border-radius:4px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
 .skip{position:absolute;left:16px;top:-60px;z-index:100;padding:10px 14px;background:var(--ground);border:1px solid var(--line);border-radius:8px}
 .skip:focus{top:16px}
 
@@ -83,8 +77,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .h1{font:600 clamp(2.9rem,8.2vw,5.25rem)/1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.04em;text-wrap:balance}
 .h2{font:600 clamp(1.7rem,3.2vw,2.35rem)/1.1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.03em;text-wrap:balance}
 .lede{font-size:clamp(1.05rem,1.4vw,1.25rem);line-height:1.5;color:var(--ink-2);text-wrap:pretty}
-.lede a,.cols a,.spec a{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.18em;text-decoration-color:var(--line)}
-.lede a:hover,.cols a:hover,.spec a:hover{text-decoration-color:var(--ink)}
+.lede a,.cols a,.spec a,.note a{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.18em;text-decoration-color:var(--line)}
+.lede a:hover,.cols a:hover,.spec a:hover,.note a:hover{text-decoration-color:var(--ink)}
 .quiet{color:var(--ink-2)}
 
 /* ---------- Header ---------- */
@@ -102,13 +96,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .btn.small{height:36px;padding:0 14px;font-size:.92rem}
 
 /* ---------- Hero ---------- */
-.hero{padding-block:clamp(40px,7vw,84px) 0;text-align:center}
+.hero{padding-block:clamp(40px,7vw,84px) 0;text-align:center;overflow-x:clip}
 .hero .wrap{display:flex;flex-direction:column;align-items:center}
 .hero .name{font-weight:500;color:var(--ink-2)}
 .hero .h1{margin-top:14px;max-width:22ch}
 .hero .lede{margin-top:22px;max-width:46ch}
 .hero .ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:30px}
-.hero .note{margin-top:14px;font-size:.9rem;color:var(--ink-2)}
+.hero .note{margin-top:14px;max-width:46ch;font-size:.9rem;color:var(--ink-2);text-wrap:pretty}
 
 /* The screen, in a slim bezel. By day it sits on the page; at night it lights the wall behind it. */
 .stage{position:relative;width:100%;margin-top:clamp(36px,6vw,64px)}
@@ -142,12 +136,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 /* A crop of the real UI: the right side or the left panel on its own, in the product's own scale. */
 .crop{container-type:inline-size;position:relative;overflow:hidden;background:var(--s-surface);color:var(--s-ink);border-radius:12px;box-shadow:var(--crop-shadow);font-family:var(--text);font-feature-settings:"cv05" 1,"cv08" 1;line-height:1.35}
 .crop *{font-size:1em}
-.crop.right{aspect-ratio:80/58}
-.crop.right>.s-ahead{position:absolute;inset:0;font-size:calc(100cqw / 80)}
-.crop.left{aspect-ratio:40/60}
-.crop.left>.s-today{position:absolute;inset:0;flex:none;font-size:calc(100cqw / 40)}
+.crop.right{aspect-ratio:80.4/67.5}
+.crop.right>.s-ahead{position:absolute;inset:0;font-size:calc(100cqw / 80.4)}
+.crop.left{aspect-ratio:39.6/67.5}
+.crop.left>.s-today{position:absolute;inset:0;flex:none;font-size:calc(100cqw / 39.6)}
 /* A crop of the sky window at noon keeps its noon sky whatever the page does; it is a different moment, not a theme. */
-.crop.noon{--sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;--cloud:rgba(255,255,255,.62);--sunglow:1;--stars:0}
+/* Monday noon, overcast: the product drains the day sky 50% toward grey and draws four clouds, and no sun. */
+.crop.noon{--sky-top:#a5bfd8;--sky-bottom:#dde9f5;--sky-ink:#0b2545;--cloud:rgba(255,255,255,.62);--sunglow:0;--stars:0;--cloud-op:.75}
 
 /* ---------- Set up ---------- */
 .setup{padding-block:clamp(56px,8vw,112px) 0}
@@ -158,14 +153,19 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .step span{color:var(--ink-2);text-wrap:pretty}
 .step code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
 .setup .room{margin-top:0}
-/* The pairing screen, as the product draws it inside its calendar card: 2.5rem of padding, centred in the card's height. */
-.pair{align-self:center;padding:2.5em;color:var(--s-ink-2)}
-.pair .t{font:600 2.1em/1.3 var(--text);letter-spacing:-.01em;color:var(--s-ink);margin-bottom:.143em}
-.pair .p{font-size:1.6em;line-height:1.35}
-.pair .addr{font:600 2.6em/1.2 var(--text);letter-spacing:-.01em;color:var(--s-ink);margin-top:.615em}
-.pair .or{font-size:1.5em;margin-top:.267em;font-variant-numeric:tabular-nums}
-.pair .code{font:600 9em/1 var(--text);letter-spacing:.06em;color:var(--s-ink);margin:.156em 0 .167em;font-variant-numeric:tabular-nums}
-.pair .host{font-size:1.5em}
+/* The first-run screen, as the product draws it inside its calendar card: the QR code on a white plate (dark on white in any
+   theme, which is what a phone's camera reads), and beside it the typed address as the quieter way in. */
+.welcome{display:flex;align-items:center;align-self:center;padding:2.5em;color:var(--s-ink-2);line-height:1.35}
+.qr-plate{flex:none;width:27em;height:27em;margin-right:4em;padding:.9em;background:#fff;border-radius:1.2em;box-shadow:0 .1em .3em var(--s-shade)}
+.qr-plate svg{display:block;width:100%;height:100%}
+.welcome-words{min-width:0}
+.welcome .t{font:600 2.1em/1.3 var(--text);letter-spacing:-.01em;color:var(--s-ink);margin-bottom:.143em}
+.welcome .lead{font-size:1.9em;line-height:1.3;color:var(--s-ink);max-width:18.95em;margin-top:.21em}
+.welcome .or-type{font-size:1.5em;line-height:1.35;max-width:24em;margin-top:1.6em}
+.welcome .addr{font:600 2.1em/1.2 var(--text);letter-spacing:-.01em;color:var(--s-ink);margin-top:.238em}
+.welcome .or{font-size:1.5em;margin-top:.267em;font-variant-numeric:tabular-nums}
+.welcome .code{font:600 4.5em/1 var(--text);letter-spacing:.06em;color:var(--s-ink);margin:.267em 0 .333em;font-variant-numeric:tabular-nums}
+.welcome .host{font-size:1.5em}
 
 /* ---------- Which screen, tinkerers, status ---------- */
 .band{margin-top:clamp(56px,8vw,112px);padding-block:clamp(48px,6vw,80px);background:var(--band);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -216,54 +216,80 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-today>*{position:relative;z-index:1}
 .s-sky{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
 .s-sky i{position:absolute;display:block}
-.s-sun{top:-16em;right:-14em;width:44em;height:44em;border-radius:50%;background:radial-gradient(closest-side,rgba(255,246,220,.8),rgba(255,246,220,0));animation:breathe 16s ease-in-out infinite alternate;opacity:var(--sunglow)}
-.s-cloud{left:0;height:15em;width:30em;background-image:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;animation:drift 200s linear infinite}
-.s-cloud.c1{top:6em;animation-delay:-60s}
-.s-cloud.c2{top:38em;width:24em;animation-duration:260s;animation-delay:-180s}
-/* Stars, as the product scatters them after dark: a handful of faint points in the upper sky. */
-.s-stars{inset:0;opacity:var(--stars);background-image:
-  radial-gradient(circle,rgba(255,255,255,.55) 0 .11em,transparent .16em),radial-gradient(circle,rgba(255,255,255,.4) 0 .09em,transparent .14em),
-  radial-gradient(circle,rgba(255,255,255,.45) 0 .1em,transparent .15em),radial-gradient(circle,rgba(255,255,255,.3) 0 .09em,transparent .14em);
-  background-size:23em 19em,31em 27em,17em 29em,29em 13em;background-position:3em 2em,11em 9em,7em 5em,15em 1em;background-repeat:repeat;
-  -webkit-mask-image:linear-gradient(to bottom,#000 30%,transparent 62%);mask-image:linear-gradient(to bottom,#000 30%,transparent 62%)}
+.s-sun{top:-16em;right:-14em;width:44em;height:44em;border-radius:50%;background:radial-gradient(closest-side,rgba(255,246,220,.75),rgba(255,246,220,0));animation:breathe 16s ease-in-out infinite alternate;opacity:var(--sunglow)}
+.s-cloud{left:0;height:15em;width:36em;opacity:var(--cloud-op,.55);background-image:radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0)),radial-gradient(closest-side,var(--cloud),rgba(255,255,255,0));background-size:55% 80%,45% 100%,50% 70%;background-position:0 70%,45% 0,100% 80%;background-repeat:no-repeat;animation:drift 200s linear infinite}
+.s-cloud.c1{top:8.5%;width:36.3em;animation-delay:-60s}
+.s-cloud.c2{top:25%;width:35.6em;animation-duration:260s;animation-delay:-180s}
+.s-cloud.c3{top:42.7%;width:42.2em;animation-duration:230s;animation-delay:-20s}
+.s-cloud.c4{top:60.3%;width:35.5em;animation-duration:190s;animation-delay:-120s}
+.crop.noon .s-cloud.c1{top:7.9%;width:45.2em}
+.crop.noon .s-cloud.c2{top:24.5%;width:44.1em}
+/* After dark the product seeds its two clouds differently (the stars draw from the same sequence first). */
+@media (prefers-color-scheme:dark){.s-cloud.c1{top:4.4%;width:42.2em}.s-cloud.c2{top:28.6%;width:40.5em}}
+/* Stars, only after dark: the product's fourteen for a partly cloudy evening, where it put them and as bright as they
+   were at 7:16 PM (it twinkles them between 10% and 30%). One dot and its shadows, in the panel's own em. */
+.s-stars{top:0;left:0;width:.22em;height:.22em;border-radius:50%;opacity:var(--stars);box-shadow:
+  18.64em 21.95em rgba(255,255,255,.11),16.85em 19.82em rgba(255,255,255,.25),22.41em 16.08em rgba(255,255,255,.12),24.99em 3em rgba(255,255,255,.12),
+  25.55em 6.18em rgba(255,255,255,.23),6.7em 1.96em rgba(255,255,255,.3),4.59em 17.39em rgba(255,255,255,.12),15.94em 21.54em rgba(255,255,255,.13),
+  6.48em 38.59em rgba(255,255,255,.1),20.8em 12.93em rgba(255,255,255,.19),13.37em 13.7em rgba(255,255,255,.22),9.07em 34.61em rgba(255,255,255,.14),
+  22.92em 15.73em rgba(255,255,255,.29),5.17em 8.76em rgba(255,255,255,.13)}
 @keyframes drift{from{transform:translate3d(-100%,0,0)}to{transform:translate3d(400%,0,0)}}
-@keyframes breathe{from{opacity:calc(.55 * var(--sunglow))}to{opacity:calc(.9 * var(--sunglow))}}
-@media (prefers-reduced-motion:reduce){.s-sun,.s-cloud{animation:none}.s-cloud.c1{transform:translate3d(20%,0,0)}.s-cloud.c2{transform:translate3d(90%,0,0)}}
+/* Partly cloudy: the product breathes its sun between .45 and .65. */
+@keyframes breathe{from{opacity:calc(.45 * var(--sunglow))}to{opacity:calc(.65 * var(--sunglow))}}
+/* Still, the clouds sit where the product had them at the mock's moments. */
+@media (prefers-reduced-motion:reduce){.s-sun,.s-cloud{animation:none}.s-sun{opacity:calc(.65 * var(--sunglow))}
+  .s-cloud.c1{transform:translate3d(5.3em,0,0)}.s-cloud.c2{transform:translate3d(-33em,0,0)}
+  .crop.noon .s-cloud.c1{transform:translate3d(-25.1em,0,0)}.crop.noon .s-cloud.c2{transform:translate3d(-11.9em,0,0)}
+  .crop.noon .s-cloud.c3{transform:translate3d(33.1em,0,0)}.crop.noon .s-cloud.c4{transform:translate3d(14.75em,0,0)}}
+@media (prefers-reduced-motion:reduce) and (prefers-color-scheme:dark){.s-cloud.c1{transform:translate3d(7.1em,0,0)}.s-cloud.c2{transform:translate3d(6.2em,0,0)}}
 .s-weekday{font:600 5.25em/1 var(--display);letter-spacing:-.03em}
-.s-date{font:400 2.5em/1.2 var(--display);letter-spacing:-.01em;opacity:.78;margin-top:.2em}
+.s-date{font:400 2.5em/1.2 var(--display);letter-spacing:-.01em;opacity:.85;margin-top:.2em}
 .s-clock{font:300 11.5em/1 var(--display);letter-spacing:-.045em;margin:.196em 0 0 -.06em;white-space:nowrap;font-variant-numeric:tabular-nums}
-.s-clock span{font-size:.217em;font-weight:500;letter-spacing:0;margin-left:.8em;opacity:.78;vertical-align:baseline}
+.s-clock span{font-size:.217em;font-weight:500;letter-spacing:0;margin-left:.32em;opacity:.85;vertical-align:baseline}
 .s-now{display:flex;align-items:center;margin-top:1.75em}
 .s-wx{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.s-wx .sun{fill:var(--sun);stroke:var(--sun)}
-.s-wx .moon{fill:var(--moon);stroke:var(--moon);stroke-width:1}
-.s-wx .drop{stroke:var(--rain)}
 .s-now .s-wx{width:5em;height:5em;flex:none;margin-right:1.1em}
 /* The current conditions carry a moon after sunset; the forecast days keep their suns. */
 .s-now .s-wx.day{display:var(--day-icon)}
 .s-now .s-wx.night{display:var(--night-icon)}
 .s-temp{font:500 4.5em/1 var(--display);letter-spacing:-.04em;margin-right:.31em}
 .s-nowtext p{font-size:1.75em;line-height:1.3;font-weight:600}
-.s-nowtext .s-nowdetail{font-weight:400;font-size:1.4em;opacity:.78;font-variant-numeric:tabular-nums}
-.s-todaylabel{color:inherit;opacity:.7;margin-top:1.96em;padding-top:1.3em;border-top:.11em solid rgba(127,127,127,.35);margin-bottom:.96em}
+.s-nowtext .s-nowdetail{font-weight:400;font-size:1.4em;opacity:.85;font-variant-numeric:tabular-nums}
+.s-todaylabel{color:inherit;opacity:.85;margin-top:1.96em;padding-top:1.3em;border-top:.11em solid rgba(127,127,127,.35);margin-bottom:.96em}
 .s-tomorrow{margin-top:1.5em;padding-top:1.4em;border-top:.125em solid rgba(127,127,127,.35)}
-.s-tomorrow .s-eyebrow{color:inherit;opacity:.7;margin-bottom:.96em}
-.s-countdown{margin-top:auto;padding-top:1.25em;font:600 1.75em/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.s-sunline{font:500 1.4em/1 var(--text);opacity:.78;padding-top:.5em;font-variant-numeric:tabular-nums}
+.s-tomorrow .s-eyebrow{color:inherit;opacity:.85;margin-bottom:.96em}
+.s-countdown{flex:none;margin-top:auto;padding-top:.714em;font:600 1.75em/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-sunline{flex:none;font:500 1.4em/1 var(--text);opacity:.85;padding-top:.5em;font-variant-numeric:tabular-nums}
 
 /* Items: an event carries a calendar-coloured rail, a chore a circle you can tap. */
 .s-item{display:flex;align-items:flex-start;position:relative;margin-bottom:1.5em}
 .s-item>div{flex:1;min-width:0}
 .s-title{display:block;font-weight:600;font-size:2.25em;line-height:1.2;letter-spacing:-.005em}
-.s-title.busy{font-weight:500;color:var(--rail)}
+.s-title.busy{font-weight:400}
 .s-meta{display:block;font-size:1.5em;line-height:1.3;opacity:.75;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-item.happening .s-meta{opacity:1;font-weight:600}
 .s-item.event{padding-left:1em}
 .s-item.event::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:.3em;border-radius:.3em;background:var(--rail)}
 .s-item.happening::before{width:.45em}
+.s-item.event.busy::before{width:0;border-radius:0;background:none;border-left:.3em dashed var(--rail)}
+.s-item.event.busy.happening::before{border-left-width:.45em}
 .s-item.allday .s-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.s-item.allday.continues{opacity:.62}
+.s-day .s-item.allday.continues{opacity:.62}
 .s-check{flex:none;display:block;width:2.5em;height:2.5em;margin:.1em .7em 0 0;border:.16em solid var(--tick,currentColor);border-radius:50%;opacity:.6}
+/* Today on the sky. Row times at 85%; the ring in full ink and heavier, since it is Today's only "tap this". */
+.s-today .s-meta{opacity:.85}
+.s-today .s-check{opacity:1;border-width:.22em;border-color:currentColor}
+/* Now and next: the time is what is read across the room, 1.875rem at 650. */
+.s-today .s-item.happening .s-meta,.s-today .s-item.next .s-meta{font-size:1.875em;line-height:1.25;font-weight:650;opacity:1}
+/* Every other row: one line, a 2.7rem lead, a 7.5rem time column at 1.5rem, the title at 1.9rem, the monogram after it. */
+.s-today .s-item.compact{align-items:center;margin-bottom:.95em}
+.s-today .s-item.compact>div{display:flex;align-items:baseline;min-width:0}
+.s-today .s-item.compact .s-meta{flex:0 0 5em;font-size:1.5em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.s-today .s-item.compact .s-title{flex:0 1 auto;min-width:0;font-size:1.9em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-today .s-item.compact .s-check{width:1.9em;height:1.9em;margin:0 .8em 0 0}
+.s-today .s-item.event.compact{padding-left:2.7em}
+.s-today .s-item.event.compact::before{left:.8em;top:.25em;bottom:.25em}
+.s-today .s-item.compact>div>.s-owner{align-self:center;font-size:1em;width:1.8em;height:1.8em;margin-left:.6em;vertical-align:0}
 .s-tomorrow .s-item{margin-bottom:1.1em}
 .s-tomorrow .s-title{font-size:1.9em}
 .s-tomorrow .s-meta{font-size:1.3em}
@@ -277,7 +303,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-view{flex:1;min-height:0;display:flex;flex-direction:column}
 .s-view[hidden]{display:none}
 .s-head{display:flex;align-items:center;height:3.5em;margin-bottom:1.5em}
-.s-head h3{font:600 2.5em/1 var(--text);letter-spacing:-.02em;margin-right:1em;white-space:nowrap}
+.s-head .s-h{font:600 2.5em/1 var(--text);letter-spacing:-.02em;margin-right:1em;white-space:nowrap}
 .s-head .s-sub{flex:1;font-size:1.35em;color:var(--s-ink-2)}
 .s-legend{display:flex;flex:1;font-size:1.3em;color:var(--s-ink-2)}
 .s-legend span{display:flex;align-items:center;margin-right:1.35em}
@@ -287,7 +313,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-arrow svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .s-arrow.off{opacity:.25}
 /* "Add": 3rem tall, 1.3rem type. */
-.s-add{height:2.31em;padding:0 1.23em;border-radius:1.16em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center}
+.s-add{height:2.31em;padding:0 1.23em;border-radius:1.16em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center;margin-right:.385em}
 .s-add,.s-arrow{color:var(--s-ink)}
 .s-card{flex:1;min-height:0;background:var(--s-card);border-radius:1.5em;box-shadow:0 .1em .2em var(--s-shade);overflow:hidden}
 .s-strip{display:flex}
@@ -295,10 +321,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-day:first-child{border-left:0}
 .s-day.weekend{background:var(--s-tint)}
 .s-dayname{display:flex;flex-direction:column;line-height:1}
-.s-dayname .s-eyebrow{margin-bottom:.45em}
+.s-dayname .s-eyebrow{margin-bottom:.391em}
 .s-dayname b{font:600 2.75em/1 var(--display);letter-spacing:-.04em}
 /* The forecast line: a 2.6rem column holds the icon with the chance of rain beneath it, then high and low. */
-.s-forecast{display:flex;align-items:center;height:3.2em;margin:.7em 0 1.1em;padding-bottom:1em;box-sizing:content-box;border-bottom:.0625em solid var(--s-line);font-size:1.45em;color:var(--s-ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.s-forecast{display:flex;align-items:center;height:2.207em;margin:.483em 0 .759em;padding-bottom:.69em;box-sizing:content-box;border-bottom:.0625em solid var(--s-line);font-size:1.45em;color:var(--s-ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .s-forecast .s-wx{width:1.66em;height:1.66em;color:var(--s-ink-2)}
 .s-forecast .wxcol{flex:none;width:1.8em;margin-right:.41em;display:flex;flex-direction:column;align-items:center}
 .s-forecast b{color:var(--s-ink);font-weight:600;margin-right:.31em}
@@ -312,7 +338,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-later{display:flex;padding:1.5em .5em 0 1.1em}
 .s-later .s-eyebrow{flex:0 0 6.1em;line-height:2.1em}
 .s-laterrows{flex:1;min-width:0}
-.s-laterrow{display:flex;align-items:center;height:2.4em;font-size:1.45em}
+.s-laterrow{display:flex;align-items:center;height:1.655em;font-size:1.45em}
 .s-laterrow .when{flex:0 0 6.6em;color:var(--s-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
 .s-laterrow .time{flex:0 0 5.5em;color:var(--s-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
 .s-laterrow i{flex:none;width:.55em;height:.55em;border-radius:50%;margin-right:.55em;background:var(--rail)}
@@ -321,28 +347,32 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-laterrow .owner{color:var(--s-ink-2);font-weight:400}
 
 /* A list. */
-.s-listbody{padding:1.75em 2.25em;max-width:60em}
-.s-listbody.two{max-width:none;column-count:2;column-gap:3.5em;column-rule:.0625em solid var(--s-line)}
-.s-listbody .s-item{break-inside:avoid;min-height:3.6em;padding:.7em 0;margin:0;align-items:center;border-bottom:.0625em solid var(--s-line)}
+.s-listbody{padding:1.75em 2.25em}
+.s-cols{max-width:60em}
+.s-set{padding-bottom:1.25em}
+.s-listbody .s-item{min-height:3.6em;padding:.7em 0;margin:0;align-items:center;border-bottom:.0625em solid var(--s-line)}
 .s-listbody .s-item.last{border-bottom:0}
-.s-listbody .s-title{font-size:1.8em;font-weight:400}
+.s-listbody .s-title{font-size:1.8em;font-weight:400;line-height:1.22}
 .s-listbody .s-meta{font-size:1.25em}
-.s-listbody .s-check{width:2.4em;height:2.4em;margin:0 1.1em 0 0}
+.s-listbody .s-check{width:2.4em;height:2.4em;margin:.05em 1.1em 0 0}
+/* A monogram in a list row: 2rem on a 1.1rem letter, beside a 1.8rem title. */
+.s-listbody .s-owner{font-size:.611em;margin-left:.545em}
 .s-listbody .s-item.done .s-check{opacity:1;background:var(--tick,currentColor);position:relative}
 .s-listbody .s-item.done .s-check::after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--s-card);border-width:0 .2em .2em 0;transform:rotate(42deg)}
 .s-listbody .s-item.done .s-title{text-decoration:line-through;opacity:.55}
-.s-listbody .s-group{font:600 1.15em/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--s-ink-2);padding:.7em 0 .55em;break-after:avoid}
+.s-listbody .s-group{font:600 1.15em/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--s-ink-2);padding:.609em 0 .478em}
 .s-listbody.kid .s-item{min-height:5.6em;padding:1.1em 0}
 .s-listbody.kid .s-check{width:3.2em;height:3.2em;margin-right:1.3em}
 .s-listbody.kid .s-title{font-size:2.6em}
 .s-emoji{flex:none;font-size:3.2em;line-height:1;margin:0 .31em 0 .06em;order:-1}
 /* The list's mark in its header: a 2.6rem glyph or a 3.2rem monogram beside a 2.5rem title. */
-.s-listhead h3{display:flex;align-items:center}
+.s-listhead .s-h{display:flex;align-items:center}
 .s-listhead .s-glyph{width:1.04em;height:1.04em;margin-right:.4em;color:var(--s-ink-2);stroke-width:1.8}
 .s-listhead .s-avatar{width:1.88em;height:1.88em;margin-right:.59em;font-size:.68em}
 /* The toast: what a check-off looks like for the next ten seconds. */
-.s-toast{position:absolute;z-index:3;left:50%;bottom:6.75em;transform:translateX(-50%);display:flex;align-items:center;padding:.5em .6em .5em 1.75em;border-radius:2.5em;background:var(--s-ink);color:var(--s-surface);font-size:1.5em;box-shadow:0 .75em 2.5em var(--s-shade);white-space:nowrap}
-.s-toast b{margin-left:1em;height:2.27em;padding:0 1.07em;border-radius:1.2em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
+.s-toast{position:absolute;z-index:3;left:50%;bottom:4.5em;transform:translateX(-50%);display:flex;align-items:center;padding:.333em .4em .333em 1.167em;border-radius:2.5em;background:var(--s-ink);color:var(--s-surface);font-size:1.5em;box-shadow:0 .75em 2.5em var(--s-shade);white-space:nowrap}
+.s-toast span{padding:.6em 0}
+.s-toast b{margin-left:1em;height:2.267em;padding:0 1.067em;border-radius:1.133em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
 .s-cheer{position:absolute;z-index:3;left:50%;top:44%;transform:translate(-50%,-50%);font-size:14em;line-height:1}
 
 /* Photos: the photo whole, over a blurred copy of itself. After dark the product dims both, so the wall is not glare. */
@@ -355,15 +385,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 /* Dock. */
 .s-dock{flex:none;display:flex;align-items:center;justify-content:space-between;margin-top:1.25em;height:4em}
 .s-tabs{display:flex;background:var(--s-press);border-radius:2em;padding:.3em}
-.s-tabs button{display:flex;align-items:center;height:3.4em;padding:0 1.4em;border-radius:1.7em;font-size:1.4em;font-weight:600;color:var(--s-ink-2);white-space:nowrap;line-height:1}
-.s-tabs button b{font-weight:600;font-size:1.036em;font-variant-numeric:tabular-nums;margin-left:.55em;color:var(--s-ink)}
+.s-tabs button{display:flex;align-items:center;height:2.43em;padding:0 1em;border-radius:1.21em;font-size:1.4em;font-weight:600;color:var(--s-ink-2);white-space:nowrap;line-height:1}
+.s-tabs button b{font-weight:600;font-size:1.036em;font-variant-numeric:tabular-nums;margin-left:.379em;color:var(--s-ink)}
 .s-tabs button[aria-pressed="true"]{background:var(--s-selected);color:var(--s-ink);box-shadow:0 .08em .25em var(--s-shade)}
 .s-tabs button:focus-visible{outline:.2em solid var(--s-accent);outline-offset:.1em}
 .s-glyph{flex:none;width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;margin-right:.43em}
-.s-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;width:1.36em;height:1.36em;border-radius:50%;background:var(--who);color:#fff;font:700 .75em/1 var(--text);margin-right:.57em}
-.s-gear{width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--s-ink-2)}
+.s-avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;width:1.81em;height:1.81em;border-radius:50%;background:var(--who);color:#fff;font:700 .75em/1 var(--text);margin-right:.57em}
+.s-gear{flex:none;margin-left:1.5em;width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--s-ink-2)}
 .s-gear svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.s-gear circle{fill:var(--s-surface)}
 
 /* On a phone the hero screen is a picture, so its live controls step back. */
 @media (max-width:600px){.s-tabs button{pointer-events:none}}
@@ -372,4 +401,15 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
    width, cropped to its left edge, so the sky window is whole and the first days of the week follow it. */
 @media (max-width:767px){.hero .stage{align-self:stretch;width:auto;margin-inline:-20px}.bezel{border-radius:0;padding-inline:0;box-shadow:none}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
 @media (max-width:600px){.bezel{overflow:hidden}.bezel>.screen-box{width:200%}}
-@media (max-width:600px){.crop.right{aspect-ratio:62/50}.crop.right>.s-ahead{right:auto;width:80em;font-size:calc(100cqw / 62)}}
+@media (max-width:600px){.crop.right{aspect-ratio:62/67.5}.crop.right>.s-ahead{right:auto;width:80.4em;font-size:calc(100cqw / 62)}}
+
+/* A space between the time and PM for anyone listening; it takes no room on the wall. */
+.screen .s-gap,.crop .s-gap{font-size:0;font-style:normal}
+
+/* ---------- Not found ---------- */
+.lost-page{min-height:100vh;min-height:100svh;display:flex;flex-direction:column}
+.lost{flex:1;display:flex;align-items:center;padding-block:clamp(48px,10vw,120px)}
+.lost .name{font-weight:500;color:var(--ink-2)}
+.lost .h1{margin-top:14px;max-width:14ch}
+.lost .lede{margin-top:22px;max-width:40ch}
+.lost .ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}

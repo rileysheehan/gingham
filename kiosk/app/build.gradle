@@ -12,6 +12,14 @@ tasks.register('copyServer', Copy) {
 // Node itself (libnode.so, ~76 MB per chip family) comes from nodejs-mobile's releases into app/libnode/; without it
 // the app still builds, as the plain kiosk browser it was.
 def hasNode = file('libnode/bin').isDirectory()
+// The version the app reports, which Settings shows and the update check compares, is package.json's: the same
+// number the server reports when it runs from a checkout or a container. A release is built from its tag
+// (GINGHAM_VERSION=v0.1.1), and a tag that disagrees with package.json stops the build rather than ship a wrong number.
+// Any other build is that version's dev build ("0.1.1-dev", or "0.1.1-dev.57" on CI), which sorts before the release.
+def packageVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version
+def tagVersion = System.getenv('GINGHAM_VERSION')?.replaceFirst(/^v/, '')
+if (tagVersion && tagVersion != packageVersion) throw new GradleException("The tag says ${tagVersion} but package.json says ${packageVersion}; bump package.json before tagging.")
+def appVersion = tagVersion ?: (packageVersion + '-dev' + (System.getenv('GITHUB_RUN_NUMBER') ? '.' + System.getenv('GITHUB_RUN_NUMBER') : ''))
 // What the product is called on a home network: <this>.local. One word, lower case. Changes with the product's name.
 def networkName = 'gingham'
 android {
@@ -22,14 +30,17 @@ android {
         minSdk 26          // Android 8.0: the Frameo runs 8.1
         targetSdk 34
         // Minutes since 2026 began: always higher for a later build, whichever repository or machine made it, which is
-        // what Android needs to take an update over what is installed. A release names itself (GINGHAM_VERSION).
+        // what Android needs to take an update over what is installed.
         versionCode((int) ((System.currentTimeMillis() - 1767225600000L) / 60000L))
-        versionName(System.getenv('GINGHAM_VERSION') ?: ('0.' + (System.getenv('GITHUB_RUN_NUMBER') ?: 'dev')))
+        versionName(appVersion)
         if (hasNode) {
             externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_shared'; abiFilters 'armeabi-v7a', 'arm64-v8a' } }
         }
         buildConfigField 'boolean', 'HAS_NODE', String.valueOf(hasNode)
         buildConfigField 'String', 'NETWORK_NAME', '"' + networkName + '"'
+        // Where the app fetches a release's files when someone taps Install. Always GitHub; -PreleaseBase=<address>
+        // exists only to test an install on an emulator against files served from the build machine.
+        buildConfigField 'String', 'RELEASE_BASE', '"' + (project.findProperty('releaseBase') ?: 'https://github.com/rileysheehan/gingham/releases/download/') + '"'
     }
     buildFeatures { buildConfig true }
     if (hasNode) {

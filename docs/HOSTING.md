@@ -46,7 +46,7 @@ is ever sent back to the page: it learns that a calendar has a link, not what th
 Getting in is one-time; being in is not. The device that opens a link stays an owner and can come back to `/setup`
 whenever something needs changing. What a link cannot cover is a new phone or a cleared browser, and for that
 **the frame vouches for the phone**: on the frame, Settings, "Manage from a phone", the household PIN; the frame
-shows a code; typing it at `/setup` makes that phone an owner. Being in the home plus the PIN is the proof. The
+shows a QR code of the setup link with a one-time code in it; scanning it, or typing the code at `/setup`, makes that phone an owner. Being in the home plus the PIN is the proof. The
 PIN is four to eight digits, set on the setup page, stored stretched (scrypt) inside the sealed credentials, and
 five wrong tries shut that door for fifteen minutes, doubling each time. With no PIN set the door does not exist,
 because otherwise anyone left alone with the frame could add their own phone and read the calendar from anywhere.
@@ -223,6 +223,26 @@ Android 12 and later look names up this way by themselves; older Androids do not
 name with the numbers under it. If the name is taken (a second frame in the house) it becomes `gingham-2`. The app
 sets this itself. It stays off everywhere else: multicast does not reach inside a container, and on a shared
 machine the name belongs to the machine.
+
+## Updates
+
+Once shortly after it starts and then once a day, the server asks GitHub's public API for the latest release of
+rileysheehan/gingham (`updates.js`). The request is unauthenticated and carries nothing about any household: a fixed
+`User-Agent: Gingham` and, after the first answer, GitHub's ETag, so an unchanged answer is an empty 304. It gives up
+after ten seconds, waits out a rate limit, and a failure is one line in the log and another try the next day. It is
+never on a request's path, and the wall never waits on it.
+
+- **Off for a whole server:** `GINGHAM_UPDATE_CHECK=off`. The frame's Settings then shows the check as off and cannot
+  change it. With one household on the server, its frame may turn the check on or off itself (Settings → Updates);
+  with several, only the variable decides. The choice, the last answer and its ETag live in `data/updates.json`.
+- **What a frame shows:** the version this server runs, and, when a newer release exists, its notes and how this copy
+  is updated, from `GINGHAM_FORM`: `container` (set by the image) says to pull `ghcr.io/rileysheehan/gingham:latest`
+  and start it again; a plain `node server.js` says to download the release. The Android app installs its own update
+  from Settings when someone taps Install. Nothing on the wall, and nothing ever updates on its own.
+- **The version** is `package.json`'s, in every form: the server, the image and the app's `versionName` all read it,
+  and a release tag that disagrees stops the release build.
+- **Updating** never goes backward: a newer server reads an older one's `data/` as it is and migrates forward if it
+  must. Keep a copy of `data/` before a major version, and do not point an older version at data a newer one wrote.
 
 ## Known gaps
 

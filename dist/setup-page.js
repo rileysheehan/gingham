@@ -3,6 +3,19 @@
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   var state = null, picked = null, query = location.search.indexOf('household=') >= 0 ? location.search : '';
+  // A code in the address, from a QR code on a frame: #code= lets this phone in (the frame's first owner, or someone the
+  // household PIN let in at the wall), #pair= fills in a new frame's code under Frames, one tap from Pair. It comes after
+  // "#" so no server or log ever sees it, and it is wiped from the address before anything else happens, so it is not
+  // left in the phone's history either.
+  var fromFrame = {};
+  function takeFromAddress() {
+    location.hash.replace(/[#&](code|pair)=([A-Za-z0-9-]{6,7})/g, function (m, key, value) { fromFrame[key] = value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+    if (location.hash && history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+  }
+  takeFromAddress();
+  // A phone may open the next scanned link in the tab already showing this page, which changes only the part after "#".
+  window.addEventListener('hashchange', function () { takeFromAddress(); if (fromFrame.code || fromFrame.pair) load(); });
+  function asCode(v) { return v.slice(0, 3) + '-' + v.slice(3); }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
   function toast(text) { var t = $('toast'); t.textContent = text; t.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(function () { t.hidden = true; }, 3200); }
   function showError(action, message) { var p = document.querySelector('.error[data-for="' + action + '"]'); if (p) p.textContent = message || ''; }
@@ -119,7 +132,7 @@
   };
   $('h-save').onclick = function () {
     var body = { name: $('h-name').value };
-    if (picked) { body.place = picked.place; body.latitude = picked.latitude; body.longitude = picked.longitude; body.timezone = picked.timezone; }
+    if (picked) { body.place = picked.place; body.latitude = picked.latitude; body.longitude = picked.longitude; body.timezone = picked.timezone; body.country = picked.country; }
     else if ($('h-place').value.trim() !== state.household.place) { showError('household', 'Pick your town from the list so the weather and the clock are right.'); return; }
     else { body.keepPlace = true; }
     if (body.keepPlace) { api('POST', '/household-name', { name: body.name }).then(function (r) { if (r.status === 200) { state = r.data.setup; render(); toast('Saved'); } else showError('household', r.data.error); }); return; }
@@ -323,8 +336,19 @@
   };
   function load() {
     api('GET', '').then(function (r) {
-      if (r.status === 200) { state = r.data; $('app').hidden = false; $('locked').hidden = true; render(); backFromGoogle(); }
-      else { $('app').hidden = true; $('locked').hidden = false; }
+      if (r.status === 200) {
+        state = r.data; $('app').hidden = false; $('locked').hidden = true; render(); backFromGoogle();
+        if (fromFrame.pair) {
+          var frames = $('frames'), open = frames.querySelector('details');
+          if (open) open.open = true;
+          $('f-code').value = asCode(fromFrame.pair); delete fromFrame.pair;
+          if (frames.scrollIntoView) frames.scrollIntoView(); $('f-name').focus();
+        }
+      } else {
+        $('app').hidden = true; $('locked').hidden = false;
+        // Scanned at the frame: the code is the one it showed, so go straight in rather than ask for it to be typed.
+        if (fromFrame.code) { $('claim-code').value = asCode(fromFrame.code); delete fromFrame.code; $('claim-go').onclick(); }
+      }
     }, function () { $('locked').hidden = false; });
   }
   load();

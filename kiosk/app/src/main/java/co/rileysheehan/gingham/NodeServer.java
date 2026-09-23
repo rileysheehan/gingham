@@ -45,6 +45,7 @@ final class NodeServer {
                 Os.setenv("HOST", "0.0.0.0", true);              // the phone that sets this up is on the same Wi-Fi
                 Os.setenv("FRAME_AUTH", "required", true);        // ...and gets nothing without being let in
                 Os.setenv("FRAME_LOCAL_FRAME", "1", true);        // this tablet's own screen is the household's frame
+                Os.setenv("GINGHAM_FORM", "app", true);           // updates arrive as a new app, installed from Settings
                 // One household, on its own Wi-Fi: its Home Assistant, Nextcloud or calendar server at a home address is
                 // what it wants, and there is no other household here for such an address to reach into.
                 Os.setenv("FRAME_ALLOW_PRIVATE_FEEDS", "1", true);
