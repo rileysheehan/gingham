@@ -36,6 +36,13 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 /**
  * The whole app: the family frame's page, full screen, for as long as the device is on.
  *
@@ -53,6 +60,11 @@ public class FrameActivity extends Activity {
     private WebView web;
     private TextView notice;
     private boolean failed;
+    /** The wall's address as last loaded; read from the page's bridge thread, so volatile. */
+    private volatile String wallUrl;
+    /** While the play page is up: its address, and how long without a touch before the wall comes back. */
+    private String playUrl;
+    private long playReturnMs;
     private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override protected void onCreate(Bundle state) {
@@ -96,6 +108,7 @@ public class FrameActivity extends Activity {
 
     private void start() {
         handler.removeCallbacksAndMessages(null);
+        playUrl = null;
         String url = prefs().getString(KEY_URL, null);
         // No longer its own server, but the server is still running in here and cannot be stopped: start afresh.
         if (!LOCAL.equals(url) && NodeServer.isStarted()) { RestartActivity.restart(getApplicationContext()); return; }
@@ -121,20 +134,10 @@ public class FrameActivity extends Activity {
     private void showFrame(final String url) {
         root.removeAllViews();
         if (web != null) web.destroy();
-        web = new WebView(this);
-        web.setBackgroundColor(Color.BLACK);
-        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        web.setOnLongClickListener(new View.OnLongClickListener() { @Override public boolean onLongClick(View v) { return true; } });
-        web.setHapticFeedbackEnabled(false);
-        WebSettings s = web.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setTextZoom(100);                 // the page sizes itself from the screen; system font scaling must not
-        s.setUseWideViewPort(true);
-        s.setLoadWithOverviewMode(true);
-        s.setMediaPlaybackRequiresUserGesture(false);
-        CookieManager.getInstance().setAcceptCookie(true);
-        WebView.setWebContentsDebuggingEnabled(true);   // reachable only over ADB, which is how a frame is looked after
+        wallUrl = url;
+        playUrl = null;
+        handler.removeCallbacks(playReturn);
+        web = newWebView();
         web.addJavascriptInterface(new Bridge(), "fully");
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String finished) {
@@ -166,8 +169,121 @@ public class FrameActivity extends Activity {
         failed = false;
         web.loadUrl(url);
         watchNetwork();
+        handler.removeCallbacks(saveCookies);
         handler.postDelayed(saveCookies, 30_000);
     }
+
+    /** A full-screen WebView as the frame wants one, with no bridge: showFrame adds the bridge for the wall alone. */
+    private WebView newWebView() {
+        WebView web = new WebView(this);
+        web.setBackgroundColor(Color.BLACK);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        web.setOnLongClickListener(new View.OnLongClickListener() { @Override public boolean onLongClick(View v) { return true; } });
+        web.setHapticFeedbackEnabled(false);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setTextZoom(100);                 // the page sizes itself from the screen; system font scaling must not
+        s.setUseWideViewPort(true);
+        s.setLoadWithOverviewMode(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        CookieManager.getInstance().setAcceptCookie(true);
+        WebView.setWebContentsDebuggingEnabled(true);   // reachable only over ADB, which is how a frame is looked after
+        return web;
+    }
+
+    // ---------------------------------------------------------------- the play page
+
+    /*
+     * DESIGN.md → "A play page, for one household". A household whose settings.json names a play page can open it by
+     * holding the wall's clock; the wall asks through the bridge (openPlayPage) and names no address. The app asks the
+     * household's own server for it, so the page on the wall can never send the frame anywhere of its choosing.
+     *
+     * The play page gets a WebView of its own, built without the bridge: the wall's WebView is destroyed first (one
+     * page at a time on a 1 GB frame), so "fully" (brightness, restart, installing updates) never exists in any
+     * WebView that has shown another site. While it is up it may go only to its own origin; every touch starts the
+     * wait again, and after returnAfterMinutes untouched, Back with nowhere left to go, a failed load or a crash, the
+     * wall is built again from scratch as at start.
+     */
+    private void askForPlayPage() {
+        final String wall = wallUrl, settings = PlayMath.settingsUrl(wall);
+        if (settings == null || playUrl != null) return;
+        final String cookies = CookieManager.getInstance().getCookie(settings);
+        new Thread(new Runnable() { @Override public void run() {
+            final String[] play = fetchPlayPage(settings, cookies);
+            if (play == null) return;
+            runOnUiThread(new Runnable() { @Override public void run() {
+                // Only if the wall that asked is still the one showing.
+                if (playUrl == null && wall.equals(wallUrl) && web != null) showPlayPage(play[0], Integer.parseInt(play[1]));
+            } });
+        } }, "play-page").start();
+    }
+
+    /** {url, minutes} from the household's settings, or null if it has no play page or the server did not answer. */
+    private static String[] fetchPlayPage(String settings, String cookies) {
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(settings).openConnection();
+            c.setConnectTimeout(10_000); c.setReadTimeout(10_000); c.setInstanceFollowRedirects(false); c.setUseCaches(false);
+            if (cookies != null && !cookies.isEmpty()) c.setRequestProperty("Cookie", cookies);
+            if (c.getResponseCode() != 200) return null;
+            ByteArrayOutputStream body = new ByteArrayOutputStream();
+            try (InputStream in = c.getInputStream()) {
+                byte[] buf = new byte[4096];
+                for (int n; (n = in.read(buf)) > 0; ) { body.write(buf, 0, n); if (body.size() > 64 * 1024) return null; }
+            }
+            JSONObject play = new JSONObject(body.toString("UTF-8")).optJSONObject("playPage");
+            String url = play == null ? null : PlayMath.validUrl(play.optString("url", null));
+            if (url == null) return null;
+            return new String[] {url, String.valueOf(PlayMath.returnMinutes(play.opt("returnAfterMinutes")))};
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (c != null) c.disconnect();
+        }
+    }
+
+    private void showPlayPage(final String address, int minutes) {
+        CookieManager.getInstance().flush();
+        handler.removeCallbacks(retry);
+        failed = false;
+        hideNotice();
+        if (web != null) { root.removeView(web); web.destroy(); }
+        playUrl = address;
+        playReturnMs = minutes * 60_000L;
+        web = newWebView();
+        WebSettings s = web.getSettings();
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+        s.setMediaPlaybackRequiresUserGesture(true);
+        web.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return !PlayMath.sameOrigin(address, request.getUrl().toString());   // its own site and nowhere else
+            }
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) handler.post(playReturn);
+            }
+            @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                handler.post(new Runnable() { @Override public void run() { start(); } });
+                return true;
+            }
+        });
+        root.addView(web, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        web.loadUrl(address);
+        playTouched();
+    }
+
+    private void playTouched() {
+        if (playUrl == null) return;
+        handler.removeCallbacks(playReturn);
+        handler.postDelayed(playReturn, playReturnMs);
+    }
+
+    private final Runnable playReturn = new Runnable() { @Override public void run() {
+        if (playUrl == null) return;
+        String wall = wallUrl;
+        if (wall == null) start(); else showFrame(wall);
+    } };
 
     /**
      * Pairing hands the frame its secret in the answer to a background request, not a page load, so nothing would
@@ -220,6 +336,10 @@ public class FrameActivity extends Activity {
         }
         @JavascriptInterface public void restartApp() {
             runOnUiThread(new Runnable() { @Override public void run() { start(); } });
+        }
+        /** Held the clock: open the household's play page, if its settings name one. The page names no address. */
+        @JavascriptInterface public void openPlayPage() {
+            runOnUiThread(new Runnable() { @Override public void run() { askForPlayPage(); } });
         }
 
         // Updating this app, from Settings (UpdateInstaller). Fully Kiosk has none of these, which is how the page
@@ -292,14 +412,22 @@ public class FrameActivity extends Activity {
             | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
 
-    /** Back never leaves the frame. */
+    /** Back never leaves the frame. On the play page it goes back within it, and from its first page to the wall. */
     @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (playUrl != null) {
+            playTouched();
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (web != null && web.canGoBack()) web.goBack(); else playReturn.run();
+                return true;
+            }
+        }
         return keyCode == KeyEvent.KEYCODE_BACK || super.onKeyDown(keyCode, event);
     }
 
     /** Holding the top-left corner for four seconds is the one way in, deliberate enough that nobody does it by accident. */
     private final Runnable openMaintenance = new Runnable() { @Override public void run() { showMaintenance(); } };
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        playTouched();
         float corner = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 96, getResources().getDisplayMetrics());
         boolean inCorner = event.getX() < corner && event.getY() < corner;
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN && inCorner) handler.postDelayed(openMaintenance, CORNER_HOLD_MS);

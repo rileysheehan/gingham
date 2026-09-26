@@ -575,3 +575,90 @@ test('The legend\'s "N more" opens every calendar with its colour, and closes li
   w.$('close-legend').click();
   assert.equal(w.$('legend-dialog').hidden, true);
 });
+
+// The play page (DESIGN.md → "A play page, for one household"): holding the clock for three seconds opens a page the
+// household's settings.json names; for every other household the clock is only a clock.
+const PLAY = {url: 'https://example.com/play/', returnAfterMinutes: 3};
+const playWall = (playPage, bridge) => load({now: '2026-09-23T15:40:00', bridge, overrides: settingsWith(playPage === undefined ? {} : {playPage})});
+const clockOf = w => w.document.querySelector('.clock');
+const touch = (x = 200, y = 300) => ({touches: [{clientX: x, clientY: y}]});
+
+test('Play page: without one in the household\'s settings, holding the clock does nothing and shows nothing', () => {
+  const w = playWall(undefined), clock = clockOf(w);
+  clock.fire('touchstart', touch());
+  assert.equal(w.due('playCue'), 0, 'no cue is even scheduled');
+  assert.equal(w.due('playHeld'), 0);
+  assert.equal(clock.hasAttribute('data-hold'), false);
+  assert.equal(w.window.assigned, undefined);
+  clock.fire('mousedown', {button: 0, clientX: 10, clientY: 10});
+  assert.equal(w.due('playHeld'), 0, 'nor with a mouse');
+});
+
+test('Play page: a three-second hold on the clock goes there, with a quiet cue from the first second', () => {
+  const w = playWall(PLAY), clock = clockOf(w);
+  clock.fire('touchstart', touch());
+  assert.equal(clock.hasAttribute('data-hold'), false, 'nothing changes at the touch itself');
+  assert.equal(w.due('playCue'), 1);
+  assert.equal(clock.hasAttribute('data-hold'), true, 'one second in, the clock dims');
+  clock.fire('touchmove', touch(210, 305));
+  assert.equal(w.due('playHeld'), 1, 'a finger that rests a little unevenly still holds');
+  assert.equal(w.window.assigned, PLAY.url, 'in a browser, the page opens in this tab');
+  assert.equal(clock.hasAttribute('data-hold'), false, 'and the cue is gone');
+});
+
+test('Play page: a tap, a scroll, a second finger or letting go early ends the hold', () => {
+  const cases = {
+    'a tap': c => c.fire('touchend'),
+    'a scroll': c => c.fire('touchmove', touch(200, 360)),
+    'a swipe': c => c.fire('touchmove', touch(260, 300)),
+    'a second finger': c => c.fire('touchmove', {touches: [{clientX: 200, clientY: 300}, {clientX: 400, clientY: 300}]}),
+    'the system taking the touch': c => c.fire('touchcancel')
+  };
+  for (const [name, end] of Object.entries(cases)) {
+    const w = playWall(PLAY), clock = clockOf(w);
+    clock.fire('touchstart', touch());
+    w.due('playCue');
+    end(clock);
+    assert.equal(clock.hasAttribute('data-hold'), false, name + ': the cue goes');
+    assert.equal(w.due('playHeld'), 0, name + ': nothing opens');
+    assert.equal(w.window.assigned, undefined, name);
+  }
+  const w = playWall(PLAY), clock = clockOf(w);
+  clock.fire('touchstart', {touches: [{clientX: 1, clientY: 1}, {clientX: 2, clientY: 2}]});
+  assert.equal(w.due('playHeld'), 0, 'two fingers down at once never start one');
+});
+
+test('Play page: in Gingham\'s app the app opens it, and the page hands it no address', () => {
+  const bridge = {...appBridge(), plays: 0};
+  bridge.openPlayPage = function () { bridge.plays++; assert.equal(arguments.length, 0); };
+  const w = playWall(PLAY, bridge), clock = clockOf(w);
+  clock.fire('touchstart', touch());
+  w.due('playHeld');
+  assert.equal(bridge.plays, 1);
+  assert.equal(w.window.assigned, undefined, 'the wall does not navigate itself');
+  // Fully Kiosk has a bridge by the same name but no play page: the wall goes there itself.
+  const fully = {setScreenBrightness() {}}, k = playWall(PLAY, fully);
+  clockOf(k).fire('touchstart', touch());
+  k.due('playHeld');
+  assert.equal(k.window.assigned, PLAY.url);
+});
+
+test('Play page: the wall trusts only an https address, and Settings says nothing about it', () => {
+  for (const url of ['javascript:alert(1)', 'data:text/html,hi', 'http://example.com/', '//example.com/']) {
+    const w = playWall({url, returnAfterMinutes: 3}), clock = clockOf(w);
+    clock.fire('touchstart', touch());
+    assert.equal(w.due('playHeld'), 0, url);
+    assert.equal(w.window.assigned, undefined, url);
+  }
+  const w = playWall(PLAY);
+  w.$('settings-button').click(); w.server.flush();
+  assert.doesNotMatch(w.document.body.textContent, /example\.com|play/i);
+});
+
+test('Play page: the browser\'s own long press is held back only where there is a play page', () => {
+  const menu = w => { let prevented = false; clockOf(w).fire('contextmenu', {preventDefault() { prevented = true; }}); return prevented; };
+  assert.equal(menu(playWall(PLAY)), true, 'with one, no menu or selection interrupts the hold');
+  assert.equal(menu(playWall(undefined)), false, 'without one, the clock behaves as it always has');
+  assert.equal(clockOf(playWall(PLAY)).hasAttribute('data-play'), true, 'with one, the digits cannot be selected');
+  assert.equal(clockOf(playWall(undefined)).hasAttribute('data-play'), false, 'without one, they can, as always');
+});

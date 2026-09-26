@@ -20,7 +20,8 @@ const log = m => console.error(new Date().toISOString()+' '+m);
 // Design review only: FRAME_FIXTURE=<name> answers every /api/ call from test/fixtures.js and never touches live accounts.
 const fixture = process.env.FRAME_FIXTURE ? require('./test/fixtures')[process.env.FRAME_FIXTURE] : null;
 if (process.env.FRAME_FIXTURE && !fixture) throw Error('Unknown fixture ' + process.env.FRAME_FIXTURE);
-const fixtureSettings = createSettings({persist: false});
+// FRAME_FIXTURE_PLAY=https://example.com/ gives the fixture household a play page, to try the long press on the clock.
+const fixtureSettings = createSettings({persist: false, initial: process.env.FRAME_FIXTURE_PLAY ? {playPage: {url: process.env.FRAME_FIXTURE_PLAY}} : {}});
 
 // Whether a newer Gingham is out (updates.js): asked of GitHub once shortly after start and then once a day, for the
 // whole server, unless Settings or GINGHAM_UPDATE_CHECK=off says not to. Design review never asks GitHub; it is given a

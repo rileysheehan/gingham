@@ -79,7 +79,7 @@ release). Nothing appears on the wall itself, and nothing ever updates on its ow
 
 - **Never forced.** An old frame keeps working. The notice waits in Settings and never grows louder.
 - **Forward, never backward.** A new version reads everything an older one wrote and moves it forward if it must;
-  going back a version is not supported. Everything from 0.1.0, 0.1.1 and 0.1.2 carries over to 0.1.3 as it is.
+  going back a version is not supported. Everything from 0.1.0 through 0.1.3 carries over to 0.1.4 as it is.
 - **Release notes say what a family gets**, in a few plain sentences, not just a version number
   ([RELEASING.md](RELEASING.md)).
 
@@ -96,7 +96,7 @@ WebView cheap frames ship with. `npm test` runs the tests, `npm run check` the s
 
 ## Status
 
-Early, and in daily use on one family's kitchen wall. The current release is 0.1.3. What is coming is in
+Early, and in daily use on one family's kitchen wall. The current release is 0.1.4. What is coming is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licence and security

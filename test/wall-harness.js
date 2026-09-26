@@ -71,7 +71,10 @@ class Element {
   }
   removeChild(n) { const at = this.childNodes.indexOf(n); if (at >= 0) this.childNodes.splice(at, 1); n.parentNode = null; return n; }
   contains(n) { for (let x = n; x; x = x.parentNode) if (x === this) return true; return false; }
-  addEventListener() {} removeEventListener() {}
+  // Listeners are kept so a test can fire an event at an element (`fire`); nothing else ever dispatches one.
+  addEventListener(type, fn) { (this.listeners = this.listeners || {})[type] = (this.listeners[type] || []).concat(fn); }
+  removeEventListener() {}
+  fire(type, event = {}) { (this.listeners && this.listeners[type] || []).forEach(fn => fn({type, target: this, touches: [], changedTouches: [], ...event})); }
   focus() { this.ownerDocument.activeElement = this; }
   blur() { if (this.ownerDocument.activeElement === this) this.ownerDocument.activeElement = this.ownerDocument.body; }
   click() { if (this.onclick) this.onclick({target: this, preventDefault() {}}); }
@@ -191,12 +194,12 @@ function load({fixture = 'stress', now, clock, overrides, bridge} = {}) {
   const storage = {};
   const window = {
     document, navigator: {}, innerWidth: 1920, innerHeight: 1080,
-    location: {search: now ? '?now=' + now : '', host: '127.0.0.1', origin: 'http://127.0.0.1', reload() { window.reloaded = true; }},
+    location: {search: now ? '?now=' + now : '', host: '127.0.0.1', origin: 'http://127.0.0.1', reload() { window.reloaded = true; }, assign(url) { window.assigned = url; }},
     localStorage: {getItem: k => storage[k] ?? null, setItem: (k, v) => { storage[k] = String(v); }},
     XMLHttpRequest: server.XMLHttpRequest, Date: FakeDate, Image: class { set src(v) { this._src = v; } },
     setInterval: (fn, ms) => { timers.push({fn, ms, repeat: true}); return timers.length; },
     setTimeout: (fn, ms) => { timers.push({fn, ms}); return timers.length; },
-    clearInterval() {}, clearTimeout() {},
+    clearInterval() {}, clearTimeout: id => { if (timers[id - 1]) timers[id - 1].cleared = true; },
     addEventListener() {}
   };
   window.window = window;
@@ -219,7 +222,10 @@ function load({fixture = 'stress', now, clock, overrides, bridge} = {}) {
   // Runs the page's own repeating timer that calls `name` (loadTasks, loadCalendar, …), then answers what it asked.
   const every = name => { timers.filter(t => t.repeat && t.fn.name === name).forEach(t => t.fn()); server.flush(); };
   const advance = ms => { offset += ms; };
-  return {window, document, server, $, row, today, more, sheet: () => $('day-list').children.map(row), sheetRow, every, advance};
+  // Runs the page's one-shot timers named `name` that are still pending (not cleared, not yet run), as if their time
+  // had come, and says how many ran.
+  const due = name => { const ready = timers.filter(t => !t.repeat && !t.cleared && !t.ran && t.fn.name === name); ready.forEach(t => { t.ran = true; t.fn(); }); return ready.length; };
+  return {window, document, server, $, row, today, more, sheet: () => $('day-list').children.map(row), sheetRow, every, advance, due};
 }
 
 module.exports = {load};

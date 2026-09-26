@@ -1,6 +1,6 @@
 {
   "name": "gingham",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "license": "AGPL-3.0-only",
   "description": "A family wall display for any Android tablet or photo frame: calendar, lists, weather and photos, self-hosted.",

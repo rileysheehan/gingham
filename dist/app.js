@@ -1202,6 +1202,9 @@
   var shownView = prefs.calendarView, shownSize = prefs.textSize;
   function applyPrefs() {
     themeChoice = prefs.appearance;
+    // Only a household with a play page gives up selecting the clock's digits (style.css, the hold below).
+    var clock = document.querySelector('.clock');
+    if (clock) { if (playPage()) clock.setAttribute('data-play', ''); else if (clock.hasAttribute('data-play')) clock.removeAttribute('data-play'); }
     // A different view of the calendar starts again from tomorrow, and so does a different text size, since the agenda's
     // pages were found by laying it out at the old one.
     if (prefs.calendarView !== shownView || prefs.textSize !== shownSize) { shownView = prefs.calendarView; shownSize = prefs.textSize; page = 0; agendaStarts = [0]; }
@@ -1438,6 +1441,43 @@
   $('add-input').onkeydown = function (e) { if (e.keyCode === 13) submitAdd(); };
   // Pressing Add must not take focus from the box, or the keyboard drops between every item.
   $('add-go').onmousedown = function (e) { e.preventDefault(); };
+  // The play page (DESIGN.md → "A play page, for one household"). A household whose settings.json names one can open
+  // it full screen by holding the clock for three seconds; nothing else on the wall knows it exists, and for every
+  // other household holding the clock does nothing at all. A tap, a scroll, a second finger or letting go early ends
+  // the hold. Gingham's app opens the page itself (the address comes from the server, never from this page) and brings
+  // the wall back after a few minutes untouched; any other browser simply goes there, in this tab.
+  var PLAY_HOLD_MS = 3000, PLAY_CUE_MS = 1000, PLAY_SLOP = 24, playHold = null;
+  function playPage() { var p = prefs.playPage; return p && typeof p.url === 'string' && /^https:\/\//i.test(p.url) ? p : null; }
+  function endPlayHold() {
+    if (playHold) { clearTimeout(playHold.cue); clearTimeout(playHold.done); playHold = null; }
+    if (clockBox.hasAttribute('data-hold')) clockBox.removeAttribute('data-hold');
+  }
+  function startPlayHold(x, y) {
+    endPlayHold();
+    if (!playPage()) return;
+    playHold = {x: x, y: y,
+      cue: setTimeout(function playCue() { clockBox.setAttribute('data-hold', ''); }, PLAY_CUE_MS),
+      done: setTimeout(function playHeld() { endPlayHold(); openPlayPage(); }, PLAY_HOLD_MS)};
+  }
+  function movePlayHold(x, y) { if (playHold && (Math.abs(x - playHold.x) > PLAY_SLOP || Math.abs(y - playHold.y) > PLAY_SLOP)) endPlayHold(); }
+  function openPlayPage() {
+    var p = playPage();
+    if (!p) return;
+    try { if (typeof fully === 'object' && fully && typeof fully.openPlayPage === 'function') { fully.openPlayPage(); return; } } catch (e) {}
+    location.assign(p.url);
+  }
+  var clockBox = document.querySelector('.clock');
+  clockBox.addEventListener('touchstart', function (e) { if (e.touches.length === 1) startPlayHold(e.touches[0].clientX, e.touches[0].clientY); else endPlayHold(); }, { passive: true });
+  clockBox.addEventListener('touchmove', function (e) { if (e.touches.length !== 1) endPlayHold(); else movePlayHold(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  clockBox.addEventListener('touchend', endPlayHold, { passive: true });
+  clockBox.addEventListener('touchcancel', endPlayHold, { passive: true });
+  clockBox.addEventListener('mousedown', function (e) { if (e.button === 0) startPlayHold(e.clientX, e.clientY); });
+  clockBox.addEventListener('mousemove', function (e) { movePlayHold(e.clientX, e.clientY); });
+  clockBox.addEventListener('mouseup', endPlayHold); clockBox.addEventListener('mouseleave', endPlayHold);
+  // Half a second into a press the browser offers its own long press (a menu, a selection), which would cancel the
+  // touch; a household with a play page is holding for something else.
+  clockBox.addEventListener('contextmenu', function (e) { if (playPage()) e.preventDefault(); });
+
   function touched() { lastTouch = Date.now(); }
   document.addEventListener('touchstart', touched, { passive: true }); document.addEventListener('mousedown', touched); document.addEventListener('keydown', touched);
 
