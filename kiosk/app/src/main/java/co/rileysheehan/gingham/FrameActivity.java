@@ -6,12 +6,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.InputType;
 import android.util.TypedValue;
@@ -65,6 +67,11 @@ public class FrameActivity extends Activity {
     /** While the play page is up: its address, and how long without a touch before the wall comes back. */
     private String playUrl;
     private long playReturnMs;
+    /** While the play page is up: the corner hold that closes it, and the faint mark that says it is counting. */
+    private PlayMath.CornerHold playCorner;
+    private View playMark;
+    /** The rest of a touch whose hold closed the play page, kept from the wall that replaced it. */
+    private boolean swallowGesture;
     private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override protected void onCreate(Bundle state) {
@@ -136,6 +143,7 @@ public class FrameActivity extends Activity {
         if (web != null) web.destroy();
         wallUrl = url;
         playUrl = null;
+        playCorner = null; playMark = null;
         handler.removeCallbacks(playReturn);
         web = newWebView();
         web.addJavascriptInterface(new Bridge(), "fully");
@@ -269,9 +277,73 @@ public class FrameActivity extends Activity {
             }
         });
         root.addView(web, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // The corner that closes it: the same 96 dp as the maintenance corner, its mark a soft grey that shows on a light
+        // page and a dark one alike. Native, over the page, so nothing the page draws can hide or imitate it.
+        float corner = dp(96);
+        playCorner = new PlayMath.CornerHold(corner, dp(24));
+        GradientDrawable glow = new GradientDrawable();
+        glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        glow.setColors(new int[] {0x80808080, 0x00808080});
+        glow.setGradientCenter(0f, 0f);
+        glow.setGradientRadius(corner);
+        playMark = new View(this);
+        playMark.setBackground(glow);
+        playMark.setVisibility(View.GONE);
+        root.addView(playMark, new FrameLayout.LayoutParams((int) corner, (int) corner, Gravity.TOP | Gravity.START));
         web.loadUrl(address);
         playTouched();
     }
+
+    private float dp(float value) { return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics()); }
+
+    /**
+     * The play page's corner hold, for each touch the activity sees before the page does. Returns true for the rest of
+     * a touch whose hold already closed the page, which nothing then receives: the wall never gets half a gesture.
+     * Everything else goes on to the page as it came, a tap in the corner included.
+     */
+    private boolean playCornerTouch(MotionEvent event) {
+        int action = event.getActionMasked();
+        if (swallowGesture) {
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) swallowGesture = false;
+            return true;
+        }
+        if (playUrl == null || playCorner == null) return false;
+        long t = event.getEventTime();   // uptime, the clock the handler runs on
+        if (action == MotionEvent.ACTION_DOWN) {
+            playCorner.down(event.getX(), event.getY(), t);
+            if (playCorner.at(t) != PlayMath.CornerHold.IDLE) {
+                handler.postAtTime(playCornerCue, t + PlayMath.CornerHold.CUE_MS);
+                handler.postAtTime(playCornerDone, t + PlayMath.CornerHold.HOLD_MS);
+            }
+        } else if (action == MotionEvent.ACTION_MOVE) playCorner.move(event.getX(), event.getY());
+        else playCorner.end();   // let go, cancelled, or a second finger
+        if (playCorner.at(t) == PlayMath.CornerHold.IDLE) stopCornerHold();
+        return false;
+    }
+
+    private void stopCornerHold() {
+        handler.removeCallbacks(playCornerCue);
+        handler.removeCallbacks(playCornerDone);
+        if (playCorner != null) playCorner.end();
+        if (playMark != null) playMark.setVisibility(View.GONE);
+    }
+
+    private final Runnable playCornerCue = new Runnable() { @Override public void run() {
+        if (playCorner != null && playMark != null && playCorner.at(SystemClock.uptimeMillis()) == PlayMath.CornerHold.CUED) playMark.setVisibility(View.VISIBLE);
+    } };
+
+    /**
+     * Held long enough: the wall comes back, as it does after the quiet minutes. The maintenance corner's own wait is
+     * cancelled with it, so a grown-up who keeps holding a moment longer gets the wall and not a dialog; maintenance is
+     * a fresh four-second hold from the wall.
+     */
+    private final Runnable playCornerDone = new Runnable() { @Override public void run() {
+        if (playUrl == null || playCorner == null || playCorner.at(SystemClock.uptimeMillis()) != PlayMath.CornerHold.DONE) return;
+        stopCornerHold();
+        handler.removeCallbacks(openMaintenance);
+        swallowGesture = true;
+        playReturn.run();
+    } };
 
     private void playTouched() {
         if (playUrl == null) return;
@@ -428,10 +500,12 @@ public class FrameActivity extends Activity {
     private final Runnable openMaintenance = new Runnable() { @Override public void run() { showMaintenance(); } };
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
         playTouched();
-        float corner = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 96, getResources().getDisplayMetrics());
+        float corner = dp(96);
         boolean inCorner = event.getX() < corner && event.getY() < corner;
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN && inCorner) handler.postDelayed(openMaintenance, CORNER_HOLD_MS);
         else if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL || !inCorner) handler.removeCallbacks(openMaintenance);
+        // On the play page the same corner closes it, a second sooner (playCornerTouch).
+        if (playCornerTouch(event)) return true;
         return super.dispatchTouchEvent(event);
     }
 

@@ -170,10 +170,12 @@ function makeServer(fixture, overrides) {
   function flush() {
     for (let rounds = 0; queue.length && rounds < 20; rounds++) {
       for (const xhr of queue.splice(0)) {
-        // A POST is answered by an answer named 'POST /api/…' if the test gave one, and with an empty 200 otherwise.
+        // A POST is answered by an answer named 'POST /api/…' if the test gave one, and with an empty 200 otherwise. An
+        // answer carrying `__status` is sent with that status instead, and without it.
         const route = (xhr.method === 'POST' ? 'POST ' : '') + xhr.url.split('?')[0], given = typeof answers[route] === 'function' ? answers[route]() : answers[route];
-        const body = xhr.method === 'POST' ? given || {} : given;
-        xhr.status = body ? 200 : 503;
+        let body = xhr.method === 'POST' ? given || {} : given, status = body ? 200 : 503;
+        if (body && body.__status) { status = body.__status; body = {...body}; delete body.__status; }
+        xhr.status = status;
         xhr.responseText = JSON.stringify(body || {error: 'Unavailable'});
         if (xhr.onload) xhr.onload();
       }

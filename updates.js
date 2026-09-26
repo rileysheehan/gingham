@@ -5,10 +5,10 @@
 // release of rileysheehan/gingham. The request carries no account, no cookie and nothing about any household: a fixed
 // User-Agent (GitHub refuses requests without one) and, after the first answer, the ETag GitHub gave, so an unchanged
 // answer comes back as an empty 304. Offline, rate-limited or with GitHub down, the check fails quietly and tries again
-// the next day; it never blocks a request, and the wall never waits on it. It can be turned off in the frame's Settings,
-// or for a whole server with GINGHAM_UPDATE_CHECK=off. Nothing is ever downloaded or installed here: the server only
-// learns that a release exists and what its notes say. Installing is always a person's choice (see UpdateInstaller.java
-// for the Android app).
+// the next day; it never blocks a request, and the wall never waits on it. Settings can also ask for one at once (Check
+// now, checkNow below), at most once a minute. It can be turned off in the frame's Settings, or for a whole server
+// with GINGHAM_UPDATE_CHECK=off. Nothing is ever downloaded or installed here: the server only learns that a release
+// exists and what its notes say. Installing is always a person's choice (see UpdateInstaller.java for the Android app).
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -21,6 +21,7 @@ const FIRST_AFTER = 2 * 60000;     // shortly after start, once the frame has wh
 const START_GAP = 3600000;         // ...unless a check was made within the hour, so a restart loop is not a request loop
 const TIMEOUT = 10000;
 const MAX_BODY = 512 * 1024;       // a release's JSON; its notes are capped by GitHub well below this
+const NOW_GAP = 60000;             // Check now: at most once a minute for the whole server, however many frames press it
 
 // Versions are semantic (MAJOR.MINOR.PATCH, a leading "v" allowed). A pre-release ("0.2.0-beta.1") parses but is never
 // offered, and a dev build ("0.1.1-dev.57") sorts before its release.
@@ -168,6 +169,20 @@ function createUpdates({current, form = 'node', file, fetchImpl = globalThis.fet
     timer = setTimer(() => { timer = null; check().catch(() => {}).then(schedule); }, Math.min(wait, 2 ** 31 - 1));
     if (timer && timer.unref) timer.unref();
   }
+  // Check now, from Settings: the same request, asked for by a person rather than the timer, so a release published just
+  // after the day's check is not invisible until tomorrow's. It is the server's one budget with GitHub (60 requests an
+  // hour per address, shared with everything else in the house), so it is refused, saying until when, inside a minute
+  // of the last request (by anyone, the timer included) and while a rate limit GitHub named is still running. The next
+  // daily check counts from this one.
+  async function checkNow() {
+    if (!enabled()) return {ok: false, reason: 'off'};
+    const at = now();
+    if (state.retryAfter && state.retryAfter > at) return {ok: false, reason: 'rate-limited', retryAt: state.retryAfter};
+    if (!running && state.attemptedAt && at - state.attemptedAt < NOW_GAP && at >= state.attemptedAt) return {ok: false, reason: 'too-soon', retryAt: state.attemptedAt + NOW_GAP};
+    const result = await check();
+    schedule();
+    return result.ok || result.reason !== 'rate-limited' ? result : {...result, retryAt: state.retryAfter};
+  }
   function start() { startedAt = now(); schedule(); }
   function stop() { if (timer) clearTimer(timer); timer = null; }
 
@@ -196,7 +211,7 @@ function createUpdates({current, form = 'node', file, fetchImpl = globalThis.fet
     };
   }
 
-  return {check, start, stop, schedule, setEnabled, status, enabled, state: () => state};
+  return {check, checkNow, start, stop, schedule, setEnabled, status, enabled, state: () => state};
 }
 
-module.exports = {createUpdates, parseVersion, compareVersions, isNewer, summarizeNotes, nextCheckAt, howToUpdate, REPO, LATEST_URL, RELEASES_URL, DAY, FIRST_AFTER, START_GAP};
+module.exports = {createUpdates, parseVersion, compareVersions, isNewer, summarizeNotes, nextCheckAt, howToUpdate, REPO, LATEST_URL, RELEASES_URL, DAY, FIRST_AFTER, START_GAP, NOW_GAP};

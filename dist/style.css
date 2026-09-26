@@ -384,6 +384,8 @@ button.item:active{opacity:.6}
 .choices button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
 /* A note that runs to two lines at Larger shares them rather than leaving one word under the rest, where the engine can. */
 .setting-note{text-wrap:balance;font-size:calc(1.3rem*var(--ts));color:var(--ink-2);margin:.2rem 0 0 24rem}
+.update-now{margin-left:1.5rem}
+.update-now button[disabled]{opacity:.6}
 .setting-hint{margin-left:1.5rem;font-size:calc(1.3rem*var(--ts));color:var(--ink-2)}
 /* Status is four short facts, so it sits two by two and Settings fits on one screen. */
 /* Updates: the version, the check's switch, and a notice only when there is something newer. Quiet by design: it lives

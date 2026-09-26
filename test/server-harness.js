@@ -27,9 +27,10 @@ const SERVER = path.join(__dirname, '..', 'server.js');
 const PRODUCT_ENV = ['FLY_APP_NAME', 'FRAME_ALLOW_PRIVATE_FEEDS', 'FRAME_AUTH', 'FRAME_DATA', 'FRAME_FIXTURE', 'FRAME_HOUSEHOLD',
   'FRAME_LOCAL_FRAME', 'FRAME_MASTER_KEY', 'FRAME_MDNS', 'FRAME_TRUST_PROXY', 'FRAME_URL', 'GINGHAM_GOOGLE_CLIENT_ID',
   'GINGHAM_GOOGLE_CLIENT_SECRET', 'GINGHAM_MS_CLIENT_ID', 'HOST', 'PORT', 'GINGHAM_FORM', 'GINGHAM_UPDATE_CHECK', 'GINGHAM_UPDATE_URL',
-  'FRAME_FIXTURE_UPDATE'];
-// A test server never asks GitHub whether a newer Gingham is out, unless the test says where to ask instead.
-const QUIET = {GINGHAM_UPDATE_URL: 'http://127.0.0.1:9/nothing-listens-here'};
+  'FRAME_FIXTURE_UPDATE', 'FRAME_HOUSEHOLD_CONFIG'];
+// A test server never asks GitHub whether a newer Gingham is out, unless the test says where to ask instead; and never
+// reads this repository's own household config (deploy/households/), unless the test gives it a folder of its own.
+const QUIET = {GINGHAM_UPDATE_URL: 'http://127.0.0.1:9/nothing-listens-here', FRAME_HOUSEHOLD_CONFIG: path.join(os.tmpdir(), 'gingham-test-no-household-config')};
 
 const makeData = (prefix = 'frame-test-') => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 

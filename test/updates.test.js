@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
-const {createUpdates, parseVersion, compareVersions, isNewer, summarizeNotes, nextCheckAt, DAY, FIRST_AFTER, START_GAP} = require('../updates');
+const {createUpdates, parseVersion, compareVersions, isNewer, summarizeNotes, nextCheckAt, DAY, FIRST_AFTER, START_GAP, NOW_GAP} = require('../updates');
 const releases = require('./release-fixture');
 const NEXT = releases.newer.tag_name.slice(1);   // the fixture's newer release, one patch past package.json
 
@@ -240,5 +240,54 @@ test('A release page elsewhere is not linked; the releases page is', async () =>
   const u = checker(github);
   await u.check();
   assert.equal(u.status().latest.url, 'https://github.com/rileysheehan/gingham/releases');
+  await github.close();
+});
+
+// 2026-09-25: the day's check ran at 01:27Z, 0.1.4 was published minutes later, and Settings said "up to date" to a frame
+// on 0.1.3 until the next day. Check now asks at once, and still spends GitHub's allowance like the timer does.
+test('Check now: asks at once and replaces what Settings knew, then waits a minute; the daily timer counts from it', async () => {
+  let answer = releases.same('0.1.1');
+  const github = await fakeGitHub(() => ({status: 200, body: answer}));
+  let clock = Date.parse('2026-09-25T01:27:00Z');
+  const timers = [];
+  const u = checker(github, {now: () => clock, setTimer: (fn, ms) => { const t = {fn, ms, unref() {}}; timers.push(t); return t; }, clearTimer: () => {}});
+  await u.check();
+  assert.equal(u.status().available, false, 'the day’s check: up to date');
+  answer = releases.newer;                                   // published just after it
+  clock += 2 * 3600000;
+  assert.deepEqual(await u.checkNow(), {ok: true, changed: true});
+  assert.equal(u.status().available, true, 'seen now, not tomorrow');
+  assert.equal(u.status().latest.version, NEXT);
+  assert.equal(u.status().checkedAt, clock);
+  assert.equal(timers[timers.length - 1].ms, DAY, 'the next daily check is a day after this one');
+  // Pressed again, by this frame or another: refused for a minute, saying until when, and GitHub is not asked.
+  clock += 20000;
+  assert.deepEqual(await u.checkNow(), {ok: false, reason: 'too-soon', retryAt: clock - 20000 + NOW_GAP});
+  assert.equal(github.seen.length, 2);
+  clock += NOW_GAP;
+  assert.equal((await u.checkNow()).ok, true, 'a minute later it asks again');
+  assert.equal(github.seen.length, 3);
+  await github.close();
+});
+
+test('Check now: a rate limit GitHub named is respected, and a check turned off asks nothing', async () => {
+  const at = Date.parse('2026-10-01T12:00:00Z');
+  let clock = at;
+  const github = await fakeGitHub(() => ({status: 429, headers: {'retry-after': '1800'}}));
+  const u = checker(github, {now: () => clock});
+  assert.deepEqual(await u.checkNow(), {ok: false, reason: 'rate-limited', retryAt: at + 1800000});
+  clock += 10 * 60000;
+  assert.deepEqual(await u.checkNow(), {ok: false, reason: 'rate-limited', retryAt: at + 1800000}, 'still inside the pause: not asked');
+  assert.equal(github.seen.length, 1);
+  clock = at + 1800000;
+  await u.checkNow();
+  assert.equal(github.seen.length, 2, 'asked again once the pause is over');
+  u.setEnabled(false);
+  clock += 2 * NOW_GAP;
+  assert.deepEqual(await u.checkNow(), {ok: false, reason: 'off'});
+  assert.equal(github.seen.length, 2);
+  const locked = createUpdates({current: '0.1.1', file: scratch(), env: {GINGHAM_UPDATE_CHECK: 'off', GINGHAM_UPDATE_URL: github.url}});
+  assert.deepEqual(await locked.checkNow(), {ok: false, reason: 'off'});
+  assert.equal(github.seen.length, 2);
   await github.close();
 });

@@ -120,7 +120,13 @@ node admin.js frame revoke <id>
 node admin.js frame add <household> "Kitchen" --url https://<host>   # standing link, for ADB setups
 ```
 
-On Fly the same commands run through `fly ssh console -C "su-exec node node admin.js …"`.
+On Fly the same commands run through `fly ssh console -C "su-exec node node admin.js …"`. They are for setting a
+deployment up and for getting back in when nothing else can; day to day, the setup page and the admin page do the same
+without a shell.
+
+A household's settings that should not be changed from the wall (today, only the play page) can be kept in the
+deployment's own repository instead of edited on the volume: `deploy/households/<id>.json`, shipped in the image, wins
+over the household's `settings.json`, which is tidied of it at start. See `deploy/households/README.md`.
 
 ## First run
 
@@ -235,6 +241,9 @@ never on a request's path, and the wall never waits on it.
 - **Off for a whole server:** `GINGHAM_UPDATE_CHECK=off`. The frame's Settings then shows the check as off and cannot
   change it. With one household on the server, its frame may turn the check on or off itself (Settings → Updates);
   with several, only the variable decides. The choice, the last answer and its ETag live in `data/updates.json`.
+- **Check now:** where a frame may turn the check on or off, it may also ask at once (Settings → Updates → Check now,
+  `POST /api/updates/check`). The server asks GitHub at most once a minute however many frames press it, and not at
+  all while a rate limit GitHub named is running; the daily check then counts from it.
 - **What a frame shows:** the version this server runs, and, when a newer release exists, its notes and how this copy
   is updated, from `GINGHAM_FORM`: `container` (set by the image) says to pull `ghcr.io/rileysheehan/gingham:latest`
   and start it again; a plain `node server.js` says to download the release. The Android app installs its own update

@@ -1021,6 +1021,7 @@
   // downloads the release's file for this tablet, checks it against the release's SHA256SUMS, and hands it to Android,
   // which asks the person to confirm. Anywhere else the notice says how whoever runs the server updates it.
   var updateInfo = null;     // /api/updates: {version, form, check, mayChange, checkedAt, latest, available, app, appAvailable, howTo}
+  var checkingNow = false;
   var install = { state: 'idle' }, installTimer = null;
   function appBridge() {
     try { if (typeof fully === 'object' && fully && typeof fully.ginghamApp === 'function') { var a = JSON.parse(fully.ginghamApp()); if (a && a.version) return a; } } catch (e) {}
@@ -1070,6 +1071,10 @@
       var b = node('button', '', choice[1]); b.setAttribute('aria-pressed', String(info.check === choice[0]));
       b.onclick = function () { saveUpdateCheck(choice[0]); }; box.appendChild(b);
     });
+    // Check now, beside the switch and with its authority: a release published just after the day's check shows now
+    // rather than tomorrow. The server asks GitHub at most once a minute whoever presses it (updates.js).
+    var now = $('update-now'); now.textContent = ''; now.hidden = !info.mayChange || !info.check;
+    if (!now.hidden) { var press = node('button', '', checkingNow ? 'Checking…' : 'Check now'); press.disabled = checkingNow; press.onclick = checkUpdatesNow; now.appendChild(press); }
     renderUpdateCard(info);
   }
   function renderUpdateCard(info) {
@@ -1137,6 +1142,18 @@
     if (card && group && group.offsetTop) { card.scrollTop = group.offsetTop - card.offsetTop; fadeIfScrolls(card); }
   }
   function cancelInstall() { try { fully.cancelUpdate(); } catch (e) {} pollInstall(); }
+  function checkUpdatesNow() {
+    if (checkingNow) return;
+    checkingNow = true; renderUpdates();
+    post('/api/updates/check' + (app ? '?app=' + encodeURIComponent(app.version) : ''), {}, function (status, data) {
+      checkingNow = false;
+      if (data.version) updateInfo = data;
+      renderUpdates();
+      // A newer one brings its card; the same one is worth a word, since the time beside it may not even change.
+      if (status === 200 && data.version && !(data.available || data.appAvailable)) toast('Gingham is up to date.', false);
+      else if (status !== 200) toast(data.error || 'Couldn’t check. The frame’s server isn’t answering.', false);
+    });
+  }
   function saveUpdateCheck(on) {
     post('/api/updates', { check: on }, function (status, data) {
       if (status === 200 && data.version) { updateInfo = data; renderUpdates(); if (on) setTimeout(loadUpdates, 5000); }

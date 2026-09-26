@@ -290,6 +290,18 @@ async function serve(req,res){
     if (typeof body.check !== 'boolean') return json(res,400,{error:'Send {"check": true} or {"check": false}'});
     return json(res,200,{...updates.setEnabled(body.check),mayChange:true});
   }
+  // Check now, with the same authority as the switch: asks GitHub at once, at most once a minute for the whole server
+  // (updates.js), and answers with what Settings shows afterwards. Refused, it says until when.
+  if (pathname === '/api/updates/check') {
+    if (req.method !== 'POST') return json(res,405,{error:'Use POST'});
+    if (!fromOurPages(req)) return json(res,403,{error:'Not allowed'});
+    if (!fixture && (updates.status().locked || households.list().length > 1)) return json(res,403,{error:'Whoever runs this frame’s server decides this.'});
+    if (!updates.enabled()) return json(res,409,{error:'Turn Check for updates on first.'});
+    const result = await updates.checkNow(), status = {...updates.status(url.searchParams.get('app')),mayChange:true};
+    if (result.retryAt) { const wait = Math.max(1, Math.ceil((result.retryAt - Date.now()) / 60000)); return json(res,429,{...status,retryAt:result.retryAt,error:result.reason === 'too-soon' ? 'Checked a moment ago. Try again in a minute.' : 'GitHub asked for a pause. Try again in ' + (wait < 90 ? wait + (wait === 1 ? ' minute.' : ' minutes.') : Math.round(wait / 60) + ' hours.')}); }
+    if (!result.ok) return json(res,502,{...status,error:'Couldn’t reach GitHub. The daily check will try again.'});
+    return json(res,200,status);
+  }
   if (fixture && pathname.startsWith('/api/')) {
     if (/\/close$/.test(pathname)) return json(res,200,{ok:true});
     if (pathname === '/api/household') return json(res,200,{name:'Household',timezone:fixturePlace.timezone,place:fixturePlace.label,country:process.env.FRAME_FIXTURE_COUNTRY||fixturePlace.country,countdowns:fixture.countdowns||[]});

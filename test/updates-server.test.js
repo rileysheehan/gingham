@@ -59,6 +59,48 @@ test('The switch in Settings is kept on the server, needs our header, and a shar
   } finally { await s.stop(); }
 });
 
+test('Check now: one press asks GitHub at once, with the switch’s authority, at most once a minute for the server', async () => {
+  const http = require('node:http');
+  const releases = require('./release-fixture');
+  let asked = 0;
+  const github = http.createServer((req, res) => { asked++; res.writeHead(200, {'Content-Type': 'application/json'}); res.end(JSON.stringify(releases.newer)); });
+  await new Promise(resolve => github.listen(0, '127.0.0.1', resolve));
+  const env = {GINGHAM_UPDATE_URL: 'http://127.0.0.1:' + github.address().port + '/repos/rileysheehan/gingham/releases/latest'};
+  const data = makeData(); writeHousehold(data, 'home');
+  let s = await startServer({data, env});
+  try {
+    assert.equal((await fetch(s.url + '/api/updates/check', {method: 'POST', headers: {'Content-Type': 'application/json'}})).status, 403, 'no header, no check');
+    assert.equal((await fetch(s.url + '/api/updates/check')).status, 405);
+    const first = await fetch(s.url + '/api/updates/check?app=0.1.0', {method: 'POST', headers: ours, body: '{}'});
+    assert.equal(first.status, 200);
+    const body = await first.json();
+    assert.equal(body.latest.version, releases.newer.tag_name.slice(1));
+    assert.equal(body.appAvailable, true, 'the app’s own version is compared, as in GET');
+    assert.equal(body.mayChange, true);
+    assert.ok(body.checkedAt);
+    assert.equal(asked, 1);
+    const again = await fetch(s.url + '/api/updates/check', {method: 'POST', headers: ours, body: '{}'});
+    assert.equal(again.status, 429);
+    const refused = await again.json();
+    assert.equal(refused.error, 'Checked a moment ago. Try again in a minute.');
+    assert.ok(refused.retryAt > Date.now());
+    assert.equal(refused.latest.version, body.latest.version, 'and still says what it knows');
+    assert.equal(asked, 1, 'GitHub is not asked twice in a minute');
+    assert.equal((await (await fetch(s.url + '/api/updates')).json()).latest.version, body.latest.version, 'Settings’ next look sees it too');
+    await fetch(s.url + '/api/updates', {method: 'POST', headers: ours, body: '{"check":false}'});
+    assert.equal((await fetch(s.url + '/api/updates/check', {method: 'POST', headers: ours, body: '{}'})).status, 409, 'off means off');
+  } finally { await s.stop(); }
+  // Where the frame may not flip the switch, it may not press this either.
+  const shared = makeData(); writeHousehold(shared, 'one'); writeHousehold(shared, 'two');
+  s = await startServer({data: shared, env});
+  try { assert.equal((await fetch(s.url + '/api/updates/check', {method: 'POST', headers: ours, body: '{}'})).status, 403); } finally { await s.stop(); }
+  const locked = makeData(); writeHousehold(locked, 'home');
+  s = await startServer({data: locked, env: {...env, GINGHAM_UPDATE_CHECK: 'off'}});
+  try { assert.equal((await fetch(s.url + '/api/updates/check', {method: 'POST', headers: ours, body: '{}'})).status, 403); } finally { await s.stop(); }
+  assert.equal(asked, 1);
+  github.closeAllConnections(); github.close();
+});
+
 test('Design review never asks GitHub, and shows a newer release when told to', async () => {
   const s = await startServer({env: {FRAME_FIXTURE: 'stress', FRAME_FIXTURE_UPDATE: 'available'}});
   try {

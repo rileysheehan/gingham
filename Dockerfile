@@ -4,6 +4,8 @@ RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY package.json *.js ./
 COPY dist ./dist
+# Each household's config kept in git (deploy/households/README.md); in Gingham itself, only that README.
+COPY deploy ./deploy
 # GINGHAM_FORM tells Settings how this copy is updated: by pulling a new image. The version is package.json's.
 ENV NODE_ENV=production FRAME_DATA=/data FRAME_AUTH=required PORT=8080 HOST=0.0.0.0 GINGHAM_FORM=container
 EXPOSE 8080

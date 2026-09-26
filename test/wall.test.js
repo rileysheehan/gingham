@@ -296,6 +296,36 @@ test('Up to date, and turned off, say so in one line', () => {
   assert.equal(w.$('update-locked').textContent, 'On, set by whoever runs this frame’s server');
 });
 
+// 2026-09-25: a release published minutes after the day's check stayed unseen until the next day. Check now sits
+// beside the switch, with the switch's authority, and says what it found.
+test('Check now: beside the switch where the frame may flip it, and it shows what the server found', () => {
+  const upToDate = updates({latest: {...release, version: '0.1.1'}, available: false});
+  let w = load({now: '2026-09-23T15:40:00', overrides: {'/api/updates': upToDate, 'POST /api/updates/check': updates({checkedAt: Date.parse('2026-09-23T20:40:00Z')})}});
+  const box = w.$('update-now');
+  assert.equal(box.hidden, false);
+  assert.deepEqual(box.children.map(b => b.textContent), ['Check now']);
+  box.children[0].click();
+  assert.equal(box.children[0].textContent, 'Checking…', 'said while it asks');
+  assert.equal(box.children[0].disabled, true, 'and not pressed twice');
+  w.server.flush();
+  assert.equal(w.$('update-card').hidden, false, 'the newer release is there at once');
+  assert.equal(w.$('update-title').textContent, 'Gingham 0.1.2 is available');
+  assert.equal(w.$('update-now').children[0].textContent, 'Check now');
+  assert.equal(w.$('toast').hidden, true);
+  // Nothing newer: said in a word, since the time beside the version may not even change.
+  w = load({now: '2026-09-23T15:40:00', overrides: {'/api/updates': upToDate, 'POST /api/updates/check': upToDate}});
+  w.$('update-now').children[0].click(); w.server.flush();
+  assert.equal(w.$('toast-text').textContent, 'Gingham is up to date.');
+  // Pressed again inside the minute: the server's words, and what it knew is still shown.
+  w = load({now: '2026-09-23T15:40:00', overrides: {'/api/updates': upToDate, 'POST /api/updates/check': {...upToDate, __status: 429, error: 'Checked a moment ago. Try again in a minute.'}}});
+  w.$('update-now').children[0].click(); w.server.flush();
+  assert.equal(w.$('toast-text').textContent, 'Checked a moment ago. Try again in a minute.');
+  assert.equal(w.$('update-state').textContent, 'Up to date, checked 9:05 AM');
+  // Off, or a shared server's: nothing to press.
+  assert.equal(load({now: '2026-09-23T15:40:00', overrides: {'/api/updates': updates({check: false, latest: null, available: false})}}).$('update-now').hidden, true);
+  assert.equal(load({now: '2026-09-23T15:40:00', overrides: {'/api/updates': updates({mayChange: false})}}).$('update-now').hidden, true);
+});
+
 test('In Gingham’s app: a dot on Settings, Install, the permission walk-through, progress, and failures in plain words', () => {
   const bridge = appBridge();
   const w = load({now: '2026-09-23T15:40:00', bridge, overrides: {'/api/updates': updates({form: 'app', app: '0.1.1', appAvailable: true, howTo: 'On this tablet, download gingham-either.apk from github.com/rileysheehan/gingham/releases and open it.'})}});

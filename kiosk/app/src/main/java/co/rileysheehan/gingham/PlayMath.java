@@ -60,6 +60,50 @@ final class PlayMath {
         return scheme + "://" + host.toLowerCase(Locale.ROOT) + ":" + port;
     }
 
+    /**
+     * Holding the top-left corner closes the play page (DESIGN.md → "A play page, for one household"): the clock's hold
+     * in reverse, for a grown-up whose child has left the page somewhere the page offers no way out of. FrameActivity
+     * reads every touch before the play page does, so the page can neither block the hold nor fake one; this is only
+     * the arithmetic, in plain Java so it is tested with a JDK.
+     *
+     * One finger comes down inside the corner and stays there, within a little slop, for HOLD_MS: the wall comes back.
+     * At CUE_MS a faint mark appears in the corner, as the clock dims, so whoever is holding knows to keep holding.
+     * Letting go, a second finger, a cancelled touch, leaving the corner or sliding more than the slop ends it, and
+     * nothing of it ever stops a touch reaching the page: a tap there is the page's tap.
+     */
+    static final class CornerHold {
+        static final long CUE_MS = 1_000, HOLD_MS = 3_000;
+        /** Nothing held; held, not yet a second; held a second or more (the mark shows); held long enough. */
+        static final int IDLE = 0, HOLDING = 1, CUED = 2, DONE = 3;
+
+        private final float size, slop;
+        private float startX, startY;
+        private long since = -1;
+
+        /** `size`: the corner's side, and `slop`: how far a held finger may drift, both in pixels. */
+        CornerHold(float size, float slop) { this.size = size; this.slop = slop; }
+
+        boolean inCorner(float x, float y) { return x >= 0 && y >= 0 && x < size && y < size; }
+
+        /** The first finger down, at time `t` (ms): a hold starts only inside the corner. */
+        void down(float x, float y, long t) {
+            if (inCorner(x, y)) { startX = x; startY = y; since = t; } else since = -1;
+        }
+        /** The finger moved: out of the corner, or further than the slop, ends the hold. */
+        void move(float x, float y) {
+            if (since >= 0 && (!inCorner(x, y) || Math.abs(x - startX) > slop || Math.abs(y - startY) > slop)) since = -1;
+        }
+        /** Let go, cancelled, or a second finger. */
+        void end() { since = -1; }
+
+        /** Where the hold is at time `t` (ms). */
+        int at(long t) {
+            if (since < 0) return IDLE;
+            long held = t - since;
+            return held >= HOLD_MS ? DONE : held >= CUE_MS ? CUED : HOLDING;
+        }
+    }
+
     /** Where to ask the wall's own server for the household's settings: the wall's origin, /api/settings. */
     static String settingsUrl(String wall) {
         String o = origin(wall);
