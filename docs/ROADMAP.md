@@ -4,7 +4,6 @@ Where Gingham is going, roughly in order. Nothing here is promised by a date.
 
 ## Next
 
-- **Releases.** Signed Android builds and a container image published from this repository.
 - **A guide for newcomers**, including a hardware guide: which tablets and frames work, and how to mount one.
 - **More sources.** TickTick; calendars through the same connections as lists (iCloud, Nextcloud and Fastmail by
   CalDAV, Outlook through Microsoft), which is also the way to adding and editing events.
