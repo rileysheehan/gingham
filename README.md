@@ -66,7 +66,8 @@ covers households, pairing, secrets, each list service, Fly.io, and running it f
 `kiosk/` is the app: one activity, a WebView and the server, no libraries. It needs Android 8.0 or later and was built
 on a 15.6-inch 1920×1080 photo frame with 1 GB of memory. Signed builds are in this repository's
 [releases](https://github.com/rileysheehan/gingham/releases): most frames and cheap tablets want `gingham-32bit.apk`,
-and `gingham-either.apk` works on any. To build it yourself, `kiosk/` builds with Gradle (see its build file for the
+and `gingham-either.apk` works on any. On a tablet, open the release in its browser and install the file; a frame
+without a browser installs it from a computer over USB, as [docs/FRAMES.md](docs/FRAMES.md) shows. To build it yourself, `kiosk/` builds with Gradle (see its build file for the
 Node runtime it expects).
 
 ### Updates

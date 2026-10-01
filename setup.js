@@ -266,7 +266,7 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
 
   // Which household this request may manage: an owner's own, or the one an admin names.
   function homeFor(grant, url) {
-    if (!grant) throw fail(401, 'Open your setup link first.');
+    if (!grant) throw fail(401, 'Connect this device on the setup page first.');
     const id = grant.scope === 'admin' ? url.searchParams.get('household') : grant.household;
     const home = households.get(id);
     if (!home || !mayManage(grant, home.id)) throw fail(403, 'This device cannot manage that household.');
@@ -295,7 +295,7 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
     const given = Buffer.from(String(browser)), expected = Buffer.from(String(state));
     const sameBrowser = !!pending && given.length === expected.length && crypto.timingSafeEqual(given, expected);
     const page = (status, message, then) => ({status, html: '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-      '<meta name="robots" content="noindex">' + (then ? '<meta http-equiv="refresh" content="0;url=' + then + '">' : '') + '<title>Google Tasks</title><link rel="stylesheet" href="/setup.css"></head>' +
+      '<meta name="robots" content="noindex">' + (then ? '<meta http-equiv="refresh" content="0;url=' + then + '">' : '') + '<title>Google Tasks</title><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/setup.css"></head>' +
       '<body><main><header class="top"><p class="eyebrow">Google Tasks</p><h1>' + escapeHtml(message) + '</h1></header>' +
       '<section class="card"><a class="button primary" href="' + (then || '/setup') + '">Back to setup</a></section></main></body></html>'});
     if (!pending || pending.until < Date.now()) return page(400, 'That sign-in ran out. Go back to setup and try again.');

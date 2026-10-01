@@ -88,7 +88,7 @@ test('Later puts whose a chore is after its title, as a monogram (GA-21)', () =>
   const row = w.$('later-rows').children.find(el => el.textContent.includes('Return: library book'));
   assert.ok(row, 'June\'s library book is in Later');
   const what = row.querySelector('.what');
-  assert.equal(what.children[0].textContent, '📚 Return: library book');
+  assert.equal(what.children[0].textContent, 'Return: library book', 'June’s picture belongs to her own list');
   assert.ok(what.children[1].classes.includes('avatar'));
   assert.equal(what.children[1].textContent, 'J');
   assert.ok(!row.textContent.includes('June ·'));
@@ -405,7 +405,7 @@ test('The agenda is one list from tomorrow, grouped by day, and Later folds into
   const blocks = agendaOf(w);
   assert.equal(blocks[0].day, 'Thursday, September 24', 'Today is the left panel; the list starts tomorrow');
   assert.equal(blocks[0].date, '24Tomorrow');
-  assert.deepEqual(blocks[0].rows.map(r => r.title), ['Theo in Chicago for work', 'Priya’s birthday', 'Gym', 'June to school', 'Design review', 'Lunch with Dana', 'Pickup', 'Dinner at the noodle place', 'Water: plants', '⚽️ Pack: soccer bag']);
+  assert.deepEqual(blocks[0].rows.map(r => r.title), ['Theo in Chicago for work', 'Priya’s birthday', 'Gym', 'June to school', 'Design review', 'Lunch with Dana', 'Pickup', 'Dinner at the noodle place', 'Water: plants', 'Pack: soccer bag']);
   // Today's one-line rows: a time column that says when (how long a trip runs, or that it is all day), the title, whose it
   // is after it.
   const rows = blocks[0].rows;
@@ -691,4 +691,84 @@ test('Play page: the browser\'s own long press is held back only where there is 
   assert.equal(menu(playWall(undefined)), false, 'without one, the clock behaves as it always has');
   assert.equal(clockOf(playWall(PLAY)).hasAttribute('data-play'), true, 'with one, the digits cannot be selected');
   assert.equal(clockOf(playWall(undefined)).hasAttribute('data-play'), false, 'without one, they can, as always');
+});
+
+// The dock as the wall shows it: each tab's name if it shows one, its count if it has one, and which have given up their names.
+const dockOf = w => w.$('tabs').children.filter(el => el.classes.includes('list-tab')).map(el => ({name: el.querySelector('.label').textContent, short: el.classes.includes('short'), count: el.querySelector('b') ? el.querySelector('b').textContent : null, label: el.getAttribute('aria-label')}));
+// The wall's dock has Photos at its end, as the stress fixture's household does on the wall.
+const PHOTOS = {'/api/photos': {configured: true, photos: [{url: '/photos/a.jpg', width: 900, height: 1200, taken: '2026-09-20'}]}};
+const moreLists = extra => { const base = require('./fixtures').stress.tasks, add = [['Mara', 'list', true, '#4793e0'], ['Packing', 'suitcase'], ['Projects', 'sparkles'], ['Errands', 'list'], ['Theo', 'list', true, '#38977b']].slice(0, extra);
+  return {...PHOTOS, '/api/tasks': {...base, projects: [...base.projects, ...add.map(l => l[0])], lists: [...base.lists, ...add.map(([name, icon, person = false, color = '']) => ({name, icon, person, kid: false, color, description: ''}))], tasks: [...base.tasks, ...add.map(([name], i) => ({id: 'x' + i, title: 'One thing', priority: 'p4', due: '', project: name, section: '', labels: '', recurring: false, assignee: ''}))]}}; };
+
+test('An empty list shows no count in the dock, and a screen reader still hears it (W-07)', () => {
+  const tabs = dockOf(load({now: '2026-09-23T17:40:00'}));
+  const garage = tabs.find(t => t.name === 'Garage');
+  assert.equal(garage.count, null, 'a count is work to be done; zero is not');
+  assert.equal(garage.label, 'Garage, 0 items');
+  assert.deepEqual(tabs.filter(t => t.name !== 'Garage').map(t => t.count), ['3', '12', '33', '4']);
+});
+
+test('Lists give up their names one at a time: a person\'s list first, then a glyph\'s, each from the right, a plain list last (W-06)', () => {
+  // The stress fixture's five lists at 1920: only June's monogram stands in for her name; the four household names stay.
+  let w = load({now: '2026-09-23T17:40:00', overrides: PHOTOS});
+  assert.ok(w.$('tabs').textContent.endsWith('Photos'));
+  assert.deepEqual(dockOf(w).filter(t => t.short).map(t => t.name), ['June']);
+  assert.equal(w.$('tabs').className, 'tabs');
+  // More lists: the names that go are always the start of one order, and never a whole kind of list at once.
+  const ORDER = ['Theo', 'Mara', 'June', 'Projects', 'Packing', 'Grocery', 'Chores', 'Family', 'Errands', 'Garage'];
+  let before = 1;
+  for (let extra = 1; extra <= 5; extra++) {
+    w = load({now: '2026-09-23T17:40:00', overrides: moreLists(extra)});
+    const tabs = dockOf(w), gone = ORDER.filter(name => tabs.some(t => t.name === name && t.short));
+    assert.deepEqual(tabs.filter(t => t.short).map(t => t.name).sort(), [...gone].sort(), extra + ' more: ' + gone.join(', '));
+    assert.deepEqual(gone, ORDER.filter(name => tabs.some(t => t.name === name)).slice(0, gone.length), extra + ' more: names go in order');
+    assert.ok(gone.length >= before, 'more lists never give back a name');
+    assert.ok(tabs.some(t => !t.short), 'something is still named');
+    before = gone.length;
+    // A plain list's mark says nothing alone: it keeps its name until the pills have tightened.
+    if (tabs.some(t => t.short && (t.name === 'Garage' || t.name === 'Errands'))) assert.equal(w.$('tabs').className.split(' ')[1], 'tight');
+  }
+  // Six lists: both monograms and the rightmost glyph stand in, and Family and Chores keep their names beside Garage.
+  w = load({now: '2026-09-23T17:40:00', overrides: moreLists(1)});
+  assert.deepEqual(dockOf(w).filter(t => !t.short).map(t => t.name), ['Family', 'Chores', 'Garage']);
+  // The open list keeps its name whatever the room.
+  w = load({now: '2026-09-23T17:40:00', overrides: moreLists(5)});
+  w.$('tabs').children.find(el => el.textContent.includes('June')).click();
+  assert.equal(dockOf(w).find(t => t.name === 'June').short, false);
+});
+
+test('A kid\'s emoji is the row\'s picture in her list, and gone from every row outside it, where the monogram says whose (W-10)', () => {
+  const june = title => /^(Practice: piano|Pack: soccer bag|Return: library book|Brush teeth)$/.test(title);
+  // The week, Later and a day sheet: the title without the emoji, and June's monogram after it.
+  const w = load({now: '2026-09-23T15:40:00'});
+  const rows = [...w.$('strip').querySelectorAll('.item'), ...w.$('today-list').querySelectorAll('.item')].filter(el => el.classes.includes('task'));
+  const hers = rows.filter(el => june(w.row(el).title));
+  assert.ok(hers.length >= 2, 'June\'s chores are on the wall: ' + hers.length);
+  for (const el of hers) {
+    assert.ok(!el.querySelector('.kid-emoji'), w.row(el).title + ': no picture outside her list');
+    assert.ok([...el.querySelectorAll('.avatar')].some(a => a.textContent === 'J'), w.row(el).title + ': her monogram');
+  }
+  assert.ok(!/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(w.$('later-rows').textContent), 'Later carries no emoji');
+  // The agenda.
+  const agenda = agendaAt('2026-09-23T15:40:00');
+  assert.ok(agenda.$('agenda').querySelectorAll('.item').some(el => w.row(el).title === 'Pack: soccer bag'));
+  assert.ok(!agenda.$('agenda').querySelector('.kid-emoji'));
+  // Her own list: the emoji is lifted out of the title and shown as the row's picture.
+  w.$('tabs').children.find(el => el.textContent.includes('June')).click();
+  const bag = w.$('list-body').querySelectorAll('.item').find(el => w.row(el).title === 'Pack: soccer bag');
+  assert.equal(bag.querySelector('.kid-emoji').textContent, '⚽️');
+  // Only a young child's list means anything by a leading emoji: anyone else's title keeps it as typed.
+  const base = require('./fixtures').stress.tasks;
+  const cake = load({now: '2026-09-23T15:40:00', overrides: {'/api/tasks': {...base, tasks: [...base.tasks, {id: 'cake', title: '🎂 Bake: the cake', priority: 'p4', due: '2026-09-24', project: 'Family', section: '', labels: '', recurring: false, assignee: ''}]}}});
+  assert.ok(cake.$('strip').querySelectorAll('.item').some(el => cake.row(el).title === '🎂 Bake: the cake'));
+});
+
+test('Offline, the note sits in the middle of the card, and Today says when the lists are down too (W-05)', () => {
+  const w = load({fixture: 'offline', now: '2026-09-23T09:10:00'});
+  assert.equal(w.$('today-list').textContent, 'Can’t reach the calendar or the lists');
+  const note = w.$('strip').children[0];
+  assert.ok(note.classes.includes('outage'), 'centred, as the first-run screen is');
+  assert.equal(note.textContent, 'Can’t reach the calendarTrying again every minute');
+  // With the lists answering, Today names only the calendar.
+  assert.equal(load({fixture: 'empty', now: '2026-09-23T09:10:00', overrides: {'/api/calendar': null}}).$('today-list').textContent, 'Can’t reach the calendar');
 });

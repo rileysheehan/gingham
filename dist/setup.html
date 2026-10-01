@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex">
   <title>Gingham setup</title>
+  <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/setup.css">
 </head>
 <body>
@@ -35,7 +36,7 @@
         <button class="primary" id="c-add">Add calendar</button>
         <p class="error" data-for="calendar-add"></p>
         <div class="help">
-          <p><b>Google Calendar</b>, on a computer: Settings, pick the calendar, then copy "Secret address in iCal format".</p>
+          <p><b>Google Calendar</b>, on a computer: Settings, pick the calendar, then copy “Secret address in iCal format”.</p>
           <p><b>Apple Calendar</b>: tap the ⓘ beside the calendar, turn on Public Calendar, then Share Link.</p>
           <p><b>Outlook</b>: Settings, Calendar, Shared calendars, Publish a calendar, then copy the ICS link.</p>
           <p>Anyone with the link can read that calendar, so it is kept as a secret here and never shown again.</p>
@@ -223,15 +224,15 @@
   </main>
 
   <main id="locked" hidden>
-    <header class="top"><p class="eyebrow">Setup</p><h1>Open your setup link</h1></header>
+    <header class="top"><p class="eyebrow">Setup</p><h1>Connect this phone</h1></header>
     <section class="card">
       <h2 class="eyebrow">From your frame</h2>
-      <p class="note">On the frame, open Settings, tap "Manage from a phone" and enter your household PIN. Point this phone’s camera at the code it shows, or type the code here.</p>
+      <p class="note">On the frame, open Settings, tap “Manage from a phone” and enter your household PIN. Point this phone’s camera at the code it shows, or type the code here.</p>
       <label>The code on the frame<input id="claim-code" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC-123" class="code"></label>
       <button class="primary" id="claim-go">Continue</button>
       <p class="error" data-for="claim"></p>
     </section>
-    <section class="card"><h2 class="eyebrow">Or by link</h2><p class="note">Open the setup link you were sent on this device, or ask someone who is already set up to add you from their "Who can change this".</p></section>
+    <section class="card"><h2 class="eyebrow">Or by link</h2><p class="note">Open the setup link you were sent on this device, or ask someone who is already set up to add you from their “Who can change this”.</p></section>
   </main>
   <p id="toast" role="status" hidden></p>
   <script src="/setup-page.js"></script>

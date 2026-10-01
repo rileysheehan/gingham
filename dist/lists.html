@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Lists">
   <title>Lists</title>
+  <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/setup.css">
 </head>
 <body class="lists-page">
@@ -15,7 +16,7 @@
       <p class="eyebrow" id="household">Your household</p>
       <h1>Lists</h1>
     </header>
-    <nav class="chips scroll" id="tabs" aria-label="Lists"></nav>
+    <nav class="chips lists" id="tabs" aria-label="Lists"></nav>
     <form class="add-bar" id="add" autocomplete="off">
       <input id="add-input" maxlength="200" enterkeyhint="done" autocapitalize="sentences" aria-label="Add an item">
       <button class="primary" id="add-go">Add</button>
@@ -31,8 +32,8 @@
   </main>
 
   <main id="locked" hidden>
-    <header class="top"><p class="eyebrow">Lists</p><h1>This phone isn’t let in yet</h1></header>
-    <section class="card"><p class="note">Open the setup page and get in from your frame or with a link. Then come back here.</p><a class="button primary" href="/setup">Open setup</a></section>
+    <header class="top"><p class="eyebrow">Lists</p><h1>This phone isn’t connected yet</h1></header>
+    <section class="card"><p class="note">Connect it on the setup page, from your frame or by link. Then come back here.</p><a class="button primary" href="/setup">Open setup</a></section>
   </main>
 
   <p id="toast" role="status" hidden></p>

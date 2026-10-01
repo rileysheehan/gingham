@@ -1,7 +1,7 @@
 /* The setup page: the frame's type and colour, laid out for a phone held in one hand. */
 @font-face{font-family:"Inter";src:url(/fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
-:root{--text:"Inter",-apple-system,system-ui,sans-serif;--surface:#f3f6f9;--card:#fff;--ink:#10263f;--ink-2:#51647a;--line:#d6dfe7;--accent:#1b66c9;--on-accent:#fff;--press:#e6ecf2;--bad:#b3261e;--good:#1f7a4d;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--surface:#0c111d;--card:#151c2c;--ink:#dfe4ef;--ink-2:#8f9bb3;--line:#273047;--accent:#8db8ff;--on-accent:#0c1a33;--press:#1e2740;--bad:#ff8a80;--good:#7fd6a7}}
+/* Colour lives in tokens.css, linked before this file; the theme follows the phone's. */
+:root{--text:"Inter",-apple-system,system-ui,sans-serif;color-scheme:light dark}
 *{box-sizing:border-box;margin:0}
 html{-webkit-text-size-adjust:100%}
 body{font:400 17px/1.45 var(--text);font-feature-settings:"cv05","cv08";background:var(--surface);color:var(--ink);padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 3rem)}
@@ -59,9 +59,9 @@ details[open]>summary::before{content:"–"}
 a{color:var(--accent)}
 a.button{display:block;text-align:center;text-decoration:none;font:600 1rem/1 var(--text);border-radius:.75rem;padding:1rem 1.1rem;margin-top:1rem}
 a.button.primary{background:var(--accent);color:var(--on-accent)}
-.chips.scroll{flex-wrap:nowrap;overflow-x:auto;margin:0 -1rem;padding:0 1rem .2rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.chips.scroll::-webkit-scrollbar{display:none}
-.chips.scroll .chip{flex:none;font-size:.95rem;padding:.65rem .95rem;min-height:2.6rem;border-radius:1.3rem;white-space:nowrap}
+/* The lists wrap onto a second line rather than scroll off the edge: a name cut at the edge was the only sign there were
+   more, and five lists fit on two lines. */
+.chips.lists .chip{flex:none;font-size:.95rem;padding:.65rem .95rem;min-height:2.6rem;border-radius:1.3rem;white-space:nowrap}
 .add-bar{position:sticky;top:0;z-index:2;display:flex;gap:.5rem;align-items:stretch;padding:.8rem 0;background:var(--surface)}
 .add-bar input{margin-top:0;background:var(--card)}
 .add-bar button.primary{width:auto;margin-top:0;padding:0 1.3rem}

@@ -2,13 +2,15 @@
   Gingham, a family wall display — product site. Static, no build step.
   Fonts are the product's own, self-hosted under fonts/ with their OFL licences.
 
-  By day the page is white, ink and hairlines; the only colour on it is the product (its sky) and
-  the mark. The mark is a gingham made the way gingham is: two translucent bands crossing, so one
-  colour, butter, gives the pale check, the deep check and the white.
+  The top of the page is the wall's sky at the visitor's hour: sky.js paints it the way the product
+  paints its sky window, and the hero's words take the sky's ink, navy or cream, as the wall's do. It
+  fades into a soft mist behind the screen, and the page below is ink and hairlines on that mist; the
+  only other colour is the product and the mark. The mark is a gingham made the way gingham is: two
+  translucent bands crossing, so one colour, butter, gives the pale check, the deep check and the white.
 
-  At night the page is not an inversion. The wall screen shows the product's own evening — its dark
-  theme under a dusk sky, as it looks at 7 PM — and lights the wall around it; the mark's butter
-  becomes the colour of the one button that matters.
+  At night the page is not an inversion. The sky is night at any hour, as on a frame set to Dark; the
+  wall screen shows the product's own evening — its dark theme under a dusk sky, as it looks at 7 PM —
+  and lights the wall around it; the mark's butter becomes the colour of the one button that matters.
 */
 @font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-grotesque-var.woff2) format("woff2");font-weight:200 800;font-display:swap}
 @font-face{font-family:"Inter";src:url(fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
@@ -17,8 +19,9 @@
   --display:"Bricolage Grotesque","Avenir Next","Segoe UI",Roboto,sans-serif;
   --text:"Inter","Helvetica Neue",Roboto,Arial,sans-serif;
 
-  --ground:#ffffff;
-  --band:#f2f4f7;
+  /* Mist, not white: the ground the sky fades into. */
+  --ground:#f6f8fb;
+  --band:#edf1f6;
   --ink:#10263f;
   --ink-2:#5b6b7d;
   --line:#dfe4ea;
@@ -31,8 +34,10 @@
   --bezel-rim:rgba(255,255,255,.06);
   --edge:rgba(16,38,63,.14);
   --crop-shadow:0 0 0 1px var(--edge);
-  /* The rose and blue glow behind the mock: softer on the white page than on the night one, where it is 1. */
-  --glow:.6;
+  /* The rose and blue glow behind the mock: on the sky it is a hint, softer by day than at night. */
+  --glow:.3;
+  /* How far the glow reaches past the bezel. On the white page it stays close, so the rose never reaches the margin. */
+  --glow-inset:-8% -4% -4%;
 
   /* The wall screen's own palette, from the product's stylesheet: its light theme, by day. */
   --s-surface:#f3f6f9;--s-card:#ffffff;--s-ink:#10263f;--s-ink-2:#51647a;--s-line:#d6dfe7;--s-accent:#1b66c9;
@@ -40,20 +45,30 @@
   /* The sky is the product's own at 5:42 PM under partly cloudy: its day-to-dusk blend, drained 30% toward grey by the
      cloud cover and each end held to 8:1 against the ink (app.js paintSky), read off the real app with the mock's household. */
   --sky-top:#a4bed9;--sky-bottom:#cfd0dd;--sky-ink:#0b2545;--sun:#ffc94d;--rain:#4a97e8;
-  --cloud:rgba(255,255,255,.62);--sunglow:1;--stars:0;--photo-dim:1;--fill-dim:.55;--day-icon:block;--night-icon:none;
+  --cloud:rgba(255,255,255,.62);--sunglow:1;--stars:0;--photo-dim:1;--fill-dim:.85;--day-icon:block;--night-icon:none;
+  /* The hero's sky. sky.js paints these for the visitor's hour; until it does, and without it, the wall's clear day,
+     each end held to 8:1 against the navy ink. Secondary words are the ink at 85%, the wall's rule on its sky. */
+  --hero-top:rgb(138,194,241);--hero-bottom:rgb(212,236,250);--hero-ink:#0b2545;--hero-ink-2:rgba(11,37,69,.85);--hero-line:rgba(11,37,69,.38);
+  /* The wall's sun glow, in the top corner of a clear day; a night sky has its stars instead (.sky-cream). */
+  --sky-glow:radial-gradient(520px 420px at 88% -60px,rgba(255,246,220,.55),rgba(255,246,220,0));
   color-scheme:light;
 }
+/* Under cream ink the sky is evening or night: no sun glow (the wall's rule: the weather follows the ink, not the clock). */
+:root.sky-cream{--sky-glow:linear-gradient(transparent,transparent)}
 @media (prefers-color-scheme:dark){
   :root{
     --ground:#070a10;--band:#0e141e;--ink:#eef1f6;--ink-2:#a3adbd;--line:#222c40;
     --button:#f2be3c;--focus:#f2be3c;--button-ink:#10263f;--bezel:#000000;--bezel-rim:rgba(255,255,255,.14);--edge:rgba(255,255,255,.16);
     --crop-shadow:0 0 0 1px var(--edge),0 0 90px -10px rgba(120,140,220,.16),0 24px 60px -20px rgba(0,0,0,.7);
-    --glow:1;
+    --glow:.5;--glow-inset:-14% -10% -8%;
     --s-surface:#0c111d;--s-card:#151c2c;--s-ink:#dfe4ef;--s-ink-2:#8f9bb3;--s-line:#273047;--s-accent:#8db8ff;
     --s-press:#1e2740;--s-selected:#35425f;--s-shade:rgba(0,0,0,.5);--s-tint:rgba(255,255,255,.025);--s-star:#ffb35c;
     /* 7:16 PM: dusk into night, greyed by the cloud and held to 8:1 against the cream ink, as the product paints it. */
     --sky-top:#202545;--sky-bottom:#66404f;--sky-ink:#fdf6ee;
     --cloud:rgba(196,206,236,.12);--sunglow:0;--stars:1;--photo-dim:.68;--fill-dim:.3;--day-icon:none;--night-icon:block;
+    /* The night sky, at any hour: the site's dark scheme is the wall's Appearance: Dark. */
+    --hero-top:rgb(7,11,26);--hero-bottom:rgb(20,28,58);--hero-ink:#fdf6ee;--hero-ink-2:rgba(253,246,238,.85);--hero-line:rgba(253,246,238,.38);
+    --sky-glow:linear-gradient(transparent,transparent);
     color-scheme:dark;
   }
 }
@@ -78,8 +93,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .h1{font:600 clamp(2.9rem,8.2vw,5.25rem)/1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.04em;text-wrap:balance}
 .h2{font:600 clamp(1.7rem,3.2vw,2.35rem)/1.1 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.03em;text-wrap:balance}
 .lede{font-size:clamp(1.05rem,1.4vw,1.25rem);line-height:1.5;color:var(--ink-2);text-wrap:pretty}
-.lede a,.cols a,.spec a,.note a{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.18em;text-decoration-color:var(--line)}
-.lede a:hover,.cols a:hover,.spec a:hover,.note a:hover{text-decoration-color:var(--ink)}
+.lede a,.cols a,.spec a,.note a,.ctas a.text{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.18em;text-decoration-color:var(--line)}
+.lede a:hover,.cols a:hover,.spec a:hover,.note a:hover,.ctas a.text:hover{text-decoration-color:var(--ink)}
 .quiet{color:var(--ink-2)}
 /* Headings break between phrases, never inside one: .keep marks a phrase in the markup. An inline block, because WebKit
    will not break at the space between two nowrap spans and lets the line overflow instead. */
@@ -90,6 +105,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
 .brand{display:flex;align-items:center;gap:10px;font:600 1.25rem/1 var(--display);font-variation-settings:"opsz" 40;letter-spacing:-.025em}
 .brand svg{width:24px;height:24px;flex:none;border-radius:6px;box-shadow:0 0 0 .5px var(--edge)}
+/* Above the hero the header is a strip of the same sky at every scroll: the hero's own gradient, pinned to the viewport,
+   so at the top of the page it is exactly the sky behind it, with no seam. */
+.top.on-sky{background:var(--sky-glow) fixed,linear-gradient(to bottom,var(--hero-top) 0,var(--hero-bottom) var(--sky-end,640px)) fixed;
+  -webkit-backdrop-filter:none;backdrop-filter:none;color:var(--hero-ink)}
+.top.on-sky .btn.quiet{color:var(--hero-ink);border-color:var(--hero-line)}
+.top.on-sky .btn.quiet:hover{border-color:var(--hero-ink)}
+.top.on-sky :focus-visible{outline-color:var(--hero-ink)}
 
 /* ---------- Buttons ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:999px;font-weight:600;font-size:1rem;white-space:nowrap;border:1.5px solid transparent}
@@ -100,17 +122,41 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .btn.small{height:36px;padding:0 14px;font-size:.875rem}
 
 /* ---------- Hero ---------- */
-.hero{padding-block:clamp(40px,7vw,84px) 0;text-align:center;overflow-x:clip}
+/* The sky: from the top of the page, under the header, to its foot by the buttons, then into the mist behind the screen. */
+.hero{position:relative;isolation:isolate;margin-top:-60px;padding-block:calc(60px + clamp(40px,7vw,84px)) 0;text-align:center;overflow-x:clip;color:var(--hero-ink);
+  background:linear-gradient(to bottom,var(--hero-top) 0,var(--hero-bottom) var(--sky-end,640px),var(--ground) var(--sky-fade,1040px))}
+@media (max-width:767px){.hero{--sky-end:760px;--sky-fade:1030px}}
+.hero::before{content:"";position:absolute;z-index:-1;inset:0 0 auto;height:var(--sky-end,640px);pointer-events:none;background:var(--sky-glow)}
+/* After dark the wall's faint stars: still, as dim as the product's at their faintest to their brightest (10–30%). */
+.sky-cream .hero::before{background:
+  radial-gradient(1.2px 1.2px at 12% 18%,rgba(255,255,255,.28),transparent),radial-gradient(1.2px 1.2px at 27% 62%,rgba(255,255,255,.16),transparent),
+  radial-gradient(1.2px 1.2px at 41% 9%,rgba(255,255,255,.22),transparent),radial-gradient(1.2px 1.2px at 58% 74%,rgba(255,255,255,.12),transparent),
+  radial-gradient(1.2px 1.2px at 69% 30%,rgba(255,255,255,.26),transparent),radial-gradient(1.2px 1.2px at 83% 13%,rgba(255,255,255,.18),transparent),
+  radial-gradient(1.2px 1.2px at 92% 55%,rgba(255,255,255,.24),transparent),radial-gradient(1.2px 1.2px at 6% 80%,rgba(255,255,255,.14),transparent);
+  background-size:420px 300px}
 .hero .wrap{display:flex;flex-direction:column;align-items:center}
-.hero .name{font-weight:500;color:var(--ink-2)}
+.hero .name{font-weight:500;color:var(--hero-ink-2)}
 .hero .h1{margin-top:14px;max-width:22ch}
-.hero .lede{margin-top:22px;max-width:46ch}
+.hero .lede{margin-top:22px;max-width:46ch;color:var(--hero-ink-2)}
 .hero .ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:30px}
-.hero .note{margin-top:14px;max-width:46ch;font-size:.875rem;color:var(--ink-2);text-wrap:pretty}
+.hero .note{margin-top:14px;max-width:46ch;font-size:.875rem;color:var(--hero-ink-2);text-wrap:pretty}
+.hero .note a{color:var(--hero-ink);text-decoration-color:var(--hero-line)}
+.hero .note a:hover{text-decoration-color:var(--hero-ink)}
+/* The download is the sky's ink: navy with white words by day, cream with navy words on a night sky, butter after dark. */
+.hero .btn.primary{background:var(--hero-ink);color:#fff}
+.sky-cream .hero .btn.primary{color:#0b2545}
+@media (prefers-color-scheme:dark){.hero .btn.primary{background:var(--butter);color:#10263f}}
+.hero .btn.quiet{color:var(--hero-ink);border-color:var(--hero-line)}
+.hero .btn.quiet:hover{border-color:var(--hero-ink)}
+.hero :focus-visible{outline-color:var(--hero-ink)}
+/* Where the sky came from, in one line, with a swatch of it. */
+.painted{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:.8125rem;font-weight:500;color:var(--hero-ink-2);font-variant-numeric:tabular-nums}
+.painted[hidden]{display:none}
+.painted i{width:14px;height:14px;border-radius:50%;background:linear-gradient(var(--hero-top),var(--hero-bottom));box-shadow:0 0 0 1px var(--hero-line)}
 
 /* The screen, in a slim bezel. By day it sits on the page; at night it lights the wall behind it. */
 .stage{position:relative;width:100%;margin-top:clamp(36px,6vw,64px)}
-.stage::before{content:"";position:absolute;inset:-14% -10% -8%;z-index:0;pointer-events:none;opacity:var(--glow);
+.stage::before{content:"";position:absolute;inset:var(--glow-inset);z-index:0;pointer-events:none;opacity:var(--glow);
   background:radial-gradient(62% 60% at 20% 50%,rgba(181,86,107,.72),transparent 70%),radial-gradient(58% 64% at 72% 48%,rgba(84,110,196,.52),transparent 70%);filter:blur(36px)}
 .bezel{position:relative;z-index:1;padding:clamp(5px,.8vw,10px);background:var(--bezel);border-radius:clamp(8px,1.2vw,16px);box-shadow:inset 0 0 0 1px var(--bezel-rim),0 30px 60px -30px rgba(0,0,0,.45)}
 .bezel .screen{border-radius:clamp(4px,.5vw,7px)}
@@ -159,6 +205,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .step b{font:600 1.5rem/1 var(--display);font-variation-settings:"opsz" 28;letter-spacing:-.02em;color:var(--ink)}
 .step span{color:var(--ink-2);text-wrap:pretty}
 .step code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
+/* The install step is where the hero's button leads anywhere but on Android: it lands a shade firmer, low enough that the
+   section's heading, three or four lines at most widths, stays in view above it. */
+.step{scroll-margin-top:260px}
+.step:target span{color:var(--ink)}
+.step:focus{outline:0}
+.step:focus-visible{outline:3px solid var(--focus);outline-offset:6px}
 .setup .room{margin-top:0}
 /* The first-run screen, as the product draws it inside its calendar card: the QR code on a white plate (dark on white in any
    theme, which is what a phone's camera reads), and beside it the typed address as the quieter way in. */
@@ -183,10 +235,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .spec dt{font-weight:600}
 .spec dd{color:var(--ink-2);text-wrap:pretty}
 .spec code{font:500 .92em ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
+/* A filename is one thing: it never breaks at its hyphen. */
+.spec code,.step code{white-space:nowrap}
 .facts-row{display:grid;gap:clamp(56px,8vw,112px) 56px;padding-top:clamp(56px,8vw,112px)}
 @media (min-width:900px){.facts-row{grid-template-columns:1fr 1fr}}
 .facts .h2{max-width:22ch}
-.facts .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+/* One primary button on the page, and it is the download: here the docs are a quiet button and the image a link. */
+.facts .ctas{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;margin-top:22px}
+.ctas a.text{font-weight:600}
 .facts p.lede{margin-top:12px;max-width:44ch}
 .coming-label{margin-top:30px;font:600 1.5rem/1.2 var(--display);font-variation-settings:"opsz" 28;letter-spacing:-.018em;text-wrap:balance}
 .coming{margin-top:6px;display:grid;gap:6px;max-width:40ch}
@@ -332,8 +388,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-arrow{width:3.5em;height:3.5em;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .s-arrow svg{width:1.9em;height:1.9em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .s-arrow.off{opacity:.25}
-/* "Add": 3rem tall, 1.3rem type. */
-.s-add{height:2.31em;padding:0 1.23em;border-radius:1.16em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center;margin-right:.385em}
+/* "Add": 3.5rem tall, the arrows' and Settings' height in the same corner, 1.3rem type. */
+.s-add{height:2.692em;padding:0 1.23em;border-radius:1.346em;background:var(--s-press);font:600 1.3em/1 var(--text);display:flex;align-items:center;margin-right:.385em}
 .s-add,.s-arrow{color:var(--s-ink)}
 .s-card{flex:1;min-height:0;background:var(--s-card);border-radius:1.5em;box-shadow:0 .1em .2em var(--s-shade);overflow:hidden}
 .s-strip{display:flex}
@@ -370,7 +426,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-listbody{padding:1.75em 2.25em}
 .s-cols{max-width:60em}
 .s-set{padding-bottom:1.25em}
-.s-listbody .s-item{min-height:3.6em;padding:.7em 0;margin:0;align-items:center;border-bottom:.0625em solid var(--s-line)}
+.s-listbody .s-item{min-height:3.6em;padding:.7em 0;margin:0;align-items:flex-start;border-bottom:.0625em solid var(--s-line)}
+/* Rows are top-aligned so each ring sits on its row's first line; the title is set down to meet the ring's centre,
+   (2.4rem - 1.8rem × 1.22) / 2, and a kid's (3.2rem - 2.6rem × 1.22) / 2. A one-line row is exactly as it was. */
+.s-listbody .s-item>div{padding-top:.102em}
+.s-listbody.kid .s-item>div{padding-top:.014em}
 .s-listbody .s-item.last{border-bottom:0}
 .s-listbody .s-title{font-size:1.8em;font-weight:400;line-height:1.22}
 .s-listbody .s-meta{font-size:1.25em}
@@ -386,15 +446,23 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-listbody.kid .s-title{font-size:2.6em}
 .s-emoji{flex:none;font-size:3.2em;line-height:1;margin:0 .31em 0 .06em;order:-1}
 /* The list's mark in its header: a 3rem glyph or a 3.6rem monogram beside a 3.25rem title. */
-.s-listhead .s-h{display:flex;align-items:center}
-.s-listhead .s-glyph{width:.923em;height:.923em;margin-right:.308em;color:var(--s-ink-2);stroke-width:1.8}
-.s-listhead .s-avatar{width:1.895em;height:1.895em;margin-right:.526em;font-size:.585em}
+/* Title and subhead share a baseline, the one place Bricolage and Inter sit on one line (the product's W-09): the title
+   keeps its place (.125rem), its mark stays centred on it (the monogram's -.3rem keep the line the title's height), and
+   Add stays centred in the header. */
+.s-listhead{align-items:baseline}
+.s-listhead .s-h{display:flex;align-items:baseline;margin-top:.038em}
+.s-listhead .s-glyph{width:.923em;height:.923em;margin-right:.308em;color:var(--s-ink-2);stroke-width:1.8;align-self:center}
+.s-listhead .s-avatar{width:1.895em;height:1.895em;margin-right:.526em;font-size:.585em;align-self:center;margin-top:-.158em;margin-bottom:-.158em}
+.s-listhead .s-add{align-self:center}
 /* The toast: what a check-off looks like for the next ten seconds. */
 .s-toast{position:absolute;z-index:3;left:50%;bottom:4.5em;transform:translateX(-50%);display:flex;align-items:center;padding:.333em .4em .333em 1.167em;border-radius:2.5em;background:var(--s-ink);color:var(--s-surface);font-size:1.5em;box-shadow:0 .75em 2.5em var(--s-shade);white-space:nowrap}
 .s-toast span{padding:.6em 0}
 .s-toast b{margin-left:1em;height:2.267em;padding:0 1.067em;border-radius:1.133em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
-.s-cheer{position:absolute;z-index:3;left:50%;top:44%;transform:translate(-50%,-50%);font-size:14em;line-height:1}
+.s-cheer{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);font-size:14em;line-height:1}
 
+/* When a photo was taken is a caption, not a title: Inter 500 at 1.6rem in the header's secondary ink (the product's W-11).
+   The 2.5rem after it, in the caption's own em. */
+.s-photoview .s-head .s-h{font:500 1.6em/1.2 var(--text);letter-spacing:0;font-variation-settings:normal;color:var(--s-ink-2);margin-right:1.5625em}
 /* Photos: the photo whole, over a blurred copy of itself. After dark the product dims both, so the wall is not glare. */
 .s-photo{position:relative;background:#000}
 .s-photo .fill{position:absolute;inset:-4em;background-size:cover;background-position:center;filter:blur(3em) brightness(var(--fill-dim))}
@@ -422,6 +490,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 @media (max-width:767px){.hero .stage{align-self:stretch;width:auto;margin-inline:-20px}.bezel{border-radius:0;padding-inline:0;box-shadow:none}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
 @media (max-width:600px){.bezel{overflow:hidden}.bezel>.screen-box{width:200%}}
 @media (max-width:600px){.crop.right{aspect-ratio:62/67.5}.crop.right>.s-ahead{right:auto;width:80.4em;font-size:calc(100cqw / 62)}}
+/* The Welcome card is the one crop whose words are the content, and they sit at the right, beside the code. On a phone
+   it is anchored to its right edge instead, so the instructions are whole and the code is cut, not the words. */
+@media (max-width:600px){.setup .crop.right>.s-ahead{left:auto;right:0}}
 
 /* A space between the time and PM for anyone listening; it takes no room on the wall. */
 .screen .s-gap,.crop .s-gap{font-size:0;font-style:normal}

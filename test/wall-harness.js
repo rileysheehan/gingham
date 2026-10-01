@@ -47,10 +47,13 @@ class Element {
   // and 44 px for "N more".
   get clientHeight() { return this.id === 'today-list' ? 361 : 0; }
   get scrollHeight() { return this.id === 'today-list' ? this.children.reduce((h, el) => h + (el.classes.includes('more') ? 44 : el.classes.includes('compact') ? 53 : 105), 0) : 0; }
-  get clientWidth() { return 0; } get scrollWidth() { return 0; }
+  // The dock is modelled too, so the order in which lists give up their names can be read: the tabs have 1118 px beside
+  // Settings (a 1198 px dock less the 56 px button and the 24 px kept clear), and each tab is as wide as dockTab says.
+  get clientWidth() { return this.id === 'tabs' ? Math.min(this.scrollWidth, 1118) : this.classes.includes('dock') ? 1198 : 0; }
+  get scrollWidth() { return this.id === 'tabs' ? this.children.reduce((w, el) => w + dockTab(el, this.classes.includes('tight')), 9.6) : 0; }
   // Every other box counts as not displayed, which is what a zero height means to app.js.
   get offsetParent() { return this.id === 'today-list' ? this.parentNode : null; }
-  get offsetWidth() { return 0; } get offsetHeight() { return 0; } get offsetLeft() { return 0; }
+  get offsetWidth() { return this.id === 'settings-button' ? 56 : 0; } get offsetHeight() { return 0; } get offsetLeft() { return 0; }
   // The calendar legend gets a model of the real header as well (Chrome at 1920×1080): a 56 px header, and a legend that
   // wraps its names into 336 px, or 222 px beside the Today button (364 and 274 set tight), a name taking about 0.54 em a
   // letter plus its dot and the gap before it.
@@ -94,6 +97,17 @@ function legendHeight(legend) {
     x += w;
   }
   return legend.children.length ? lines * font * (tight ? 1.15 : 1.5) : 0;
+}
+
+// A tab in the dock, measured in Chrome at 1920×1080: its padding (1.4rem a side, 0.75rem tight), its mark (a glyph 28 px,
+// a monogram 30.4 px), its name after a 9.6 px gap at about 12.2 px a letter (unless it is short), and its count, when
+// there is one, after an 8.8 px gap at about 14.9 px a digit. Calendar and Photos are words alone. Within a pixel or two of
+// Chrome for every tab of the stress fixture.
+function dockTab(tab, tight) {
+  const pad = tight ? 24 : 44.8, mark = tab.querySelector('.avatar') ? 30.4 : tab.querySelector('.glyph') ? 28 : 0;
+  const label = tab.querySelector('.label'), count = tab.querySelector('b');
+  if (!label) return pad + tab.textContent.length * 12.1;
+  return pad + mark + (tab.classes.includes('short') ? 0 : 9.6 + label.textContent.length * 12.2) + (count ? 8.8 + count.textContent.length * 14.9 : 0);
 }
 
 // tag, #id, .class and [attr] compounds joined by descendant spaces: all app.js asks for.

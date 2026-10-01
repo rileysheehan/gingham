@@ -13,10 +13,15 @@
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); });
   }
   function show(which) { ['app', 'empty', 'locked'].forEach(function (id) { $(id).hidden = id !== which; }); }
+  // A past date says so, in the wall's words: the phone is where things get checked off, and overdue is what matters there.
   function due(text) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text || ''); if (!m) return '';
-    return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    var day = new Date(+m[1], +m[2] - 1, +m[3]), today = new Date(); today.setHours(0, 0, 0, 0);
+    return (day < today ? 'Overdue since ' : '') + day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
+  // A task's assignee is the service's id for a person (Todoist's user id); its name comes with the lists, as on the wall.
+  // Without one, nothing is shown rather than the id.
+  function assignee(t) { var who = t.assignee && data.people && data.people[t.assignee]; return who ? who.name : ''; }
 
   function render() {
     var names = data.projects || [];
@@ -45,7 +50,7 @@
         var li = el('li', pending[t.id] ? 'done' : ''), grow = el('div', 'grow');
         li.appendChild(el('span', 'check'));
         grow.appendChild(el('div', 'name', tidy(t.title)));
-        var sub = pending[t.id] ? 'Tap again to undo' : [t.assignee, due(t.due)].filter(Boolean).join(' · ');
+        var sub = pending[t.id] ? 'Tap again to undo' : [assignee(t), due(t.due)].filter(Boolean).join(' · ');
         if (sub) grow.appendChild(el('div', 'sub', sub));
         li.appendChild(grow);
         li.onclick = function () { toggle(t); };

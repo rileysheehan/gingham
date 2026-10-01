@@ -422,7 +422,7 @@
   // title as a monogram, and a date the section already implies is never repeated. A `compact` row (Today, past the now
   // and next rows) is one line: the same fact in a time column, then the title.
   function itemNode(item, inToday, compact, agenda) {
-    var el = node('button', 'item ' + item.kind), body = node('span', 'item-body'), meta = '', note = '', emoji = '';
+    var el = node('button', 'item ' + item.kind), body = node('span', 'item-body'), meta = '', place = '', note = '', emoji = '';
     if (item.kind === 'event') {
       var c = calendarOf(item.event.calendar);
       el.style.setProperty('--rail', c.color);
@@ -444,7 +444,7 @@
         if (inToday) {
           if (item.at <= now()) { meta = 'Now, until ' + clockTime(item.end); el.className += ' happening'; }
           else if (item.countdown) meta += ' · ' + relative(item.at);
-          if (item.event.location && !compact) meta += ' · ' + item.event.location.split(/\n|,/)[0];
+          if (item.event.location && !compact) place = item.event.location.split(/\n|,/)[0];
         }
       }
       el.onclick = function () { openEvent(item.event, el); };
@@ -466,8 +466,10 @@
     // column when no row in it has a time; see untimedColumn).
     if (compact) el.className += ' compact';
     if (meta || compact) body.appendChild(node('span', 'item-meta', meta));
-    var text = item.kind === 'event' ? item.event.title : cleanTitle(item.task.title);
-    if (item.kid) { var lead = LEADING_EMOJI.exec(text); if (lead) { emoji = lead[1]; text = text.slice(lead[0].length); } }
+    // The place trails the time in a span of its own, so Today can drop it whole when it would not fit (wholePlaces).
+    if (place && meta) body.lastChild.appendChild(node('span', 'item-place', ' · ' + place));
+    var text = item.kind === 'event' ? item.event.title : taskTitle(item.task);
+    if (item.kind === 'task' && item.inList && listOf(item.task.project).kid) { var lead = LEADING_EMOJI.exec(cleanTitle(item.task.title)); if (lead) emoji = lead[1]; }
     if (emoji) el.appendChild(node('span', 'kid-emoji', emoji));
     var title = node('span', 'item-title', text);
     if (note) title.appendChild(node('span', 'item-note', ' · ' + note));
@@ -487,6 +489,12 @@
     if (!timed) compact.forEach(function (el) { var m = el.querySelector('.item-meta'); if (m) m.parentNode.removeChild(m); });
     return nodes;
   }
+  // A place is shown whole or not at all: the meta line is cut with an ellipsis as a backstop, and a cut fell on the place,
+  // mid-word ("Springfie…"), on the two most-read rows on the wall. Dropping it leaves the time and the countdown, which fit.
+  function wholePlaces(box) {
+    var places = box.querySelectorAll('.item-place');
+    for (var i = 0; i < places.length; i++) { var meta = places[i].parentNode; if (meta.scrollWidth > meta.clientWidth + 1) meta.removeChild(places[i]); }
+  }
   // Shows as many whole items as fit in `box`, then "and N more" (a button when there is somewhere to go).
   // Nothing is ever cut mid-line. Skipped while the box is hidden, since a hidden box measures zero; a box that is shown
   // but squeezed to nothing holds nothing, so its caller can drop the heading over it rather than leave it bare.
@@ -503,6 +511,12 @@
   }
   // Todoist titles may carry markdown links; show the words, not the syntax.
   function cleanTitle(title) { return tidy(title.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*|__/g, '')); }
+  // A young child's list starts a title with an emoji, and in that list it is the row's picture, sized for someone who
+  // cannot read yet (renderList). Everywhere else (Today, the week, the agenda, Later, a day sheet) the row is read by
+  // everyone, and whose it is is already the monogram after the title, the mark every person's chore carries; a colour
+  // emoji in an Inter title there was a third mark, and the one thing on those rows that looked unplanned. So it goes.
+  // Whether a task is a kid's comes from its list, for every row, not from where the row is drawn.
+  function taskTitle(task) { var text = cleanTitle(task.title), lead = listOf(task.project).kid && LEADING_EMOJI.exec(text); return lead ? text.slice(lead[0].length) : text; }
   // A list is marked by what it is: a household list by a glyph, a person's list by their monogram in their color.
   var GLYPHS = {
     home: ['M4 10.5 12 4l8 6.5', 'M6 9v10.5h12V9', 'M10 19.5v-5h4v5'],
@@ -602,8 +616,10 @@
     if (!todayItems.length) {
       list.textContent = '';
       // Before anyone has set it up there is no calendar to be empty, so it says so rather than "Nothing planned".
-      list.appendChild(node('p', 'today-empty', firstRun || unpaired ? 'Not set up yet' : cal ? (itemsFor(today, false).length ? 'Nothing else today' : 'Nothing planned') : calProblem ? 'Can’t reach the calendar' : ''));
+      // With the lists down too, the dock only loses their tabs, which says nothing; Today is where it is read, so it says so.
+      list.appendChild(node('p', 'today-empty', firstRun || unpaired ? 'Not set up yet' : cal ? (itemsFor(today, false).length ? 'Nothing else today' : 'Nothing planned') : calProblem ? (tasksProblem && !tasks ? 'Can’t reach the calendar or the lists' : 'Can’t reach the calendar') : ''));
     } else allToday = fitItems(list, untimedColumn(todayItems.map(function (item) { return itemNode(item, true, !item.now && !item.next); })), function () { openDay(today); }) === todayItems.length;
+    wholePlaces(list);
     // An empty tomorrow is not shown: "Nothing planned" twice says nothing. When today and tomorrow are both empty, the
     // space answers the next question instead: what is the next thing actually planned?
     var coming = cal && allToday ? itemsFor(tomorrowDay, false) : [], label = 'Tomorrow', onMore = function () { openDay(tomorrowDay); };
@@ -644,7 +660,9 @@
     }
     if (!cal) {
       // The failure could be the server, the network or the calendar's provider, and the frame cannot tell which, so it names none of them.
-      var note = node('div', 'loading'); note.appendChild(node('p', 'loading-title', unpaired ? 'This frame isn’t set up yet' : calProblem ? 'Can’t reach the calendar' : 'Loading the calendar…'));
+      // A note alone in the corner of a full-height card is what a failed render looks like, so it sits in the middle of the
+      // card, as the first-run screen does; a frame waiting to be paired lays itself out below.
+      var note = node('div', 'loading outage'); note.appendChild(node('p', 'loading-title', unpaired ? 'This frame isn’t set up yet' : calProblem ? 'Can’t reach the calendar' : 'Loading the calendar…'));
       if (unpaired) {
         // A frame waiting to be let into a household: a phone that already manages one scans the code and lands on the
         // setup page with the code filled in, one tap from adding this frame.
@@ -690,7 +708,7 @@
   function renderLater(from, busiest) {
     var rows = [], seen = {}, windowEnd = parse(cal.to), room = busiest <= 3 ? 6 : busiest <= 5 ? 4 : 3;
     cal.events.forEach(function (e) { var at = parse(e.start); if (at >= from) rows.push({ at: at, title: e.title, allDay: e.allDay, event: e }); });
-    (tasks ? tasks.tasks : []).forEach(function (t) { if (t.due && parse(t.due) >= from && parse(t.due) < windowEnd) rows.push({ at: parse(t.due), title: cleanTitle(t.title), allDay: !hasTime(t.due), task: t }); });
+    (tasks ? tasks.tasks : []).forEach(function (t) { if (t.due && parse(t.due) >= from && parse(t.due) < windowEnd) rows.push({ at: parse(t.due), title: taskTitle(t), allDay: !hasTime(t.due), task: t }); });
     rows.sort(function (a, b) { return a.at - b.at; });
     rows = rows.filter(function (r) { if (seen[r.title]) return false; seen[r.title] = true; return true; });
     var box = $('later-rows'); box.textContent = ''; $('later').hidden = false;
@@ -865,13 +883,20 @@
     var tabs = $('tabs');
     while (tabs.children.length > 1) tabs.removeChild(tabs.lastChild);
     $('tab-calendar').setAttribute('aria-pressed', String(mode === 'calendar'));
+    var named = [];
     (tasks ? tasks.projects : []).forEach(function (project) {
       var count = tasks.tasks.filter(function (t) { return t.project === project && !pending[t.id]; }).length;
-      var style = listOf(project), b = node('button', 'list-tab' + (style.person || GLYPHS[style.icon] && style.icon !== 'list' ? ' marked' : '')); b.appendChild(listMark(project)); b.appendChild(node('span', 'label', project)); b.appendChild(node('b', '', String(count)));
+      var style = listOf(project), b = node('button', 'list-tab'); b.appendChild(listMark(project)); b.appendChild(node('span', 'label', project));
+      // A count is work to be done, so an empty list shows none; a screen reader still hears "Garage, 0 items".
+      if (count) b.appendChild(node('b', '', String(count)));
       b.setAttribute('aria-label', project + ', ' + count + (count === 1 ? ' item' : ' items'));
       b.setAttribute('aria-pressed', String(mode === 'list:' + project));
       b.onclick = function () { setMode(mode === 'list:' + project ? 'calendar' : 'list:' + project); };
       tabs.appendChild(b);
+      // How readily it gives up its name when the dock is short of room: a person's list first, since a coloured monogram
+      // is already a name, then a list with a glyph of its own, then one with the plain glyph, whose mark says nothing
+      // alone. The open list keeps its name.
+      if (mode !== 'list:' + project) named.push({ tab: b, rank: style.person ? 0 : GLYPHS[style.icon] && style.icon !== 'list' ? 1 : 2 });
     });
     // Photos is a view like the lists, so it lives in the same row with its count.
     if (photos.length) {
@@ -880,13 +905,17 @@
       p.onclick = function () { setMode(mode === 'photos' ? 'calendar' : 'photos'); };
       tabs.appendChild(p);
     }
-    // More lists than the dock can hold: first a list whose mark already says which it is keeps only mark and count, and
-    // the open list and any list with the plain glyph keep their names; then every list but the open one is mark and
-    // count. Settings sits outside the row and never moves, since it is the way to fix the frame at the wall.
+    // More lists than the dock can hold: names go one at a time until the row fits, never a kind of list at once (a fifth
+    // list used to take three household names with it, and left the one empty list the only name on the dock). A
+    // person's list goes first, then a list with its own glyph, each kind from the right; then the pills tighten; then a
+    // list with the plain glyph gives up its name, last. Settings sits outside the row and never moves, since it is the
+    // way to fix the frame at the wall.
     var room = tabs.parentNode.clientWidth - $('settings-button').offsetWidth - 24;
+    var shorten = function (rank) { for (var i = named.length - 1; i >= 0 && tabs.scrollWidth > room; i--) if (named[i].rank === rank) named[i].tab.className += ' short'; };
     tabs.className = 'tabs';
-    if (tabs.scrollWidth > room) tabs.className = 'tabs compact';
-    if (tabs.scrollWidth > room) tabs.className = 'tabs compact tight';
+    shorten(0); shorten(1);
+    if (tabs.scrollWidth > room) tabs.className = 'tabs tight';
+    shorten(2);
     clipTabs();
   }
   function clipTabs() { var tabs = $('tabs'); tabs.className = tabs.className.replace(/ ?clipped/g, '') + (tabs.scrollWidth - tabs.clientWidth - tabs.scrollLeft > 4 ? ' clipped' : ''); }
@@ -909,7 +938,7 @@
         var meta = [], due = t.due ? parse(t.due) : null;
         if (due) meta.push((due < startOfDay(now()) ? 'Overdue since ' : '') + shortDay(due) + (hasTime(t.due) ? ' · ' + clockTime(due) : '') + (t.recurring ? ' · repeats' : ''));
         if (t.labels) meta.push(t.labels);
-        var el = itemNode({ kind: 'task', task: t, allDay: true, at: due, inList: true, kid: style.kid }, false);
+        var el = itemNode({ kind: 'task', task: t, allDay: true, at: due, inList: true }, false);
         if (meta.length) el.lastChild.appendChild(node('span', 'item-meta', meta.join(' · ')));
         group.appendChild(el);
       });

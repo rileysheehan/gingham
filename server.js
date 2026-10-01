@@ -313,7 +313,7 @@ async function serve(req,res){
   // stolen frame secret cannot be used to put pictures on a family's wall.
   if (pathname === '/api/photos/add' || pathname === '/api/photos/remove') {
     if (req.method !== 'POST' || !fromOurPages(req)) return json(res,405,{error:'Use POST'});
-    if (!mayManage(who.grant, home.id)) return json(res,403,{error:'Open your setup link on this device first.'});
+    if (!mayManage(who.grant, home.id)) return json(res,403,{error:'Connect this device on the setup page first.'});
     if (rationed(req,'photo-write',240,600000)) return json(res,429,{error:'Slow down'});
     if (pathname === '/api/photos/remove') {
       let body = {}; try { body = JSON.parse(await readBody(req) || '{}'); } catch(e) { return json(res,400,{error:'Send JSON'}); }

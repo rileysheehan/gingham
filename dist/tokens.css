@@ -1,0 +1,65 @@
+/*
+  Gingham's colour, in one place. The wall (index.html) and every phone page (setup, lists, admin, photos, and the
+  page Google sends the phone back to) link this file before their own stylesheet, so a colour changes here and
+  nowhere else. style.css and setup.css read the semantic tokens below; they declare no colour tokens of their own.
+
+  Two layers. Primitives are the palette, named for what they are (navy-800); only this file reads them. Semantic
+  tokens say what a colour is for (--ink, --card), and are what the pages use.
+
+  Two ways a theme is chosen, one set of values:
+  - the wall themes by class: app.js (paintSky) puts .theme-light or .theme-dark on <body> the moment the sky's
+    ink flips;
+  - the phone pages follow the phone: prefers-color-scheme on :root.
+  So the dark theme is written twice, once for each; test/tokens.test.js keeps the two copies the same.
+
+  Every value is the one the pages used before this file existed (2026-09-30): nothing rounded, nothing fixed.
+  Plain custom properties only, for the Frameo's old WebView: no color-mix(), no relative colours.
+*/
+
+/* Primitives. */
+:root{
+  --navy-900:#0b2545;--navy-800:#10263f;--navy-700:#0c1a33;--navy-600:#51647a;--navy-300:#8f9bb3;--navy-200:#dfe4ef;
+  --slate-900:#0c111d;--slate-800:#151c2c;--slate-700:#1e2740;--slate-600:#273047;--slate-500:#35425f;
+  --mist-300:#d6dfe7;--mist-200:#e6ecf2;--mist-100:#f3f6f9;--mist-0:#ffffff;
+  --blue-600:#1b66c9;--blue-300:#8db8ff;--blue-rain:#4a97e8;
+  --ember-600:#c2410c;--ember-300:#ffb35c;
+  --red-600:#b3261e;--red-300:#ff8a80;
+  --green-600:#1f7a4d;--green-300:#7fd6a7;
+  --yellow-sun:#ffc94d;
+  --sky-day-top:#6fb4ee;--sky-day-bottom:#d4ecfa;
+}
+
+/* The same in both themes. The sky is only a default: app.js paints --sky-* on <html> every minute. */
+:root{
+  --sky-top:var(--sky-day-top);--sky-bottom:var(--sky-day-bottom);--sky-ink:var(--navy-900);
+  --sun:var(--yellow-sun);--rain:var(--blue-rain);
+}
+
+/* Light. --selected, --shade, --tint and --star are the wall's; --bad and --good are the phone's (the wall has no
+   error colour). The phone's card shadow is its own, rgba(16,38,63,.08) in setup.css, not --shade. */
+:root,.theme-light{
+  --surface:var(--mist-100);--card:var(--mist-0);--ink:var(--navy-800);--ink-2:var(--navy-600);--line:var(--mist-300);
+  --accent:var(--blue-600);--on-accent:var(--mist-0);--press:var(--mist-200);
+  /* The selected segment is the lighter pill in both themes, as in Apple's segmented controls. */
+  --selected:var(--mist-0);
+  --shade:rgba(16,38,63,.14);--tint:rgba(16,38,63,.028);
+  --star:var(--ember-600);--bad:var(--red-600);--good:var(--green-600);
+}
+
+/* Dark, for the phone. Keep in step with .theme-dark below. */
+@media (prefers-color-scheme:dark){:root{
+  --surface:var(--slate-900);--card:var(--slate-800);--ink:var(--navy-200);--ink-2:var(--navy-300);--line:var(--slate-600);
+  --accent:var(--blue-300);--on-accent:var(--navy-700);--press:var(--slate-700);
+  --selected:var(--slate-500);
+  --shade:rgba(0,0,0,.5);--tint:rgba(255,255,255,.025);
+  --star:var(--ember-300);--bad:var(--red-300);--good:var(--green-300);
+}}
+
+/* Dark, for the wall. Keep in step with the block above. */
+.theme-dark{
+  --surface:var(--slate-900);--card:var(--slate-800);--ink:var(--navy-200);--ink-2:var(--navy-300);--line:var(--slate-600);
+  --accent:var(--blue-300);--on-accent:var(--navy-700);--press:var(--slate-700);
+  --selected:var(--slate-500);
+  --shade:rgba(0,0,0,.5);--tint:rgba(255,255,255,.025);
+  --star:var(--ember-300);--bad:var(--red-300);--good:var(--green-300);
+}

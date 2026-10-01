@@ -106,7 +106,7 @@
     state.frames.forEach(function (f) { row(fl, null, f.name, ago(f.lastSeen), '', removeButton('Remove', 'Really remove?', function (b) { act('revoke', { id: f.id }, b, function () { toast(f.name + ' is disconnected'); }); })); });
     $('f-address').textContent = location.host;
 
-    $('pin-state').textContent = state.pin.set ? 'A PIN is set. Anyone at a frame who knows it can add their phone here: Settings, then "Manage from a phone".' : 'With a PIN, you can get back into this page from your frame if you change phones or clear your browser. Without one, you would need a new link.';
+    $('pin-state').textContent = state.pin.set ? 'A PIN is set. Anyone at a frame who knows it can add their phone here: Settings, then “Manage from a phone”.' : 'With a PIN, you can get back into this page from your frame if you change phones or clear your browser. Without one, you would need a new link.';
     $('pin-summary').textContent = state.pin.set ? 'Change the PIN' : 'Set a PIN'; $('pin-remove').hidden = !state.pin.set;
 
     var dl = $('d-list'); dl.textContent = '';

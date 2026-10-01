@@ -1,7 +1,18 @@
-// Gingham site. Two small things: the dock on the wall screen switches views, and the footer tells
-// the time in Austin. Nothing here is essential to reading the page.
+// Gingham site. Three small things: the download button leads to the install step anywhere but on Android, the dock
+// on the wall screen switches views, and the footer tells the time in Austin. Nothing here is essential to reading the page.
 (function () {
   'use strict';
+
+  // The app is installed from the frame itself, so on a laptop or an iPhone the button shows how instead of handing over
+  // a file that cannot be opened there. The link stays the APK: on Android, and without this script, it downloads.
+  var get = document.querySelector('.hero .btn.primary'), install = document.getElementById('install');
+  if (get && install && !/Android/i.test(navigator.userAgent)) {
+    get.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (location.hash === '#install') install.scrollIntoView(); else location.hash = 'install';
+      install.focus({ preventScroll: true });
+    });
+  }
 
   // The dock on the hero screen. Tabs switch which view the right side shows, as they do on the wall.
   var screen = document.getElementById('screen');
@@ -19,6 +30,11 @@
         show(this.getAttribute('aria-pressed') === 'true' ? 'calendar' : name);
       });
     }
+    // On a phone the screen is a picture: the tabs take no taps and the views they switch are cropped away, so they
+    // leave the tab order too, and come back if the window widens.
+    var narrow = window.matchMedia && window.matchMedia('(max-width:600px)');
+    function reach() { for (var t = 0; t < tabs.length; t++) { if (narrow.matches) tabs[t].setAttribute('tabindex', '-1'); else tabs[t].removeAttribute('tabindex'); } }
+    if (narrow) { reach(); if (narrow.addEventListener) narrow.addEventListener('change', reach); }
   }
 
   // After dark the hero screen shows the product's evening, so its clock reads later. The rest of the Thursday stays;

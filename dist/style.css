@@ -14,13 +14,8 @@
 :root{
   --display:"Bricolage Grotesque","Avenir Next","Segoe UI",Roboto,sans-serif;
   --text:"Inter","Helvetica Neue",Roboto,Arial,sans-serif;
-  /* Sky defaults; app.js overwrites these every minute. */
-  --sky-top:#6fb4ee;--sky-bottom:#d4ecfa;--sky-ink:#0b2545;
-  --sun:#ffc94d;--rain:#4a97e8;
 }
-.theme-light{--selected:#ffffff;--surface:#f3f6f9;--card:#ffffff;--ink:#10263f;--ink-2:#51647a;--line:#d6dfe7;--accent:#1b66c9;--on-accent:#ffffff;--press:#e6ecf2;--shade:rgba(16,38,63,.14);--star:#c2410c}
-/* The selected segment is the lighter pill in both themes, as in Apple's segmented controls. */
-.theme-dark{--selected:#35425f;--surface:#0c111d;--card:#151c2c;--ink:#dfe4ef;--ink-2:#8f9bb3;--line:#273047;--accent:#8db8ff;--on-accent:#0c1a33;--press:#1e2740;--shade:rgba(0,0,0,.5);--star:#ffb35c}
+/* Colour lives in tokens.css, linked before this file: the palette, the sky's defaults and .theme-light / .theme-dark. */
 
 html{font-size:calc(100vw / 120)}
 /* Text size (Settings -> Appearance), one number: what is read scales, and the rows with it, so Smaller is more rows and
@@ -107,7 +102,7 @@ svg{display:block}
 .today .tomorrow .item-title{font-size:calc(1.9rem*var(--ts))}
 .today .tomorrow .item-meta{font-size:calc(1.3rem*var(--ts))}
 .today .tomorrow .check{width:2.2rem;height:2.2rem}
-.today-empty{font:400 calc(2.25rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;opacity:.75}
+.today-empty{font:400 calc(2.25rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;opacity:.75;text-wrap:balance}
 .today .item{margin-bottom:calc(1.5rem*var(--ts))}
 .today .item-title{font-size:calc(2.25rem*var(--ts));line-height:1.2}
 .today .item-meta{font-size:calc(1.5rem*var(--ts))}
@@ -176,10 +171,22 @@ button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:under
 /* Every view on the right opens with the same header: a title, what it shows, and paging on the right. */
 .ahead-head,.list-head{display:flex;align-items:center;height:3.5rem;margin-bottom:1.5rem}
 .ahead-head h1,.list-head h1{font:600 3.25rem/1 var(--display);letter-spacing:-.02em;font-variation-settings:"opsz" 40;margin-right:2.5rem;white-space:nowrap}
-.list-head h1{display:flex;align-items:center}
+.list-head h1{display:flex;align-items:baseline}
 .list-head .glyph{width:3rem;height:3rem;margin-right:1rem;color:var(--ink-2);stroke-width:1.8}
 .list-head .avatar{width:3.6rem;height:3.6rem;margin-right:1rem;font-size:1.9rem}
 .list-head p,.view-note{flex:1;font-size:1.35rem;color:var(--ink-2)}
+/* A list's title and Settings' share a baseline with the line beside them, the one place Bricolage and Inter sit on one
+   line; centred on each other they sat on two. The title keeps the place it had when centred (the margin), its mark stays
+   centred on it (the monogram's negative margins keep the line the title's height), and the buttons stay centred. */
+.list-head,.settings-view .ahead-head{align-items:baseline}
+.list-head h1,.settings-view .ahead-head h1{margin-top:.125rem}
+.list-head h1 .glyph,.list-head h1 .avatar{align-self:center}
+.list-head h1 .avatar{margin-top:-.3rem;margin-bottom:-.3rem}
+.list-head .quiet,.settings-view .ahead-head .quiet{align-self:center}
+/* When a photo was taken is about the photo, not where you are or when it is, so it is a caption rather than a Bricolage
+   title: the resting caption's type in the header's secondary ink. Set as the month, the date of a photo from this month
+   read as the calendar's own title. */
+.photo-view .ahead-head h1{font:500 1.6rem/1.2 var(--text);letter-spacing:0;font-variation-settings:normal;color:var(--ink-2)}
 /* Resting on photos: the dock and the arrows are near-field controls, so the photo takes the whole side until a touch.
    When the photo was taken stays, as a quiet caption on the photo itself, the one thing worth reading from the couch. */
 /* The chrome gets out of the way slowly and comes back at once. */
@@ -221,6 +228,9 @@ body[data-rest] .photo-card{border-radius:0}
 .loading{padding:2.5rem;font:400 calc(1.6rem*var(--ts))/1.35 var(--text);color:var(--ink-2);max-width:48rem}
 /* The first-run screen is read once, from a phone in hand: it sits in the middle of the card rather than in its top corner. */
 .pairing{max-width:none;align-self:center}
+/* So does the note that the calendar is loading or can't be reached: two lines in the corner of an empty card read as a
+   screen that failed to draw. */
+.outage{align-self:center;margin:0 auto;text-align:center}
 .pair-code{font:600 9rem/1 var(--text);letter-spacing:.06em;color:var(--ink);margin:2.5rem 0 1.5rem;font-variant-numeric:tabular-nums}
 .pair-host{font-size:1.5rem;color:var(--ink-2)}
 .pair-address{font:600 2.6rem/1.2 var(--text);letter-spacing:-.01em;color:var(--ink);margin-top:1.6rem}
@@ -242,7 +252,6 @@ body[data-rest] .photo-card{border-radius:0}
 .day{flex:1 1 0;min-width:0;display:flex;flex-direction:column;padding:1.4rem 1.1rem 1rem;border-left:.0625rem solid var(--line)}
 .day:first-child{border-left:0}
 .day.weekend{background-color:var(--tint)}
-.theme-light{--tint:rgba(16,38,63,.028)}.theme-dark{--tint:rgba(255,255,255,.025)}
 .day-name{display:flex;flex-direction:column;align-items:flex-start;font-family:var(--display);line-height:1}
 .day-name .eyebrow{margin-bottom:.45rem;font-size:1.15rem}
 .day-name b{font-weight:600;font-size:2.75rem;letter-spacing:-.025em;font-variation-settings:"opsz" 36}
@@ -317,7 +326,9 @@ button.item:active{opacity:.6}
 /* ---------- A list (one Todoist project) ---------- */
 .list-body{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);padding:1.75rem 2.25rem}
 .list-body::-webkit-scrollbar{display:none}
-.list-body.has-more,.settings-card.has-more,.day-sheet-list.has-more{-webkit-mask-image:linear-gradient(to bottom,#000 82%,transparent);mask-image:linear-gradient(to bottom,#000 82%,transparent)}
+/* More below: the last row fades, and only that. At 18% of the card the fade took two list rows per column and made the
+   last settings row look disabled; a fixed 4.5rem is about one row at any card height. */
+.list-body.has-more,.settings-card.has-more,.day-sheet-list.has-more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 4.5rem),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 4.5rem),transparent)}
 .list-columns{max-width:60rem}
 .list-columns.two,.list-columns.three{max-width:none;-webkit-column-count:2;column-count:2;-webkit-column-gap:3.5rem;column-gap:3.5rem;-webkit-column-rule:.0625rem solid var(--line);column-rule:.0625rem solid var(--line)}
 .list-columns.three{-webkit-column-count:3;column-count:3;-webkit-column-gap:2.75rem;column-gap:2.75rem}
@@ -325,7 +336,11 @@ button.item:active{opacity:.6}
 .group{padding-bottom:1.25rem}
 .group.named,.list-body .item{-webkit-column-break-inside:avoid;break-inside:avoid}
 .group h3{font:600 calc(1.15rem*var(--ts))/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);padding:.7rem 0 .55rem}
-.list-body .item{min-height:calc(3.6rem*var(--ts));padding:calc(.7rem*var(--ts)) 0;align-items:center;border-bottom:.0625rem solid var(--line)}
+.list-body .item{min-height:calc(3.6rem*var(--ts));padding:calc(.7rem*var(--ts)) 0;align-items:flex-start;border-bottom:.0625rem solid var(--line)}
+/* A column of rings reads as a column of rows when each ring sits on its row's first line, not halfway down a long title
+   or between a title and its date. The ring is taller than a line at Standard, so the title is set down to meet its centre
+   (a negative result is no padding, at Larger, where the two are within half a pixel). */
+.list-body .item-body{padding-top:calc((2.4rem - 1.8rem*1.22*var(--ts))/2)}
 .list-body .group .item:last-child,.list-body .item.column-end{border-bottom:0}
 .list-body .item-title{font-size:calc(1.8rem*var(--ts));font-weight:400}
 .list-body .item-meta{font-size:calc(1.25rem*var(--ts))}
@@ -334,6 +349,7 @@ button.item:active{opacity:.6}
 .list-body.kid .item{min-height:calc(5.6rem*var(--ts));padding:calc(1.1rem*var(--ts)) 0}
 .list-body.kid .check{width:3.2rem;height:3.2rem;margin-right:1.3rem}
 .list-body.kid .item-title{font-size:calc(2.6rem*var(--ts))}
+.list-body.kid .item-body{padding-top:calc((3.2rem - 2.6rem*1.22*var(--ts))/2)}
 .kid-emoji{flex:none;font-size:3.2rem;line-height:1;margin:0 1rem 0 .2rem;order:-1}
 /* The cheer lands over the list that was tapped, anchored where the toast is, not over the seam with the sky window. */
 .cheer{position:fixed;left:66.5%;top:50%;font-size:14rem;line-height:1;opacity:0;pointer-events:none;z-index:30;-webkit-transform:translate(-50%,-50%) scale(.4);transform:translate(-50%,-50%) scale(.4);-webkit-transition:opacity .35s ease,-webkit-transform .5s cubic-bezier(.2,1.5,.45,1);transition:opacity .35s ease,transform .5s cubic-bezier(.2,1.5,.45,1)}
@@ -354,16 +370,15 @@ button.item:active{opacity:.6}
 /* A list's mark: a glyph for a household list, a monogram in the person's color for a person's list. */
 .glyph{flex:none;width:1.75rem;height:1.75rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ink-2);color:#fff;font:700 1.05rem/1 var(--text);letter-spacing:0}
-.tabs .glyph,.tabs .avatar{margin-right:.6rem}
+.tabs .label{margin-left:.6rem}
 .item-title .avatar{display:inline-flex;width:1.7rem;height:1.7rem;font-size:.95rem;margin-left:.6rem;vertical-align:.1em}
 .today .item-title .avatar,.list-body .item-title .avatar{width:2rem;height:2rem;font-size:1.1rem}
-.tabs.compact .marked:not([aria-pressed=true]) .label{display:none}
-.tabs.compact .marked:not([aria-pressed=true]) b{margin-left:0}
-/* Second tier, for ten lists and more: every list but the open one is its mark and count, on a tighter pill. */
+/* A list short of room is its mark and its count (app.js takes names one at a time); an empty one is its mark alone. */
+.tabs .short .label{display:none}
+/* Past the lists whose mark can stand for their name, the pills tighten before a plain list gives its name up. */
 .tabs.tight button{padding:0 .75rem}
-.tabs.tight .list-tab:not([aria-pressed=true]) .label{display:none}
-.tabs.tight .list-tab:not([aria-pressed=true]) b{margin-left:0}
 .tabs button b{font:600 1.45rem/1 var(--text);font-variant-numeric:tabular-nums;margin-left:.55rem;color:var(--ink)}
+.tabs .short b{margin-left:.6rem}
 .tabs button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
 .dock-end{display:flex;align-items:center}
 .icon-button{color:var(--ink-2)}
@@ -441,7 +456,8 @@ button.item:active{opacity:.6}
 .dialog p{font-size:calc(1.75rem*var(--ts));line-height:1.4}
 #event-location{color:var(--ink-2);margin-top:.4rem;white-space:pre-line}
 /* Adding to a list: at the top, clear of the keyboard. */
-.list-head .quiet{flex:none;height:3rem;padding:0 1.6rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
+/* One height with the arrows and Settings in the same corner (3.5rem), so the control does not change size between views. */
+.list-head .quiet{flex:none;height:3.5rem;padding:0 1.6rem;border-radius:1.75rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
 .modal.top{align-items:flex-start;padding-top:3rem}
 .dialog.add h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:0 0 1.2rem}
 .add-row{display:flex;align-items:center}
@@ -451,7 +467,7 @@ button.item:active{opacity:.6}
 .dialog.add p{min-height:2rem;margin-top:.9rem;font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
 .dialog.add .wide{margin-top:1.2rem}
 /* Manage from a phone: a PIN pad drawn by the page, so no system keyboard slides up over the wall. */
-.ahead-head .quiet{flex:none;height:3rem;padding:0 1.4rem;border-radius:1.5rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
+.ahead-head .quiet{flex:none;height:3.5rem;padding:0 1.4rem;border-radius:1.75rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
 .dialog.manage{width:34rem;text-align:center}
 .dialog.manage h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:.6rem 0 .5rem}
 .dialog.manage p{font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
@@ -468,7 +484,9 @@ button.item:active{opacity:.6}
 
 /* Photos is a card like the week and the lists: the photo whole, over a blurred copy of itself. */
 .photo-card{flex:1;min-height:0;position:relative;overflow:hidden;border-radius:1.5rem;background:#000;box-shadow:0 .1rem .2rem var(--shade);cursor:pointer}
-.slide-fill{position:absolute;top:-4rem;right:-4rem;bottom:-4rem;left:-4rem;background-size:cover;background-position:center;-webkit-filter:blur(3rem) brightness(.55);filter:blur(3rem) brightness(.55)}
+/* By day the fill is the photo's own colours, a little dimmed so the photo stays the brightest thing in the card; at .55 a
+   bright beach stood between two near-black pillars and the card outweighed the sky. Night keeps it dark (below). */
+.slide-fill{position:absolute;top:-4rem;right:-4rem;bottom:-4rem;left:-4rem;background-size:cover;background-position:center;-webkit-filter:blur(3rem) brightness(.85);filter:blur(3rem) brightness(.85)}
 .slide{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:0;-webkit-transition:opacity 1.2s ease;transition:opacity 1.2s ease}
 .slide.on{opacity:1}
 /* A big bright photo is glare in a dark kitchen. */
