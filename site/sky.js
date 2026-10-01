@@ -58,12 +58,6 @@
     // The browser's own bar takes the sky's top, so the header runs into it.
     var bars = document.querySelectorAll('meta[name="theme-color"]');
     for (var m = 0; m < bars.length; m++) bars[m].setAttribute('content', rgb(s.top));
-    var line = document.getElementById('painted');
-    if (line) {
-      line.querySelector('span').textContent = night ? 'Night sky, as on a frame set to Dark.' :
-        'Sky painted for ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' where you are.';
-      line.hidden = false;
-    }
   }
   paint();
   document.addEventListener('DOMContentLoaded', paint);
