@@ -218,7 +218,8 @@ button.more:focus-visible{outline-offset:-.5rem}
 .item.done .check{opacity:1;background:var(--tick,currentColor)}
 .item.done .check:after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--card);border-width:0 .2rem .2rem 0;-webkit-transform:rotate(42deg);transform:rotate(42deg)}
 .today .item.done .check:after{border-color:var(--sky-bottom)}
-.item.done .item-title{text-decoration:line-through;opacity:.55}
+.item.done .item-title{opacity:.55}
+.item.done .item-text{text-decoration:line-through}
 .item.overdue .item-meta{opacity:1;font-weight:600}
 
 /* ---------- The days ahead ---------- */

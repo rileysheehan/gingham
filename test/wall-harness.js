@@ -231,7 +231,7 @@ function load({fixture = 'stress', now, clock, overrides, bridge, origin = 'http
   server.flush();
   const $ = id => document.getElementById(id);
   // A row as read from the wall: its classes, its meta line and its title.
-  const row = el => ({classes: el.classes, meta: (el.querySelector('.item-meta') || {textContent: ''}).textContent, title: (el.querySelector('.item-title') || el).childNodes.filter(n => n.nodeType === 3).map(n => n.textContent).join('')});
+  const row = el => ({classes: el.classes, meta: (el.querySelector('.item-meta') || {textContent: ''}).textContent, title: el.querySelector('.item-text') ? el.querySelector('.item-text').textContent : (el.querySelector('.item-title') || el).childNodes.filter(n => n.nodeType === 3).map(n => n.textContent).join('')});
   // Today's rows as the wall shows them: the ones that survived the fold, and the "N more" link if there is one.
   const today = () => $('today-list').children.filter(el => !el.classes.includes('more')).map(row);
   const more = () => $('today-list').children.find(el => el.classes.includes('more')) || null;

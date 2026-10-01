@@ -488,7 +488,8 @@
     var text = item.kind === 'event' ? item.event.title : taskTitle(item.task);
     if (item.kind === 'task' && item.inList && listOf(item.task.project).kid) { var lead = LEADING_EMOJI.exec(cleanTitle(item.task.title)); if (lead) emoji = lead[1]; }
     if (emoji) el.appendChild(node('span', 'kid-emoji', emoji));
-    var title = node('span', 'item-title', text);
+    // The words sit in a span of their own, so a done row strikes the words and not the space before a person's mark.
+    var title = node('span', 'item-title'); title.appendChild(node('span', 'item-text', text));
     if (item.kind === 'event' && isBirthday(item.event)) title.insertBefore(candleNode(), title.firstChild);
     if (note) title.appendChild(node('span', 'item-note', ' · ' + note));
     body.appendChild(title);

@@ -560,6 +560,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-item.done .s-check::after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--s-card);border-width:0 .2em .2em 0;transform:rotate(42deg)}
 .s-today .s-item.done .s-check::after{border-color:var(--sky-bottom)}
 .s-item.done .s-title{text-decoration:line-through;opacity:.55}
+/* A title with a mark strikes only its words, not the space before the mark, as on the wall. */
+.s-item.done .s-title:has(.s-markgap){text-decoration:none}
+.s-item.done .s-title:has(.s-markgap) .s-text{text-decoration:line-through}
 /* In the hero every row with a ring is the wall's own tap (script.js). The ring fills in a quick fade; checked just now
    (.just) it pops once on the pop easing while the tick draws in, then is still. A press dims the row at once, as the
    wall's button.item:active does, and lets go in a quick fade; under a mouse an open ring brightens. With reduced motion
