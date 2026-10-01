@@ -1,7 +1,9 @@
 // Canned API responses for design review: `FRAME_FIXTURE=stress PORT=4174 HOST=127.0.0.1 node server.js`, then open
 // http://127.0.0.1:4174/?now=2026-09-23T17:40:00. "stress" is built to break layouts (long titles, a packed day,
 // multi-day and past-midnight events, overdue chores, a 34-item list, an empty list); "quiet" mirrors a sparse
-// week; "sparse" has nothing today or tomorrow; "empty" has nothing at all; "offline" has every source down. The live service never loads this file.
+// week; "sparse" has nothing today or tomorrow; "empty" has nothing at all; "offline" has every source down. "evening"
+// is a Wednesday whose last timed thing is over by dinner, with a real Thursday ahead; "dinner" is "stress" with
+// tonight's dinner written as a chore. The live service never loads this file.
 const calendars = [{id: 'mara', name: 'Mara', color: '#4793e0'}, {id: 'family', name: 'Family', color: '#b37dcc'}, {id: 'theo', name: 'Theo', color: '#38977b'}];
 let n = 0;
 const at = (day, time) => '2026-' + day + 'T' + time + ':00-05:00';
@@ -75,6 +77,15 @@ module.exports = {
     weather: {location: 'Springfield', temperature: 84, feelsLike: 86, code: 0, high: 94, low: 75, rain: 0, days: weatherDays([0, 0, 1, 0, 2, 3, 0, 0], 94, 73, []), fetchedAt: Date.now()},
     photos: 'album', countdowns
   },
+  // An ordinary Wednesday evening: soccer is over by 6:30 and the trash went out late (overdue by 8:40 PM), so nothing
+  // timed is left today; Thursday has a birthday, school at 7:45, a design review and June's soccer bag, under rain.
+  // A grandparent's birthday in October reaches Later.
+  evening: {
+    calendar: {mode: 'live', calendars, events: [timed('family', 'Soccer practice', '09-23', '17:30', '18:30', 'Northside Fields, 40 Park Road'), allDay('mara', 'Priya’s birthday', '09-24', '09-25'), timed('family', 'June to school', '09-24', '07:45', '08:15'), timed('mara', 'Design review', '09-24', '09:30', '10:30'), timed('mara', 'Coffee with Sam', '09-25', '11:30', '12:30'), timed('mara', 'Grandpa Joe’s retirement party', '09-27', '14:00', '15:30'), allDay('family', 'Grandma Rosa’s birthday', '10-05', '10-06')], from: '2026-09-23', to: '2026-10-21', updatedAt: stamp},
+    tasks: {projects: ['Family', 'Chores', 'Grocery', 'June'], people, lists: lists(['Family', 'Chores', 'Grocery', 'June']), tasks: [task('Chores', 'Take: trash to street', '2026-09-23T19:00:00', {recurring: true}), task('June', '⚽️ Pack: soccer bag', '2026-09-24'), task('Grocery', 'Ginger beer', '', {section: 'Drinks'})], updatedAt: stamp},
+    weather: {location: 'Springfield', temperature: 81, feelsLike: 84, code: 1, high: 94, low: 75, rain: 0, days: weatherDays([1, 61, 3, 0, 1, 2, 3, 0], 94, 72, [0, 70]), fetchedAt: Date.now()},
+    photos: 'album', countdowns
+  },
   // Four empty weeks.
   empty: {
     calendar: {mode: 'live', calendars, events: [], from: '2026-09-23', to: '2026-10-21', updatedAt: stamp},
@@ -84,3 +95,5 @@ module.exports = {
   },
   offline: {calendar: null, tasks: null, weather: null, photos: null}
 };
+// The packed day again, with tonight's dinner written as a chore, the way a household writes "Verb: object".
+module.exports.dinner = {...module.exports.stress, tasks: {...module.exports.stress.tasks, tasks: [task('Chores', 'Dinner: tacos al pastor', '2026-09-23'), ...stressTasks]}};

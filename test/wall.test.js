@@ -133,20 +133,24 @@ test('Past the now and next rows, Today is one line a row, so it holds about twi
   assert.ok(bill.querySelector('.item-body').children.some(el => el.classes.includes('avatar')));
 });
 
-test('Today keeps an empty time column only while another one-line row has a time to line up with', () => {
+test('An untimed chore in Today has no time column, so its title sits right after its ring (polish pass, P-03)', () => {
   const base = require('./fixtures').stress;
   const event = (id, title, start, end) => ({id, uid: id, title, calendar: 'family', start, end, allDay: false, location: ''});
   const chore = (id, title) => ({id, title, priority: 'p4', due: '2026-09-23', project: 'Chores', section: '', labels: '', recurring: false, assignee: ''});
   const tasks = {...base.tasks, tasks: [chore('c1', 'Trash to the curb'), chore('c2', 'Feed the fish')]};
   const day = extra => ({...base.calendar, events: [event('e1', 'Soccer practice', '2026-09-23T17:00:00', '2026-09-23T19:30:00'), ...extra]});
-  const metaSpans = w => w.$('today-list').children.filter(el => el.classes.includes('compact')).map(el => !!el.querySelector('.item-meta'));
-  // Soccer is happening, the chores have no time: nothing to line up with, so no gap between the circle and the title.
+  // Each one-line row's time cell, as [title, what it says]; an empty cell is hidden by style.css.
+  const cells = w => w.$('today-list').children.filter(el => el.classes.includes('compact')).map(el => [w.row(el).title, el.querySelector('.item-meta').textContent]);
+  // Soccer is happening and the chores have no time.
   let w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([]), '/api/tasks': tasks}});
-  assert.deepEqual(metaSpans(w), [false, false]);
-  // Two timed events later (one is the next row, the other one line): the chores keep the column, so the titles align.
+  assert.deepEqual(cells(w), [['Trash to the curb', ''], ['Feed the fish', '']]);
+  // With timed rows beside them the chores still have nothing to say there: an empty column read as a gap after the ring.
   w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([event('e2', 'Dinner', '2026-09-23T19:45:00', '2026-09-23T20:30:00'), event('e3', 'Book club', '2026-09-23T21:00:00', '2026-09-23T22:00:00')]), '/api/tasks': tasks}});
-  const compact = metaSpans(w);
-  assert.ok(compact.length >= 2 && compact.every(Boolean), 'every one-line row keeps its time column: ' + JSON.stringify(compact));
+  const chores = cells(w).filter(c => /Trash|fish/.test(c[0]));
+  assert.ok(chores.length && chores.every(c => c[1] === ''), 'no chore keeps a time column: ' + JSON.stringify(cells(w)));
+  assert.ok(cells(w).some(c => c[0] === 'Book club' && c[1] === '9 PM'), 'the timed row keeps its time: ' + JSON.stringify(cells(w)));
+  // The harness draws no CSS, so the rule that hides an empty cell is read from the stylesheet itself.
+  assert.match(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'dist', 'style.css'), 'utf8'), /\.today \.item\.compact \.item-meta:empty\{display:none\}/);
 });
 
 test('An all-day event in a one-line row says "All day" when there is a time column to say it in (0.1.3)', () => {
@@ -156,11 +160,11 @@ test('An all-day event in a one-line row says "All day" when there is a time col
   const tasks = {...base.tasks, tasks: [chore]};
   const soccer = event('e1', 'Soccer practice', '2026-09-23T17:00:00', '2026-09-23T19:30:00'), pictures = event('e0', 'June’s school picture day', '2026-09-23', '2026-09-24', true);
   const day = events => ({...base.calendar, events: [pictures, ...events]});
-  const compact = w => w.$('today-list').children.filter(el => el.classes.includes('compact')).map(el => [w.row(el).title, el.querySelector('.item-meta') ? el.querySelector('.item-meta').textContent : null]);
-  // Nothing timed among the one-line rows: no column at all, so the rail sits beside its title, as the circle does.
+  const compact = w => w.$('today-list').children.filter(el => el.classes.includes('compact')).map(el => [w.row(el).title, el.querySelector('.item-meta').textContent]);
+  // Nothing timed among the one-line rows: every cell is empty, so hidden, and the rail sits beside its title, as the circle does.
   let w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([soccer]), '/api/tasks': tasks}});
-  assert.deepEqual(compact(w), [['June’s school picture day', null], ['Feed the fish', null]]);
-  // With a time to line up with, the column stays and the all-day row fills it; an untimed chore leaves it empty.
+  assert.deepEqual(compact(w), [['June’s school picture day', ''], ['Feed the fish', '']]);
+  // With a time to line up with, the all-day row says "All day" in the column; an untimed chore has nothing there (hidden).
   w = load({now: '2026-09-23T17:42:00', overrides: {'/api/calendar': day([event('e2', 'Dinner', '2026-09-23T19:45:00', '2026-09-23T20:30:00'), event('e3', 'Book club', '2026-09-23T21:00:00', '2026-09-23T22:00:00')]), '/api/tasks': tasks}});
   assert.deepEqual(compact(w), [['June’s school picture day', 'All day'], ['Book club', '9 PM'], ['Feed the fish', '']]);
   // "All day" alone is not a time to line up with, but a trip's span is.
@@ -220,6 +224,39 @@ test('The wall\'s setup screens carry a QR code of the whole link, code and all,
   assert.equal(w.$('manage-title').textContent, 'Point your phone’s camera at this code');
   assert.equal(w.$('manage-typed').textContent, 'No camera? Open gingham.local:4173/setup and enter the code.');
   assert.equal(w.$('manage-code').textContent, 'KMN-234');
+});
+
+test('Setting up: the card hugs the message, a frame waiting to be paired says Welcome and names its server, and only a tablet that is its own server says everything stays on it (polish pass)', () => {
+  // First run is only ever shown by a tablet that is its own server (the server sends needsSetup to its own tablet alone).
+  const first = {'/api/household': {name: '', timezone: 'America/Chicago', needsSetup: true, address: 'http://192.168.4.23:4173'}, 'POST /api/owner-code': {code: '3TW-9B8', expiresIn: 600}};
+  let w = load({fixture: 'empty', now: '2026-09-23T10:00:00', overrides: first});
+  w.every('firstRunStep');
+  assert.equal(w.$('month').textContent, 'Welcome');
+  assert.ok(w.$('strip').classes.includes('hug'), 'the card hugs its message');
+  assert.ok(w.$('strip').textContent.includes('Everything stays on this tablet.'));
+  // A frame waiting to be paired with a household's server elsewhere: Welcome too, the server's name without Gingham's own
+  // port, and not the line about this tablet, which is not where anything is kept.
+  const unpaired = {'POST /api/pair/start': {device: 'd1', code: 'K7W-PX4', expiresIn: 600}};
+  for (const api of ['household', 'settings', 'calendar', 'tasks', 'weather', 'photos', 'updates']) unpaired['/api/' + api] = {__status: 401};
+  const pairing = origin => { const p = load({fixture: 'empty', now: '2026-09-23T10:00:00', overrides: unpaired, origin}); p.server.flush(); return p; };
+  w = pairing('http://gingham.home:4173');
+  assert.match(w.$('strip').textContent, /This frame isn’t set up yet/);
+  assert.equal(w.$('month').textContent, 'Welcome');
+  assert.ok(w.$('strip').classes.includes('hug'));
+  const host = p => (p.$('strip').querySelector('.pair-host') || {textContent: null}).textContent;
+  assert.equal(host(w), 'gingham.home');
+  assert.ok(!w.$('strip').textContent.includes('stays on this tablet'));
+  assert.equal(host(pairing('http://10.0.0.23:8080')), '10.0.0.23:8080', 'a port of its own is part of the name');
+  assert.equal(host(pairing('http://127.0.0.1:4723')), null, 'a loopback address names nothing to anyone else');
+  // Once there is a calendar the card fills the pane again.
+  assert.ok(!load({now: '2026-09-23T10:00:00'}).$('strip').classes.includes('hug'));
+});
+
+test('A dock with one tab draws it as a plain label, not a track around a pill (polish pass, P-05)', () => {
+  const lone = load({now: '2026-09-23T10:00:00', overrides: {'/api/tasks': {...require('./fixtures').stress.tasks, projects: [], lists: [], tasks: []}, '/api/photos': {configured: false, photos: []}}});
+  assert.equal(lone.$('tabs').children.length, 1);
+  assert.ok(lone.$('tabs').classes.includes('lone'));
+  assert.ok(!load({now: '2026-09-23T10:00:00'}).$('tabs').classes.includes('lone'));
 });
 
 test('Overdue chores come straight after the next thing, the two oldest of them; a longer backlog waits at the end (Riley, 2026-09-22)', () => {

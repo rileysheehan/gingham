@@ -353,7 +353,8 @@ async function serve(req,res){
     const named = networkName && networkName.host() ? 'http://' + networkName.host() + ':' + port : '';
     const address = process.env.FRAME_URL || (interfaces().filter(a=>a.family==='IPv4'&&!a.internal).map(a=>'http://'+a.address+':'+port)[0] || '');
     const counting = upcoming(home.sources().countdowns, dayIn(p.timezone, Date.now()));
-    return json(res,200,{name:p.name,timezone:p.timezone,place:p.label,...(p.country?{country:p.country}:{}),...(counting.length?{countdowns:counting}:{}),...(local ? {address,...(named?{named}:{})} : {}),...(local && !hasOwner(home.id) ? {needsSetup:true} : {})});
+    // South of the equator the moon is seen mirrored; the wall needs only the hemisphere, never where the household is.
+    return json(res,200,{name:p.name,timezone:p.timezone,place:p.label,...(p.country?{country:p.country}:{}),...(p.latitude<0?{south:true}:{}),...(counting.length?{countdowns:counting}:{}),...(local ? {address,...(named?{named}:{})} : {}),...(local && !hasOwner(home.id) ? {needsSetup:true} : {})});
   }
   if (pathname === '/api/photos') {
     if (!mayViewPhotos(req, who)) return json(res,403,{photos:[],error:'Photos are shown only on paired frames'});

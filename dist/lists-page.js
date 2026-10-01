@@ -31,11 +31,12 @@
     var open = function (name) { return data.tasks.filter(function (t) { return t.project === name && !pending[t.id]; }).length; };
     var tabs = $('tabs'); tabs.textContent = '';
     names.forEach(function (name) {
-      var b = el('button', 'chip', name + ' ' + open(name)); b.type = 'button'; b.setAttribute('aria-pressed', String(name === current));
+      // A count is work to be done, as on the wall's dock, so an empty list shows none.
+      var count = open(name), b = el('button', 'chip', count ? name + ' ' + count : name); b.type = 'button'; b.setAttribute('aria-pressed', String(name === current));
       b.onclick = function () { current = name; try { localStorage.setItem('lists.current', name); } catch (e) {} render(); };
       tabs.appendChild(b);
     });
-    $('add-input').placeholder = 'Add to ' + current;
+    $('add-input').placeholder = current ? 'Add to ' + current : 'Add something';
     var problem = (data.problems || []).indexOf(current) >= 0;
     $('problem').textContent = problem ? 'This list could not be refreshed just now, so it may be out of date.' : '';
 

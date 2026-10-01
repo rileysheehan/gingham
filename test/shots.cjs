@@ -3,7 +3,7 @@
   like nothing can be shown to look like nothing. Take a set before a change and a set after it, and compare the two
   folders file by file.
 
-    node test/shots.cjs --out <folder> [--root <checkout>] [--ports 4550-4599] [--fixtures stress,quiet,offline] [--only <regexp>]
+    node test/shots.cjs --out <folder> [--root <checkout>] [--ports 4550-4599] [--fixtures stress,quiet,offline] [--only <regexp>] [--set moments]
 
   --out       where the PNGs go (made if missing).
   --root      the checkout whose server is photographed; this one by default. Point it at a second worktree of an
@@ -13,6 +13,11 @@
               settings, Larger text, and the week with the tablet itself in dark mode); each other one gets the week
               in day and night. The phone pages are shown with the first.
   --only      take only the screenshots whose names match, e.g. --only 'week|phone-lists'.
+  --set       "moments" takes the wall's moments of the day instead of the set above (20 screenshots, --fixtures ignored):
+              the evening handoff, the day line from dawn to night, the moon through a month (and south of the
+              equator), dinner by day and night, and birthdays in Today, the week, Later and the agenda. The sky
+              follows each state's own clock. Its "evening" and "dinner" fixtures are newer than some checkouts; to take
+              a "before" set of an older one, copy this test/fixtures.js into it first.
 
   It needs two things this repository does not install, named by environment variables:
     PLAYWRIGHT_CORE  a path to playwright-core (or leave it unset if `require('playwright-core')` finds one);
@@ -41,7 +46,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
 const args = {};
 for (let i = 2; i < process.argv.length; i += 2) {
   const key = process.argv[i], value = process.argv[i + 1];
-  if (!/^--(out|root|ports|fixtures|only)$/.test(key) || value === undefined) { console.error('usage: node test/shots.cjs --out <folder> [--root <checkout>] [--ports 4550-4599] [--fixtures stress,quiet,offline] [--only <regexp>]'); process.exit(2); }
+  if (!/^--(out|root|ports|fixtures|only|set)$/.test(key) || value === undefined) { console.error('usage: node test/shots.cjs --out <folder> [--root <checkout>] [--ports 4550-4599] [--fixtures stress,quiet,offline] [--only <regexp>] [--set moments]'); process.exit(2); }
   args[key.slice(2)] = value;
 }
 if (!args.out) { console.error('--out is required'); process.exit(2); }
@@ -50,6 +55,8 @@ const ROOT = path.resolve(args.root || path.join(__dirname, '..'));
 const [FIRST_PORT, LAST_PORT] = (args.ports || '4550-4599').split('-').map(Number);
 const FIXTURES = (args.fixtures || 'stress,quiet,offline').split(',').filter(Boolean);
 const ONLY = args.only ? new RegExp(args.only) : null;
+const SET = args.set || 'default';
+if (!/^(default|moments)$/.test(SET)) { console.error('--set is "default" or "moments"'); process.exit(2); }
 if (!(FIRST_PORT > 0 && LAST_PORT >= FIRST_PORT)) { console.error('--ports is a range, like 4550-4599'); process.exit(2); }
 if (!fs.existsSync(path.join(ROOT, 'server.js'))) { console.error(ROOT + ' has no server.js'); process.exit(2); }
 fs.mkdirSync(OUT, {recursive: true});
@@ -100,13 +107,16 @@ async function shoot(page, name, fullPage) {
 const clickText = (p, sel, text) => p.locator(sel, {hasText: text}).first().click();
 const openSetting = async (p, choice) => { await p.click('#settings-button'); await p.waitForTimeout(500); await clickText(p, '#view-settings button', choice); await p.waitForTimeout(400); await p.click('#tab-calendar'); };
 
-async function wall(browser, {fixture, now, sky, name, setup, scheme = 'light'}) {
+// `sky` forces the sky ("day", "night"); left out, the sky follows `now` as it does on the wall. `south` places the
+// household south of the equator.
+async function wall(browser, {fixture, now, sky, name, setup, scheme = 'light', south = false}) {
   if (ONLY && !ONLY.test(name)) return;
   const server = await fresh(fixture);
   try {
     const ctx = await contextFor(browser, {viewport: {width: 1920, height: 1080}, colorScheme: scheme});
+    if (south) await ctx.route(/^http:\/\/127\.0\.0\.1:\d+\/api\/household$/, async r => { const answer = await r.fetch(); r.fulfill({json: {...await answer.json(), south: true}}); });
     const p = await ctx.newPage();
-    await p.goto(`${server.base}/?now=${now}&sky=${sky}`); await p.waitForTimeout(2500);
+    await p.goto(`${server.base}/?now=${now}` + (sky ? `&sky=${sky}` : '')); await p.waitForTimeout(2500);
     if (setup) await setup(p);
     await p.waitForTimeout(1200);
     await shoot(p, name, false);
@@ -126,9 +136,32 @@ async function phone(browser, {fixture, pathname, name, scheme}) {
   } finally { await server.stop(); }
 }
 
+// The wall's moments of the day (DESIGN.md, "Moments of the day"), each at its own hour with the sky that hour has.
+async function moments(browser) {
+  const shot = (name, fixture, now, extra) => wall(browser, {fixture, now, name: 'moment-' + name, ...extra});
+  // The evening handoff: a real tomorrow, a tomorrow with nothing timed, and a day that still has a next thing (unchanged).
+  await shot('evening-timed', 'evening', '2026-09-23T20:40:00');
+  await shot('evening-untimed', 'quiet', '2026-09-23T20:40:00');
+  await shot('evening-busy', 'stress', '2026-09-23T20:40:00');
+  await shot('evening-before-sunset', 'evening', '2026-09-23T18:50:00');
+  // The day line, dawn to night, on the packed day.
+  for (const [name, time] of [['0700', '07:00'], ['1230', '12:30'], ['1740', '17:40'], ['1920', '19:20'], ['2200', '22:00']]) await shot('dayline-' + name, 'stress', '2026-09-23T' + time + ':00');
+  // The moon through a month, on a clear night (sparse is clear), and once behind a cloud (quiet is partly cloudy).
+  for (const [name, day] of [['crescent', '09-15'], ['quarter', '09-19'], ['gibbous', '09-23'], ['full', '09-26'], ['waning', '10-01']]) await shot('moon-' + name, 'sparse', '2026-' + day + 'T21:00:00');
+  await shot('moon-south', 'sparse', '2026-09-15T21:00:00', {south: true});
+  await shot('moon-cloud', 'quiet', '2026-09-19T21:00:00');
+  // Dinner, from a chore, on the packed day, by day and by night.
+  await shot('dinner-day', 'dinner', '2026-09-23T12:30:00');
+  await shot('dinner-night', 'dinner', '2026-09-23T21:00:00');
+  // A birthday in Today and the week, in Later, and in the agenda.
+  await shot('birthday-today', 'quiet', '2026-09-24T09:00:00');
+  await shot('birthday-agenda', 'stress', '2026-09-23T17:40:00', {setup: p => openSetting(p, 'Agenda')});
+}
+
 (async () => {
   const browser = await chromium.launch({...(process.env.CHROME ? {executablePath: process.env.CHROME} : {channel: 'chrome'}), headless: true, args: CHROME_FLAGS});
   try {
+    if (SET === 'moments') { await moments(browser); return; }
     const [first, ...others] = FIXTURES;
     const times = [['day', '2026-09-23T17:40:00', 'day'], ['night', '2026-09-23T19:16:00', 'night']];
     for (const [mode, now, sky] of times) {

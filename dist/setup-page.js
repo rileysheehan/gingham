@@ -93,7 +93,9 @@
     state.lists.forEach(function (l) {
       var lead = el('span', l.person ? 'avatar' : 'dot', l.person ? l.name.charAt(0).toUpperCase() : '');
       if (l.person && l.color) lead.style.background = l.color; if (!l.person) lead.style.background = 'var(--ink-2)';
-      row(ll, lead, l.name, (l.person ? (l.kid ? 'A young child’s list' : 'A person’s list') : 'A household list') + ({ here: ' · kept here', microsoft: ' · from Microsoft To Do', caldav: ' · from ' + (state.caldav.server || 'CalDAV'), homeassistant: ' · from Home Assistant', googletasks: ' · from Google Tasks' })[l.kind] || ' · from Todoist', '',
+      // Where it comes from, or Todoist, the one kind with no word of its own. The fallback is inside the brackets: outside
+      // them `+` took the lookup first, and a Todoist list read "A household listundefined".
+      row(ll, lead, l.name, (l.person ? (l.kid ? 'A young child’s list' : 'A person’s list') : 'A household list') + (({ here: ' · kept here', microsoft: ' · from Microsoft To Do', caldav: ' · from ' + (state.caldav.server || 'CalDAV'), homeassistant: ' · from Home Assistant', googletasks: ' · from Google Tasks' })[l.kind] || ' · from Todoist'), '',
         l.kind === 'here' ? removeButton('Remove', 'And its items?', function (b) { act('list-remove', { id: l.id }, b, function () { toast('Removed ' + l.name); }); }) : null);
     });
 

@@ -40,7 +40,8 @@ details[open]>summary::before{content:"–"}
 .rows .sub.good{color:var(--good)}
 .rows .sub.bad{color:var(--bad)}
 .rows:empty::after{content:attr(data-empty);display:block;color:var(--ink-2);font-size:.95rem;padding:.4rem 0 .2rem}
-.dot{flex:none;width:.85rem;height:.85rem;border-radius:50%}
+/* A dot takes the monogram's 1.7rem box, so a list's name starts at the same place whether it has a dot or a monogram. */
+.dot{flex:none;width:.85rem;height:.85rem;margin:0 .425rem;border-radius:50%}
 .avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.7rem;height:1.7rem;border-radius:50%;color:#fff;font:700 .85rem/1 var(--text);background:var(--ink-2)}
 .results{list-style:none;padding:0;margin-top:.4rem;border:1px solid var(--line);border-radius:.7rem;overflow:hidden}
 .results li{padding:.75rem .9rem;border-bottom:1px solid var(--line);cursor:pointer}
@@ -67,6 +68,8 @@ a.button.primary{background:var(--accent);color:var(--on-accent)}
 .add-bar button.primary{width:auto;margin-top:0;padding:0 1.3rem}
 .lists-page .card{padding-top:.5rem;padding-bottom:.5rem}
 .lists-page .card>.note{padding:.8rem 0}
+/* No rows to show (the lists could not be loaded) is no card, not an empty white bar under the error. */
+#items:empty{display:none}
 .section{margin:1rem 0 .1rem}
 .checks li{cursor:pointer;min-height:3.5rem;-webkit-tap-highlight-color:transparent}
 .checks .name{white-space:normal}
@@ -89,7 +92,8 @@ a.button-link{display:inline-flex;align-items:center;text-decoration:none;font:6
 .rows li.wrap .options{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;padding:.1rem 0 .3rem 1.6rem}
 .rows li.wrap .options .sub{margin-right:.2rem}
 .note:empty{display:none}
-.big-code{font:600 2.1rem/1.1 var(--text);letter-spacing:.14em;margin:.9rem 0 .2rem;font-variant-numeric:tabular-nums;user-select:all;-webkit-user-select:all}
+/* A code is letters and digits read as one word: tabular figures gave the hyphen a digit's width and split it in two. */
+.big-code{font:600 2.1rem/1.1 var(--text);letter-spacing:.14em;margin:.9rem 0 .2rem;user-select:all;-webkit-user-select:all}
 #ms-code .button,#ms-connected .quiet{margin-right:.5rem}
 #cd-connected .quiet{margin-right:.5rem}
 #ha-connected .quiet{margin-right:.5rem}

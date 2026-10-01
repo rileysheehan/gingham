@@ -77,7 +77,12 @@ svg{display:block}
 .now{display:flex;align-items:center;margin-top:1.75rem}
 .wx-icon{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .wx-icon .sun{fill:var(--sun);stroke:var(--sun)}
-.wx-icon .moon{fill:#f1e6c3;stroke:#f1e6c3;stroke-width:1}
+/* Tonight's moon (app.js, moonMark): the lit side in the moon's cream, the dark side the same cream, faint, so the whole
+   disc is always there. Before sunrise the sky can already be light enough for navy ink, where a faint cream is nothing,
+   so there the dark side is the ink, as faint, and the disc still reads (the sky's weather layer says which ink it is). */
+.wx-icon .moon{fill:var(--moon);stroke:var(--moon);stroke-width:1}
+.wx-icon .moon-dark{fill:var(--moon);stroke:none;opacity:.2}
+.sky-fx.day~.now .moon-dark{fill:currentColor;opacity:.15}
 .wx-icon .bolt{fill:var(--sun);stroke:none}
 .wx-icon .drop{stroke:var(--rain)}
 .now .wx-icon{width:5rem;height:5rem;flex:none;margin-right:1.1rem}
@@ -85,23 +90,56 @@ svg{display:block}
 .now-text{font-size:1.75rem;line-height:1.3;font-weight:600}
 .now-detail{font-weight:400;font-size:1.4rem;opacity:.78}
 
+/* Tonight's dinner, from a chore called "Dinner: …" (app.js, renderDinner): one line above the countdown and at its size,
+   the word in the countdown's weight and the dish a step lighter. The whole line is the tap that checks it off, a
+   finger's height with the space above it; checked, it is struck through like a checked row until the list catches up. */
+.dinner{flex:none;display:flex;align-items:baseline;width:100%;margin-top:auto;padding-top:1.25rem;font:500 calc(1.75rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap}
+.dinner b{flex:none;font-weight:600;margin-right:.55rem}
+.dinner span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dinner.done span{text-decoration:line-through;opacity:.55}
+.dinner:active{opacity:.6}
+.dinner:not([hidden])+.countdown{margin-top:0;padding-top:.7rem}
+.dinner:not([hidden])~.sun-line{margin-top:0;padding-top:.7rem}
 .countdown{flex:none;margin-top:auto;padding-top:1.25rem;font:600 calc(1.75rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .countdown:not([hidden])+.sun-line{margin-top:0;padding-top:.7rem}
 .sun-line{flex:none;font:500 calc(1.4rem*var(--ts))/1 var(--text);font-variant-numeric:tabular-nums;opacity:.78;margin-top:auto;padding-top:1.25rem}
 /* An old calendar or list, said once in the panel every view shares: as quiet as the sun line, with a broken rule over it
    so it reads as a caveat on everything above rather than as one more line of news. */
-.stale-line{flex:none;margin-top:1rem;padding-top:.8rem;border-top:.125rem dashed rgba(127,127,127,.5);font:500 calc(1.4rem*var(--ts))/1.25 var(--text);font-variant-numeric:tabular-nums}
+.stale-line{flex:none;margin-top:1rem;padding-top:.8rem;border-top:.125rem dashed var(--sky-rule);font:500 calc(1.4rem*var(--ts))/1.25 var(--text);font-variant-numeric:tabular-nums}
+/* The day line (app.js, renderDayLine): today from 6 AM to midnight, in the hairline over TODAY and the same height, so
+   the label under it starts where it always did. Marks reach above and below the line into the space around it. The
+   rule ahead of now is the hairline; behind now it is heavier, in ink. A bar is an event in its calendar's colour, a
+   mark like the rails Today already draws (busy time broken, as its rail is); a ring is a chore with a time, in full
+   ink like every ring on the sky (and as heavy, .22rem), filled once it is checked off; now is an ink dot with a faint halo of ink. */
+.dayline{flex:none;position:relative;height:.125rem;margin-top:2.25rem}
+.dayline:not([hidden])+.today-label{margin-top:0;border-top:0}
+.dayline i{position:absolute;display:block}
+.dl-rule{top:0;height:.125rem;background:var(--sky-rule)}
+.dl-rule.past{top:-.0625rem;height:.25rem;border-radius:.125rem;background:currentColor;opacity:.7}
+.dl-tick{top:.4rem;width:.125rem;height:.55rem;margin-left:-.0625rem;background:currentColor;opacity:.5}
+.dl-event{top:-.29rem;height:.7rem;min-width:.7rem;border-radius:.35rem;background:var(--rail)}
+.dl-event.busy{top:-.1875rem;height:.5rem;border-radius:0;background:repeating-linear-gradient(90deg,var(--rail) 0,var(--rail) .4rem,transparent .4rem,transparent .65rem)}
+.dl-chore{top:-.49rem;width:1.1rem;height:1.1rem;margin-left:-.55rem;border:.22rem solid currentColor;border-radius:50%}
+.dl-chore.done{background:currentColor}
+.dl-now{top:-.49rem;width:1.1rem;height:1.1rem;margin-left:-.55rem;border-radius:50%;background:currentColor}
+.dl-now:before{content:"";position:absolute;z-index:-1;top:-.55rem;left:-.55rem;width:2.2rem;height:2.2rem;border-radius:50%;background:currentColor;opacity:.2}
 /* Today takes the room it needs and tomorrow gets the rest (flex-basis 0), so a busy today squeezes tomorrow, never
    the other way round. app.js fits whole items into each and ends with "and N more". */
-.today-label{flex:none;margin-top:2.25rem;padding-top:1.5rem;border-top:.125rem solid rgba(127,127,127,.35);margin-bottom:1.1rem}
+.today-label{flex:none;margin-top:2.25rem;padding-top:1.5rem;border-top:.125rem solid var(--sky-rule);margin-bottom:1.1rem}
 .today-list{flex:0 1 auto;min-height:0;overflow:hidden}
-.tomorrow{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-top:1.5rem;padding-top:1.4rem;border-top:.125rem solid rgba(127,127,127,.35)}
-.tomorrow h2{flex:none;margin-bottom:1.1rem}
+.tomorrow{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin-top:1.5rem;padding-top:1.4rem;border-top:.125rem solid var(--sky-rule)}
+.tomorrow-head{flex:none;display:flex;align-items:baseline;margin-bottom:1.1rem}
+.tomorrow h2{flex:1}
+/* In the evening, tomorrow's forecast sits at the eyebrow's right: the week's forecast row on its side, at the sky's
+   secondary ink, with the rain said in words since the week's blue figure is not legible on the sky. The icon stands
+   beside the line rather than in it, so the line is no taller than the eyebrow and the rows under it do not move. */
+.tomorrow-wx{position:relative;padding-left:2.95rem;font:500 1.45rem/1 var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.85}
+.tomorrow-wx .wx-icon{position:absolute;left:0;top:50%;width:2.4rem;height:2.4rem;margin-top:-1.25rem}
+.tomorrow-wx b{font-weight:600;margin-right:.45rem}
 .tomorrow-list{flex:1;min-height:0;overflow:hidden}
 .today .tomorrow .item{margin-bottom:calc(1.1rem*var(--ts))}
 .today .tomorrow .item-title{font-size:calc(1.9rem*var(--ts))}
 .today .tomorrow .item-meta{font-size:calc(1.3rem*var(--ts))}
-.today .tomorrow .check{width:2.2rem;height:2.2rem}
 .today-empty{font:400 calc(2.25rem*var(--ts))/1.2 var(--text);letter-spacing:-.01em;opacity:.75;text-wrap:balance}
 .today .item{margin-bottom:calc(1.5rem*var(--ts))}
 .today .item-title{font-size:calc(2.25rem*var(--ts));line-height:1.2}
@@ -112,22 +150,23 @@ svg{display:block}
 /* What is happening now reads first, and the time of it, and of the next thing, is the time read from across the room:
    30 px, heavier and at full ink, where every other row's time stays small. */
 .item.happening .item-meta{opacity:1;font-weight:600}
-.item.happening:before{width:.45rem}
 .today .item.happening .item-meta,.today .item.next .item-meta{font-size:calc(1.875rem*var(--ts));line-height:1.25;font-weight:650;opacity:1}
 /* Busy time: a title in ink at a lighter weight, and a broken rail, the way calendars draw time that is only blocked. */
 .item.busy .item-title{font-weight:400}
-.today .check{width:2.5rem;height:2.5rem;margin-top:.1rem}
+.today .check{margin-right:.8rem}
+.today .item.next .check{margin-top:calc((1.875rem*1.25*var(--ts) - 1.9rem)/2)}
 /* Today past the now and next rows: one line each, a time column and then the title, as Later is, so the panel holds
    about twice as many rows and an overdue chore reaches the screen. The time column is 7.5rem, wide enough for
-   "11:30 PM" and "Overdue"; a row with no time keeps the column empty so every title starts at the same place. */
+   "11:30 PM" and "Overdue". A row with no time has no column: an empty one read as a gap after the ring, not as a column,
+   so an untimed chore's title sits right after its ring (app.js untimedColumn says "All day" only beside real times). */
 .today .item.compact{align-items:center;margin-bottom:calc(.95rem*var(--ts))}
 .today .item.compact .item-body{display:flex;align-items:baseline;min-width:0}
 .today .item.compact .item-meta{flex:0 0 calc(7.5rem*var(--ts));font-size:calc(1.5rem*var(--ts));line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:clip}
 .today .item.compact .item-title{flex:0 1 auto;min-width:0;display:block;font-size:calc(1.9rem*var(--ts));line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .today .item.compact .item-body>.avatar{align-self:center;margin-left:.6rem;width:1.8rem;height:1.8rem;font-size:1rem}
-.today .item.compact .check{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
-.today .item.event.compact{padding-left:2.7rem}
-.today .item.event.compact:before{left:.8rem;top:.25rem;bottom:.25rem}
+.today .item.compact .item-meta:empty{display:none}
+.today .item.compact .check{margin:0 .8rem 0 0}
+.today .item.event.compact:before{top:.25rem;bottom:.25rem}
 /* On the sky, secondary text is the ink at 85%, never fainter: the sky itself is only held to 7:1 against the ink (see
    paintSky), and at 70% an eyebrow over dawn fell to 4.3:1. Hierarchy here comes from size and weight first. */
 .today .eyebrow,.today-date,.ampm,.now-detail,.sun-line,.today-empty,.today .more,.today .item-meta{opacity:.85}
@@ -145,19 +184,36 @@ svg{display:block}
 .day .item.allday.continues{opacity:.62}
 /* The week's narrow columns give all-day titles two lines instead of one, so "Sam in …" keeps its meaning. */
 .day .item.allday .item-title{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* A word too long for a week column ends in an ellipsis on its line rather than breaking in two: "appointm-ent" read as two
+   words, and the column is narrower now that its titles share one lead (2.6rem, after the ring). */
+.day .item-title{overflow-wrap:normal;word-wrap:normal;overflow:hidden;text-overflow:ellipsis}
 .item-note{font-weight:400;opacity:.75}
 .more{display:block;font:500 calc(1.3rem*var(--ts))/1.3 var(--text);opacity:.75;padding:.1rem 0 0;text-align:left}
-button.more{padding:.8rem 1.5rem .8rem 0;margin-top:-.8rem;text-decoration:underline;text-decoration-color:rgba(127,127,127,.5);text-underline-offset:.2em}
+/* "N more" is a finger's height, with as much room on each side as above and below, and its focus ring is drawn inside
+   that room, evenly round the words. The boxes it ends clip what overflows them (they fit whole rows), so a ring outside
+   the button was cut on the left and below and hung 1.5rem past the words on the right; they keep room for it at the left. */
+button.more{padding:.8rem;margin:-.8rem 0 0 -.8rem;text-decoration:underline;text-decoration-color:rgba(127,127,127,.5);text-underline-offset:.2em}
 .today .more{font-size:calc(1.5rem*var(--ts))}
+button.more:focus-visible{outline-offset:-.5rem}
+.today-list,.tomorrow-list,.day-items{padding-left:.8rem;margin-left:-.8rem}
 /* Times and dates use the display face, like every other number on the frame. */
 /* The type rule: Bricolage only for the big time-and-date type (weekday, date, clock, current temperature, the week's
    day numbers); every word you read is Inter, with fixed-width digits where times line up. */
 .item-meta,.later-row .when,.later-row .time{font-weight:500;font-variant-numeric:tabular-nums}
 .item-meta{display:block;font-size:calc(1.3rem*var(--ts));line-height:1.3;opacity:.75}
+/* One left axis per panel: every rail and every ring in a panel is centred on the same x (--axis), and every title starts
+   at the same lead after it, so a column of rows reads as one column. A rail is centred on the axis whatever its width;
+   a ring is the panel's ring width with the gap that brings its title to the lead, so its centre is the axis too. The
+   agenda set the pattern: Today and the week put rails and rings .95rem in, the day sheet's bigger rings 1.2rem. */
 .item.event{padding-left:1rem}
-.item.event:before{content:"";position:absolute;left:0;top:.2rem;bottom:.2rem;width:.3rem;border-radius:.3rem;background:var(--rail)}
-.item.event.busy:before{width:0;border-radius:0;background:none;border-left:.3rem dashed var(--rail)}
-.item.event.busy.happening:before{border-left-width:.45rem}
+.item.event:before{content:"";position:absolute;left:var(--axis,.15rem);top:.2rem;bottom:.2rem;width:.3rem;margin-left:-.15rem;border-radius:.3rem;background:var(--rail)}
+.item.happening:before{width:.45rem;margin-left:-.225rem}
+.today,.day,.agenda{--axis:.95rem}
+.today .item.event{padding-left:2.7rem}
+.day .item.event{padding-left:2.6rem}
+/* Busy time is the same rail, broken: painted in the solid rail's box, so it has the rail's weight and round ends, in the
+   day line's dash (.4rem on, .25rem off). A dashed border drew heavier, square dashes, flush with the top. */
+.item.event.busy:before{background:repeating-linear-gradient(to bottom,var(--rail) 0,var(--rail) .4rem,transparent .4rem,transparent .65rem)}
 .check{flex:none;width:1.9rem;height:1.9rem;margin:.05rem .7rem 0 0;border:.16rem solid var(--tick,currentColor);border-radius:50%;opacity:.6;position:relative}
 .item.done .check{opacity:1;background:var(--tick,currentColor)}
 .item.done .check:after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--card);border-width:0 .2rem .2rem 0;-webkit-transform:rotate(42deg);transform:rotate(42deg)}
@@ -226,12 +282,16 @@ body[data-rest] .photo-card{border-radius:0}
 
 .strip{flex:1;min-height:0;display:flex;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);overflow:hidden}
 .loading{padding:2.5rem;font:400 calc(1.6rem*var(--ts))/1.35 var(--text);color:var(--ink-2);max-width:48rem}
-/* The first-run screen is read once, from a phone in hand: it sits in the middle of the card rather than in its top corner. */
-.pairing{max-width:none;align-self:center}
+/* The first-run and pairing screens are a message read once, from a phone in hand, not a list: the card hugs it (app.js
+   sets .hug) and sits in the middle of its width. Filling the pane, the card held 150px of white above and below the
+   words, which read as a card waiting for content. Without a QR code beside it the words are one centred column. */
+.strip.hug{flex:0 1 auto}
+.pairing{max-width:none;align-self:center;margin:0 auto;padding:3.5rem}
+.pairing:not(.with-qr){text-align:center}
 /* So does the note that the calendar is loading or can't be reached: two lines in the corner of an empty card read as a
    screen that failed to draw. */
 .outage{align-self:center;margin:0 auto;text-align:center}
-.pair-code{font:600 9rem/1 var(--text);letter-spacing:.06em;color:var(--ink);margin:2.5rem 0 1.5rem;font-variant-numeric:tabular-nums}
+.pair-code{font:600 9rem/1 var(--text);letter-spacing:.06em;color:var(--ink);margin:2.5rem 0 1.5rem}
 .pair-host{font-size:1.5rem;color:var(--ink-2)}
 .pair-address{font:600 2.6rem/1.2 var(--text);letter-spacing:-.01em;color:var(--ink);margin-top:1.6rem}
 .pair-address+.pair-code,.pair-or+.pair-code{margin-top:1.4rem}
@@ -275,7 +335,8 @@ button.item:active{opacity:.6}
 .later-row .avatar{margin-left:.6rem;width:1.7rem;height:1.7rem;font-size:.95rem}
 .later-row i{flex:none;width:.8rem;height:.8rem;border-radius:50%;margin-right:.8rem}
 .later-row i.ring{background:none;border:.14rem solid var(--ink-2)}
-.later-note{font-size:calc(1.35rem*var(--ts));line-height:calc(2.4rem*var(--ts));color:var(--ink-2)}
+/* Under the dates, not the dots: the dot and its gap are 1.6rem. */
+.later-note{padding-left:1.6rem;font-size:calc(1.35rem*var(--ts));line-height:calc(2.4rem*var(--ts));color:var(--ink-2)}
 
 /* ---------- The week, crossed off ----------
    This calendar week as seven day marks beside the month: the days that are over crossed off with one stroke, as a child
@@ -312,11 +373,12 @@ button.item:active{opacity:.6}
 .agenda .item-title{flex:0 1 auto;min-width:0;font-size:calc(1.9rem*var(--ts));line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agenda .item-body>.avatar{align-self:center;margin-left:.6rem;width:1.8rem;height:1.8rem;font-size:1rem}
 .agenda .item.event{padding-left:2.7rem}
-.agenda .item.event:before{left:.8rem;top:.35rem;bottom:.35rem}
+.agenda .item.event:before{top:.35rem;bottom:.35rem}
 .agenda .check{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
 /* A trip on the days after its first: its title in the secondary colour, its rail still its calendar's. */
 .agenda .item.continues .item-title{color:var(--ink-2)}
-.agenda .more{font-size:calc(1.4rem*var(--ts));padding-left:12.45rem}
+/* Under the titles at every text size: the lead and the time column (which follows the text size), less the link's room. */
+.agenda .more{font-size:calc(1.4rem*var(--ts));margin-left:calc(2.7rem + 9.75rem*var(--ts) - .8rem)}
 .agenda-wx{flex:0 0 11rem;display:flex;align-items:center;justify-content:flex-end;height:calc(3.1rem*var(--ts));font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .agenda-wx b{color:var(--ink);font-weight:600;margin-right:.45rem}
 .agenda-empty{padding:calc(.85rem*var(--ts)) 0;border-top:.0625rem solid var(--line);font:500 calc(1.5rem*var(--ts))/1.3 var(--text);color:var(--ink-2)}
@@ -367,6 +429,14 @@ button.item:active{opacity:.6}
 .tabs.clipped{-webkit-mask-image:linear-gradient(to right,#000 90%,transparent);mask-image:linear-gradient(to right,#000 90%,transparent)}
 .dock-end{flex:none;margin-left:1.5rem}
 .tabs button{display:flex;align-items:center;height:3.4rem;padding:0 1.4rem;border-radius:1.7rem;font-size:1.4rem;font-weight:600;color:var(--ink-2);white-space:nowrap}
+/* A birthday's candle (app.js, candleNode): a line glyph in the title's own line, as tall as the title's capitals, in the
+   event's calendar colour on a card; on the sky, where those colours are 2-3:1, in the ink like the title. */
+.candle{display:inline-block;vertical-align:baseline;width:.426em;height:.73em;margin-right:.3em;color:var(--rail);fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.candle .flame{fill:currentColor;stroke:none}
+.today .candle{color:inherit}
+/* In a week column the title is small for eight feet, so the candle is 1.2 times the size there, and set .073em lower so
+   its middle stays on the middle of the capitals (it runs a little past the cap height and under the baseline). */
+.day .candle{width:.511em;height:.876em;margin-right:.36em;vertical-align:-.073em}
 /* A list's mark: a glyph for a household list, a monogram in the person's color for a person's list. */
 .glyph{flex:none;width:1.75rem;height:1.75rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ink-2);color:#fff;font:700 1.05rem/1 var(--text);letter-spacing:0}
@@ -380,6 +450,12 @@ button.item:active{opacity:.6}
 .tabs button b{font:600 1.45rem/1 var(--text);font-variant-numeric:tabular-nums;margin-left:.55rem;color:var(--ink)}
 .tabs .short b{margin-left:.6rem}
 .tabs button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
+/* One tab is not a choice: a dock with only Calendar shows it as a plain label at the card's edge, not a track with a
+   ring around a pill (app.js renderTabs sets .lone). */
+.tabs.lone{background:none;padding:0}
+.tabs.lone button{padding:0;background:none;box-shadow:none;color:var(--ink-2)}
+/* A tap on a tab shows at once, as the pill it is about to become, before the pane repaints. */
+.tabs button:active:not([aria-pressed=true]){background:var(--selected);opacity:.7}
 .dock-end{display:flex;align-items:center}
 .icon-button{color:var(--ink-2)}
 .icon-button circle{fill:var(--surface)}
@@ -394,8 +470,9 @@ button.item:active{opacity:.6}
 .setting-group h2{margin-bottom:.55rem}
 .setting{display:flex;align-items:center;min-height:4.4rem}
 .setting p{flex:0 0 24rem;font-size:calc(1.6rem*var(--ts));font-weight:500;padding-right:1.5rem}
+/* Concentric: the pill's radius is the track's less the track's padding (1.05rem - .25rem). */
 .choices{display:flex;background:var(--press);border-radius:1.05rem;padding:.25rem}
-.choices button{min-width:8.5rem;height:3.2rem;padding:0 1.5rem;border-radius:.9rem;font-size:calc(1.45rem*var(--ts));font-weight:600;color:var(--ink-2);text-align:center;white-space:nowrap}
+.choices button{min-width:8.5rem;height:3.2rem;padding:0 1.5rem;border-radius:.8rem;font-size:calc(1.45rem*var(--ts));font-weight:600;color:var(--ink-2);text-align:center;white-space:nowrap}
 .choices button[aria-pressed=true]{background:var(--selected);color:var(--ink);box-shadow:0 .08rem .25rem var(--shade)}
 /* A note that runs to two lines at Larger shares them rather than leaving one word under the rest, where the engine can. */
 .setting-note{text-wrap:balance;font-size:calc(1.3rem*var(--ts));color:var(--ink-2);margin:.2rem 0 0 24rem}
@@ -451,7 +528,9 @@ button.item:active{opacity:.6}
 .day-sheet-list .item{margin-bottom:calc(1.3rem*var(--ts))}
 .day-sheet-list .item-title{font-size:calc(1.9rem*var(--ts))}
 .day-sheet-list .item-meta{font-size:calc(1.35rem*var(--ts))}
+.day-sheet-list{--axis:1.2rem}
 .day-sheet-list .check{width:2.4rem;height:2.4rem}
+.day-sheet-list .item.event{padding-left:3.1rem}
 .day-sheet .wide{flex:none}
 .dialog p{font-size:calc(1.75rem*var(--ts));line-height:1.4}
 #event-location{color:var(--ink-2);margin-top:.4rem;white-space:pre-line}
@@ -465,6 +544,8 @@ button.item:active{opacity:.6}
 .add-row input:focus{outline:none;border-color:var(--accent)}
 .add-row .key{flex:0 0 9rem;margin:0 0 0 1rem}
 .dialog.add p{min-height:2rem;margin-top:.9rem;font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
+/* Nothing said yet, nothing kept: an empty note left a hole between the field and Done. */
+#add-note:empty{display:none}
 .dialog.add .wide{margin-top:1.2rem}
 /* Manage from a phone: a PIN pad drawn by the page, so no system keyboard slides up over the wall. */
 .ahead-head .quiet{flex:none;height:3.5rem;padding:0 1.4rem;border-radius:1.75rem;background:var(--press);color:var(--ink);font:600 1.3rem/1 var(--text)}
@@ -472,7 +553,8 @@ button.item:active{opacity:.6}
 .dialog.manage h2{font-family:var(--display);font-size:2.3rem;letter-spacing:-.015em;font-variation-settings:"opsz" 32;margin:.6rem 0 .5rem}
 .dialog.manage p{font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
 .dialog.manage .eyebrow{font-size:calc(1.15rem*var(--ts))}
-.pin-dots{height:2.4rem;margin-top:1.2rem;font-size:1.6rem;letter-spacing:.5em;color:var(--ink)}
+/* The spacing follows every dot, the last too, so the same indent before the first keeps the run centred. */
+.pin-dots{height:2.4rem;margin-top:1.2rem;font-size:1.6rem;letter-spacing:.5em;text-indent:.5em;color:var(--ink)}
 .keypad{display:flex;flex-wrap:wrap;justify-content:center;margin:1rem auto 0;width:24rem}
 .key{display:flex;align-items:center;justify-content:center;text-align:center;flex:0 0 6.6rem;height:5.2rem;margin:.45rem;border-radius:1.3rem;background:var(--press);color:var(--ink);font:500 2.3rem/1 var(--text);font-variant-numeric:tabular-nums}
 .key:active{background:var(--line)}

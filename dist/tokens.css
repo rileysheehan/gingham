@@ -25,14 +25,16 @@
   --ember-600:#c2410c;--ember-300:#ffb35c;
   --red-600:#b3261e;--red-300:#ff8a80;
   --green-600:#1f7a4d;--green-300:#7fd6a7;
-  --yellow-sun:#ffc94d;
+  --yellow-sun:#ffc94d;--cream-moon:#f1e6c3;
+  --grey-a35:rgba(127,127,127,.35);
   --sky-day-top:#6fb4ee;--sky-day-bottom:#d4ecfa;
 }
 
-/* The same in both themes. The sky is only a default: app.js paints --sky-* on <html> every minute. */
+/* The same in both themes. The sky is only a default: app.js paints --sky-* on <html> every minute. --sky-rule is the
+   hairline drawn on the sky: a mid-grey, so it reads on any sky. */
 :root{
-  --sky-top:var(--sky-day-top);--sky-bottom:var(--sky-day-bottom);--sky-ink:var(--navy-900);
-  --sun:var(--yellow-sun);--rain:var(--blue-rain);
+  --sky-top:var(--sky-day-top);--sky-bottom:var(--sky-day-bottom);--sky-ink:var(--navy-900);--sky-rule:var(--grey-a35);
+  --sun:var(--yellow-sun);--rain:var(--blue-rain);--moon:var(--cream-moon);
 }
 
 /* Light. --selected, --shade, --tint and --star are the wall's; --bad and --good are the phone's (the wall has no

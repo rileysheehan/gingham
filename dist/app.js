@@ -310,12 +310,29 @@
 
   /* ---------- Weather ---------- */
   function describe(code) { if (code === 0) return 'Clear'; if (code === 1) return 'Mostly clear'; if (code === 2) return 'Partly cloudy'; if (code === 3) return 'Overcast'; if (code < 50) return 'Foggy'; if (code < 60) return 'Drizzle'; if (code < 70) return 'Rain'; if (code < 80) return 'Snow'; if (code < 85) return 'Showers'; if (code < 90) return 'Snow showers'; return 'Thunderstorms'; }
-  // `night` swaps the sun for a moon; only the current conditions use it, since forecasts describe the day.
+  // The moon as it is tonight. The phase is arithmetic on the date, the days since a known new moon (6 January 2000, 18:14
+  // UTC) over the mean synodic month, so it costs no call and no data; it can be up to about a day from the almanac's,
+  // which a 5rem moon does not show. The lit side runs from the limb to the terminator, an ellipse the phase narrows, and
+  // the rest of the disc is drawn faintly, so a thin crescent still reads as the moon and a new moon as a moon at all.
+  // A waxing moon is lit on the right as seen north of the equator; south of it, the household sees it mirrored.
+  var NEW_MOON = Date.UTC(2000, 0, 6, 18, 14), SYNODIC_DAYS = 29.530588853;
+  function moonPhase(ms) { var p = (ms - NEW_MOON) / 86400000 / SYNODIC_DAYS; return p - Math.floor(p); }
+  function moonMark(ms) {
+    var p = moonPhase(ms), k = Math.cos(2 * Math.PI * p), right = (p < 0.5) !== !!household.south;
+    var disc = '<circle class="moon-dark" cx="32" cy="32" r="22"/>';
+    if ((1 - k) / 2 < 0.01) return disc;
+    var limb = right ? 1 : 0, terminator = (k > 0) === right ? 0 : 1, rx = Math.max(0.01, Math.abs(k) * 22).toFixed(2);
+    return disc + '<path class="moon" d="M32 10A22 22 0 0 ' + limb + ' 32 54A' + rx + ' 22 0 0 ' + terminator + ' 32 10Z"/>';
+  }
+  // `night` swaps the sun for tonight's moon; only the current conditions use it, since forecasts describe the day.
   function drawIcon(svg, code, night) {
-    var sun = night ? '<path class="moon" d="M38 10a22 22 0 1 0 16 36 18 18 0 0 1-16-36Z"/>' : '<circle class="sun" cx="32" cy="32" r="11"/><path class="sun" d="M32 11V6m0 52v-5M11 32H6m52 0h-5M17 17l-3.5-3.5m37 37L47 47M17 47l-3.5 3.5m37-37L47 17"/>';
+    var sun = night ? moonMark(query.now ? now().getTime() : Date.now()) : '<circle class="sun" cx="32" cy="32" r="11"/><path class="sun" d="M32 11V6m0 52v-5M11 32H6m52 0h-5M17 17l-3.5-3.5m37 37L47 47M17 47l-3.5 3.5m37-37L47 17"/>';
     var cloud = '<path d="M18 46a10 10 0 0 1-1-20 15 15 0 0 1 28-2 11 11 0 1 1 4 22Z"/>';
     var mark;
     if (code === 0 || code === 1) mark = sun;
+    // Partly cloudy at night: the moon is a filled disc, so the cloud takes its own shape out of it rather than let it show
+    // through (a mask, since the cloud has no fill that could match the sky behind it).
+    else if (code === 2 && night) mark = '<mask id="behind-cloud"><rect width="64" height="64" fill="#fff"/>' + cloud.replace('<path', '<path fill="#000" stroke="#000" stroke-width="5"') + '</mask><g mask="url(#behind-cloud)"><g transform="translate(14,-6) scale(.62)">' + sun + '</g></g>' + cloud;
     else if (code === 2) mark = '<g transform="translate(14,-6) scale(.62)">' + sun + '</g>' + cloud.replace('<path', '<path fill="var(--wx-fill,none)"');
     else if (code === 3) mark = cloud;
     else if (code < 50) mark = '<path d="M21 33a8 8 0 0 1-1-16 12 12 0 0 1 23-2 9 9 0 1 1 3 18Z"/><path d="M10 43h44M17 51h30"/>'; // fog: a cloud over drifting lines, not a menu glyph
@@ -361,8 +378,8 @@
   function calendarOf(id) { var found = null; (cal ? cal.calendars : []).forEach(function (c) { if (c.id === id) found = c; }); return found || { name: 'Calendar', color: '#7f8aa3' }; }
   // Everything that belongs to one day, in the order a glance needs it: all-day events (compact), then anything with
   // a time, then chores due that day, then overdue chores. `today` drops events that are already over, and puts what is
-  // happening now and what is next ahead of everything else.
-  function itemsFor(day, today) {
+  // happening now and what is next ahead of everything else. `skip` is a task shown elsewhere (tonight's dinner).
+  function itemsFor(day, today, skip) {
     var next = addDays(day, 1), list = [], t = now();
     (cal ? cal.events : []).forEach(function (e) {
       var start = parse(e.start), end = parse(e.end);
@@ -378,7 +395,7 @@
       list.push({ kind: 'event', event: e, allDay: spans, at: continues ? day : start, end: end, continues: continues, through: spans && lastDay > day ? lastDay : null, rank: spans ? 0 : 1 });
     });
     (tasks ? tasks.tasks : []).forEach(function (task) {
-      if (!task.due) return;
+      if (!task.due || task === skip) return;
       // A chore with a time is late once its time has passed, not only once its day has: a 4 PM chore at 11 PM is overdue.
       var due = parse(task.due), timed = hasTime(task.due), overdue = today && (due < day || (timed && due < t));
       if ((due >= day && due < next) || overdue) list.push({ kind: 'task', task: task, allDay: !timed || overdue, at: due, overdue: overdue, rank: overdue ? 3 : timed ? 1 : 2 });
@@ -462,8 +479,8 @@
     }
     // The next thing's time is the one read from across the room, so it is set larger (see .item.next in style.css).
     if (inToday && item.next) el.className += ' next';
-    // A compact row keeps its time column even when empty, so every title in it starts at the same place (Today drops the
-    // column when no row in it has a time; see untimedColumn).
+    // A compact row always has its time cell, so the agenda's titles line up in a column; in Today an empty one is hidden
+    // (see untimedColumn).
     if (compact) el.className += ' compact';
     if (meta || compact) body.appendChild(node('span', 'item-meta', meta));
     // The place trails the time in a span of its own, so Today can drop it whole when it would not fit (wholePlaces).
@@ -472,6 +489,7 @@
     if (item.kind === 'task' && item.inList && listOf(item.task.project).kid) { var lead = LEADING_EMOJI.exec(cleanTitle(item.task.title)); if (lead) emoji = lead[1]; }
     if (emoji) el.appendChild(node('span', 'kid-emoji', emoji));
     var title = node('span', 'item-title', text);
+    if (item.kind === 'event' && isBirthday(item.event)) title.insertBefore(candleNode(), title.firstChild);
     if (note) title.appendChild(node('span', 'item-note', ' · ' + note));
     body.appendChild(title);
     // On one line the title is cut before the monogram is, so there the monogram follows the title rather than sits in it.
@@ -479,14 +497,32 @@
     el.appendChild(body);
     return el;
   }
-  // Today's one-line rows share a time column so their titles start at the same place. When none of them has a time (a
-  // chore or two after the now and next rows, an all-day event) the column would only be an empty gap between the circle
-  // and the title, or say "All day" to no purpose, so it goes, and the rail or the circle sits right beside its title.
+  // A birthday gets a candle. An all-day event with the word "birthday" (or "birthdays") in its title, as calendars name a
+  // person's birthday, draws a small candle before its title wherever it appears: Today, Tomorrow, the week, Later, the
+  // agenda and a day sheet. It is a heuristic and an English one: "birthdayparty" is not the word, "Geburtstag" is not
+  // looked for, and a timed party is an event like any other. The candle is a shape, not a colour, so it never rests on
+  // the calendar's colour alone: in that colour on a card, and in the ink on the sky, where calendar colours are 2-3:1.
+  var BIRTHDAY = /\bbirthdays?\b/i;
+  function isBirthday(event) { return !!event.allDay && !event.busy && BIRTHDAY.test(event.title || ''); }
+  function candleNode() {
+    var ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'candle'); svg.setAttribute('viewBox', '0 0 14 24'); svg.setAttribute('aria-hidden', 'true');
+    // A flame over the candle, drawn with the line glyphs' round strokes but heavier, since it sits in a title and is sized
+    // in CSS to the title's capitals: the flame's tip at the cap height, the candle's foot on the baseline.
+    [['flame', 'M7 .9c1.9 2.2 2.9 3.6 2.9 5a2.9 2.9 0 0 1-5.8 0C4.1 4.5 5.1 3.1 7 .9Z'], ['', 'M3.3 12.4h7.4v10.3H3.3z']].forEach(function (d) {
+      var p = document.createElementNS(ns, 'path'); if (d[0]) p.setAttribute('class', d[0]); p.setAttribute('d', d[1]); svg.appendChild(p);
+    });
+    return svg;
+  }
+  // Today's one-line rows share a time column so their titles line up. A row with nothing to say there has no column at
+  // all: style.css hides an empty one, so an untimed chore's title sits right after its ring (an empty column read as a
+  // gap, not as a column). An all-day event says "All day" there, but only beside a real time: with no time among the
+  // one-line rows, "All day" would be the only thing in the column, saying what its absence already says, so it goes too.
   var ALL_DAY = 'All day';
   function untimedColumn(nodes) {
-    var compact = nodes.filter(function (el) { return /\bcompact\b/.test(el.className); });
-    var timed = compact.some(function (el) { var m = el.querySelector('.item-meta'); return m && m.textContent && m.textContent !== ALL_DAY; });
-    if (!timed) compact.forEach(function (el) { var m = el.querySelector('.item-meta'); if (m) m.parentNode.removeChild(m); });
+    var metas = nodes.filter(function (el) { return /\bcompact\b/.test(el.className); }).map(function (el) { return el.querySelector('.item-meta'); });
+    var timed = metas.some(function (m) { return m && m.textContent && m.textContent !== ALL_DAY; });
+    if (!timed) metas.forEach(function (m) { if (m && m.textContent === ALL_DAY) m.textContent = ''; });
     return nodes;
   }
   // A place is shown whole or not at all: the meta line is cut with an ellipsis as a backstop, and a cut fell on the place,
@@ -585,6 +621,39 @@
     return { link: usable(own) ? own : origin || (usable(name) ? name : ''), typed: usable(name) ? name : usable(own) ? own : origin };
   }
   function bare(url) { return url.replace(/^https?:\/\//, ''); }
+  // The server a frame waiting to be paired belongs to, named for whoever looks after the frames: its host, without
+  // Gingham's own port (4173), which says nothing a person needs, and never a loopback address, which names this tablet
+  // to itself and nothing to anyone else (it is then left out).
+  function serverName() {
+    if (/^(127\.|localhost$|\[::1\]$)/.test(location.hostname)) return '';
+    return location.hostname + (location.port && location.port !== '4173' ? ':' + location.port : '');
+  }
+
+  /* ---------- Dinner ---------- */
+  // What's for dinner is the kitchen's own question. A chore due today called "Dinner: tacos al pastor", on any list, is
+  // not a row among Today's rows: it is one line above the countdown, "Dinner tacos al pastor", at the countdown's size,
+  // found before Today is ranked so it never takes the next row's place. A tap checks it off like any chore, with the same
+  // undo. The first one due today is the line; any others stay rows. It is a convention in English, like a kid's emoji:
+  // nothing to set up, and nothing changes for a household that never types it.
+  var DINNER = /^dinner:\s*(\S[\s\S]*)$/i;
+  function dinnerFor(day) {
+    var found = null;
+    (tasks ? tasks.tasks : []).forEach(function (task) {
+      var m = !found && task.due && sameDay(parse(task.due), day) && DINNER.exec(cleanTitle(task.title));
+      if (m) found = { task: task, what: m[1] };
+    });
+    return found;
+  }
+  function renderDinner(dinner) {
+    var line = $('dinner');
+    line.hidden = !dinner; line.textContent = '';
+    if (!dinner) { line.onclick = null; return; }
+    var done = !!pending[dinner.task.id];
+    line.className = 'dinner' + (done ? ' done' : '');
+    line.appendChild(node('b', '', 'Dinner')); line.appendChild(node('span', '', dinner.what));
+    line.setAttribute('aria-checked', String(done)); line.setAttribute('aria-label', 'Dinner: ' + dinner.what);
+    line.onclick = function () { toggleTask(dinner.task); };
+  }
 
   /* ---------- Render ---------- */
   // The left panel is the same in every view: the day, the clock, the weather, today, and tomorrow. Today always gets
@@ -609,10 +678,12 @@
       else if (left > 0) counting = left + ' ' + (countdowns[ci].word === 'days' ? (left === 1 ? 'day' : 'days') : (left === 1 ? 'sleep' : 'sleeps')) + ' until ' + tidy(countdowns[ci].name);
     }
     $('countdown').textContent = counting; $('countdown').hidden = !counting;
+    renderDayLine(today, t);
 
     // Tomorrow appears only when all of today fits; on a packed day today gets the whole panel.
-    var todayItems = itemsFor(today, true), list = $('today-list'), allToday = true;
+    var dinner = dinnerFor(today), todayItems = itemsFor(today, true, dinner && dinner.task), list = $('today-list'), allToday = true;
     $('tomorrow').hidden = true;
+    renderDinner(dinner);
     if (!todayItems.length) {
       list.textContent = '';
       // Before anyone has set it up there is no calendar to be empty, so it says so rather than "Nothing planned".
@@ -626,18 +697,83 @@
     if (!coming.length && cal && !todayItems.length) { var next = upNext(addDays(today, 2)); if (next) { coming = [next]; label = 'Up next'; } }
     if (!coming.length) return;
     $('tomorrow-label').textContent = label; $('tomorrow').hidden = false;
+    // The evening hands over to tomorrow: from sunset, once nothing timed is left today, the question at the stove is
+    // tomorrow, and whether it needs a coat. Tomorrow's eyebrow carries its forecast, and its first timed thing leads its
+    // rows with the next row's time, so "7:45 AM" reads from across the room. The rows keep their size: a bigger row costs
+    // a row, and the first try at this cut the very row it meant to show. While today still has a next thing, nothing changes.
+    var evening = label === 'Tomorrow' && t.getTime() >= sun.set && !todayItems.some(function (item) { return item.now || item.next; });
+    var lead = evening ? coming.filter(function (item) { return !item.allDay; })[0] : null;
+    if (lead) coming = [lead].concat(coming.filter(function (item) { return item !== lead; }));
+    var wx = $('tomorrow-wx');
+    wx.hidden = !(evening && tomorrowSky);
+    if (!wx.hidden) {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), rain = tomorrowSky.rain >= 30 ? ' · ' + tomorrowSky.rain + '% rain' : '';
+      svg.setAttribute('class', 'wx-icon'); svg.setAttribute('viewBox', '0 0 64 64'); svg.setAttribute('aria-hidden', 'true'); drawIcon(svg, tomorrowSky.code);
+      wx.textContent = ''; wx.appendChild(svg); wx.appendChild(node('b', '', Math.round(tomorrowSky.high) + '°')); wx.appendChild(node('span', '', Math.round(tomorrowSky.low) + '°' + rain));
+      wx.setAttribute('aria-label', describe(tomorrowSky.code) + ', high ' + Math.round(tomorrowSky.high) + ', low ' + Math.round(tomorrowSky.low) + (rain ? ', ' + tomorrowSky.rain + ' percent chance of rain' : ''));
+    }
     var nodes = coming.map(function (item) {
       var el = itemNode(item, false);
+      if (item === lead) el.className += ' next';
       if (label === 'Up next') { var meta = el.querySelector('.item-meta') || el.lastChild.insertBefore(node('span', 'item-meta'), el.lastChild.firstChild); meta.textContent = shortDay(item.at) + (item.allDay ? '' : ' · ' + clockTime(item.at)); }
       return el;
     });
     if (!fitItems($('tomorrow-list'), nodes, onMore)) $('tomorrow').hidden = true;
+  }
+  // The day line: the rule over TODAY is today itself, 6 AM to midnight. Each timed event is a bar in its calendar's colour
+  // sitting on the rule, as long as it lasts; a chore with a time is a ring, in ink like every ring on the sky; now is a dot
+  // with a halo, and the rule is heavier behind it. Ticks at noon and 6 PM, and no words: from across the room it is the
+  // shape of the day (how much is left, where the gaps are, that the evening is full), as the crossed-off rail is the
+  // shape of the week, and the rows under it say what. It lives in the hairline that was already there, so it costs no
+  // row, and it is drawn with the clock once a minute: nothing on it moves in between. The rule stops short of a ring or
+  // the dot rather than run through it, so nothing needs a fill to hide it (a fill would show as a disc on a passing cloud).
+  // A day with nothing timed keeps the plain hairline: it has no shape worth drawing.
+  var DAY_FROM = 6, DAY_TO = 24;
+  function renderDayLine(today, t) {
+    var box = $('dayline'), from = addHours(today, DAY_FROM), span = addHours(today, DAY_TO) - from, marks = [], gaps = [];
+    var x = function (ms) { return Math.max(0, Math.min(100, (ms - from) / span * 100)); };
+    (cal ? itemsFor(today, false) : []).forEach(function (item) {
+      if (item.allDay) return;
+      if (item.kind === 'event') {
+        // Something over before 6 AM (a pickup that ran past midnight) has no place on the line.
+        if (item.end.getTime() <= from) return;
+        var bar = node('i', 'dl-event' + (item.event.busy ? ' busy' : '')), a = x(item.at.getTime());
+        bar.style.left = a + '%'; bar.style.width = (x(item.end.getTime()) - a) + '%'; bar.style.setProperty('--rail', calendarOf(item.event.calendar).color);
+        marks.push(bar);
+      } else {
+        var ring = node('i', 'dl-chore' + (pending[item.task.id] ? ' done' : '')), at = x(item.at.getTime());
+        ring.style.left = at + '%'; marks.push(ring); gaps.push({ at: at, r: 0.75 });
+      }
+    });
+    box.hidden = !marks.length;
+    if (box.hidden) { box.textContent = ''; return; }
+    var nowAt = x(t.getTime()), dot = node('i', 'dl-now');
+    dot.style.left = nowAt + '%'; gaps.push({ at: nowAt, r: 0.8 });
+    // The rule is drawn in pieces between the gaps, behind now heavier than ahead of it. A gap's radius is in rem and its
+    // place in per cent, so the radius is turned into per cent of the line's width (one rem is 1/120 of the frame's width,
+    // or 1/67.5 of its height on a wider screen, as style.css sets it).
+    var rem = Math.min(window.innerWidth / 120, window.innerHeight / 67.5), width = box.clientWidth || rem * 33;
+    gaps.sort(function (a, b) { return a.at - b.at; });
+    var pieces = [], edge = 0;
+    gaps.forEach(function (g) {
+      var r = g.r * rem / width * 100;
+      if (g.at - r > edge) pieces.push([edge, g.at - r]);
+      edge = Math.max(edge, g.at + r);
+    });
+    if (edge < 100) pieces.push([edge, 100]);
+    box.textContent = '';
+    [12, 18].forEach(function (h) { var tick = node('i', 'dl-tick'); tick.style.left = x(addHours(today, h)) + '%'; box.appendChild(tick); });
+    pieces.forEach(function (p) { var rule = node('i', p[1] <= nowAt ? 'dl-rule past' : 'dl-rule'); rule.style.left = p[0] + '%'; rule.style.width = (p[1] - p[0]) + '%'; box.appendChild(rule); });
+    marks.forEach(function (m) { box.appendChild(m); });
+    box.appendChild(dot);
   }
   function renderStrip() {
     $('view-calendar').className = 'view' + (cal && !firstRun ? '' : ' no-calendar');
     // The agenda is the same days as a list; every state before there is a calendar to show is said in the strip's card.
     var agenda = cal && !firstRun && prefs.calendarView === 'agenda';
     $('agenda').hidden = !agenda; $('strip').hidden = !!agenda;
+    // Setting up and pairing are a message, not a list, so the card hugs it rather than fill the pane (style.css .hug).
+    $('strip').className = 'strip' + (firstRun || (!cal && unpaired) ? ' hug' : '');
     if (agenda) { $('later').hidden = true; renderAgenda(); return; }
     if (firstRun) {
       // A tablet that is its own server, not yet looked after by anyone: say how to become that person. The QR code is the
@@ -653,7 +789,9 @@
       words.appendChild(node('p', 'pair-address', typed));
       if (typed !== plain) words.appendChild(node('p', 'pair-or', 'or ' + plain));
       words.appendChild(node('p', 'pair-code', code || '··· ···'));
-      words.appendChild(node('p', 'pair-host', 'Your calendar links and tokens stay on this tablet.'));
+      // Said only here: the first-run screen is shown only by a tablet that is its own server (the server sends needsSetup
+      // to its own tablet alone), the one case where nothing the household connects leaves it.
+      words.appendChild(node('p', 'pair-host', 'Everything stays on this tablet.'));
       intro.appendChild(words);
       $('strip').textContent = ''; $('strip').appendChild(intro); $('later').hidden = true;
       $('month').textContent = 'Welcome'; return;
@@ -673,12 +811,14 @@
         if (pairQr) pairWords.appendChild(node('p', 'welcome-lead', 'On a phone that manages your household, point the camera at this code to add this frame.'));
         pairWords.appendChild(node('p', pairQr ? 'welcome-or' : '', (pairQr ? 'Or enter' : 'Enter') + ' this code on your household’s setup page, or give it to whoever looks after your frames.'));
         pairWords.appendChild(node('p', 'pair-code', pairing ? pairing.code : '··· ···'));
-        pairWords.appendChild(node('p', 'pair-host', location.host));
+        if (serverName()) pairWords.appendChild(node('p', 'pair-host', serverName()));
         if (pairQr) note.appendChild(pairWords); else while (pairWords.firstChild) note.appendChild(pairWords.firstChild);
       }
       else if (calProblem) note.appendChild(node('p', '', 'Trying again every minute'));
       $('strip').textContent = ''; $('strip').appendChild(note); $('later').hidden = true;
-      $('month').textContent = MONTHS[addDays(startOfDay(now()), 1).getMonth()]; return;
+      // A frame waiting to be paired is being set up, as the first run is, so it says the same; a month over a frame that has
+      // no calendar yet named nothing it could show.
+      $('month').textContent = unpaired ? 'Welcome' : MONTHS[addDays(startOfDay(now()), 1).getMonth()]; return;
     }
     var today = startOfDay(now()), first = addDays(today, 1 + page * STRIP_DAYS), last = addDays(first, STRIP_DAYS - 1);
     var strip = $('strip'), busiest = 0, columns = []; strip.textContent = '';
@@ -720,7 +860,8 @@
       row.appendChild(dot);
       row.appendChild(node('span', 'when', shortDay(r.at))); row.appendChild(node('span', 'time', r.allDay ? '' : clockTime(r.at)));
       // Whose it is follows the title as a monogram, as it does in Today and the week; the title is cut before the mark is.
-      what.appendChild(node('span', 'what-title', r.title));
+      var named = what.appendChild(node('span', 'what-title', r.title));
+      if (r.event && isBirthday(r.event)) { var candle = named.insertBefore(candleNode(), named.firstChild); candle.style.color = calendarOf(r.event.calendar).color; }
       if (r.task) whoseMarks(r.task, false).forEach(function (mark) { what.appendChild(mark); });
       row.appendChild(what);
       row.onclick = r.event ? function () { openEvent(r.event, row); } : function () { setMode('list:' + r.task.project); };
@@ -912,7 +1053,8 @@
     // way to fix the frame at the wall.
     var room = tabs.parentNode.clientWidth - $('settings-button').offsetWidth - 24;
     var shorten = function (rank) { for (var i = named.length - 1; i >= 0 && tabs.scrollWidth > room; i--) if (named[i].rank === rank) named[i].tab.className += ' short'; };
-    tabs.className = 'tabs';
+    // One tab is not a choice to make, so it is drawn as a plain label (style.css .lone).
+    tabs.className = tabs.children.length > 1 ? 'tabs' : 'tabs lone';
     shorten(0); shorten(1);
     if (tabs.scrollWidth > room) tabs.className = 'tabs tight';
     shorten(2);
@@ -1410,7 +1552,7 @@
       if (firstRun && !wasNew) firstRunStep();
       if (!firstRun && wasNew) { loadCalendar(); loadTasks(); loadWeather(); loadPhotos(); }
       var countryChanged = (data.country || '') !== (household.country || '');
-      household = { name: data.name || '', timezone: data.timezone, place: data.place || '', country: data.country || '', address: data.address || '', named: data.named || '' };
+      household = { name: data.name || '', timezone: data.timezone, place: data.place || '', country: data.country || '', south: !!data.south, address: data.address || '', named: data.named || '' };
       countdowns = data.countdowns || []; if (countryChanged) applyPrefs(); else renderToday();
       if (household.name) document.title = household.name;
       try { localStorage.setItem('frame.household', JSON.stringify(household)); } catch (e) {}

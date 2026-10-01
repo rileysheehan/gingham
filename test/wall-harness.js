@@ -199,7 +199,7 @@ function makeServer(fixture, overrides) {
   return server;
 }
 
-function load({fixture = 'stress', now, clock, overrides, bridge} = {}) {
+function load({fixture = 'stress', now, clock, overrides, bridge, origin = 'http://127.0.0.1'} = {}) {
   const document = makeDocument(), server = makeServer(fixture, overrides), timers = [];
   // The device clock: real unless `clock` fixes it, and either way it can be moved on with `advance(ms)`.
   let fixed = clock ? Date.parse(clock) : null, offset = 0;
@@ -210,7 +210,8 @@ function load({fixture = 'stress', now, clock, overrides, bridge} = {}) {
   const storage = {};
   const window = {
     document, navigator: {}, innerWidth: 1920, innerHeight: 1080,
-    location: {search: now ? '?now=' + now : '', host: '127.0.0.1', origin: 'http://127.0.0.1', reload() { window.reloaded = true; }, assign(url) { window.assigned = url; }},
+    // The page's own address: 127.0.0.1 unless a test says where the frame was opened (`origin`).
+    location: {search: now ? '?now=' + now : '', host: new URL(origin).host, hostname: new URL(origin).hostname, port: new URL(origin).port, origin, reload() { window.reloaded = true; }, assign(url) { window.assigned = url; }},
     localStorage: {getItem: k => storage[k] ?? null, setItem: (k, v) => { storage[k] = String(v); }},
     XMLHttpRequest: server.XMLHttpRequest, Date: FakeDate, Image: class { set src(v) { this._src = v; } },
     setInterval: (fn, ms) => { timers.push({fn, ms, repeat: true}); return timers.length; },

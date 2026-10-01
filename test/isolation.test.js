@@ -86,3 +86,21 @@ test('A frame sees its own household and nobody else\'s', async () => {
     assert.equal((await post('/api/owner-code', {pin: '2468'}, frameB)).status, 429, 'five wrong PINs shut the door for a while, even to the right one');
   } finally { await s.stop(); }
 });
+
+// The wall draws tonight's moon, which south of the equator is seen mirrored. It is told the hemisphere and nothing finer.
+test('A frame learns which hemisphere its household is in, and not where it is', async () => {
+  const data = makeData('frame-hemi-');
+  for (const [id, place] of [['north', {label: 'Springfield', latitude: 39.8, longitude: -89.6}], ['south', {label: 'Hobart', latitude: -42.9, longitude: 147.3}], ['nowhere', {}]])
+    fs.writeFileSync(path.join(writeHousehold(data, id, {name: id, place}), 'credentials.json'), '{}');
+  const grants = createGrants({file: path.join(data, 'grants.json')});
+  const secrets = Object.fromEntries(['north', 'south', 'nowhere'].map(id => [id, grants.add({scope: 'frame', household: id, label: id}).secret]));
+  const s = await startServer({data, env: {FRAME_AUTH: 'required'}});
+  try {
+    const household = async id => (await fetch(s.url + '/api/household', {headers: {cookie: 'frame=' + secrets[id]}})).json();
+    const south = await household('south');
+    assert.equal(south.south, true);
+    assert.equal((await household('north')).south, undefined);
+    assert.equal((await household('nowhere')).south, undefined, 'a household that has not said where it lives is north, as the moon was before');
+    assert.ok(!/-42|147/.test(JSON.stringify(south)), 'no coordinates');
+  } finally { await s.stop(); }
+});

@@ -36,34 +36,45 @@ test('The sky is blended, flipped and held by the wall\'s rules', () => {
   assert.match(site, /var sun = \{ rise: base \+ 7 \* 3600000, set: base \+ 19 \* 3600000 \};/);
 });
 
-// Runs site/sky.js as the page would, at a given minute and scheme, and returns what it painted.
-function paint(minute, dark) {
-  const props = {}, meta = [];
-  const RealDate = Date, at = new RealDate(2026, 9, 8, 0, minute).getTime();
+// Loads site/sky.js once, as the page does, into one context with a clock the test sets, and makes it paint again the
+// way the page does: through its own once-a-minute tick, which it hands to setTimeout. One context per scheme, not one
+// per minute: creating and dropping thousands of vm contexts crashed Node itself (SIGSEGV, about one run in twelve).
+function sky(dark) {
+  const props = {}, RealDate = Date;
+  let at = new RealDate(2026, 9, 8).getTime(), tick = null;
   class FixedDate extends RealDate { constructor(...a) { if (a.length) super(...a); else super(at); } static now() { return at; } }
   const document = {
     documentElement: { style: { setProperty: (k, v) => { props[k] = v; } }, classList: { toggle() {} } },
-    getElementById: () => null, querySelectorAll: () => meta, addEventListener() {}
+    getElementById: () => null, querySelectorAll: () => [], addEventListener() {}
   };
-  vm.runInNewContext(site, { window: { matchMedia: () => ({ matches: dark }) }, document, Date: FixedDate, setTimeout() {} });
+  const media = { matches: dark, addEventListener() {} };
+  vm.runInNewContext(site, { window: { matchMedia: () => media }, document, Date: FixedDate, setTimeout: fn => { tick = fn; } });
+  assert.equal(typeof tick, 'function', 'site/sky.js schedules its once-a-minute repaint');
   const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
-  return { top: rgb(props['--hero-top']), bottom: rgb(props['--hero-bottom']), ink: rgb(props['--hero-ink']) };
+  return minute => {
+    at = new RealDate(2026, 9, 8, 0, minute).getTime();
+    tick();
+    return { top: rgb(props['--hero-top']), bottom: rgb(props['--hero-bottom']), ink: rgb(props['--hero-ink']) };
+  };
 }
 const lum = c => { const ch = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * ch(c[0]) + 0.7152 * ch(c[1]) + 0.0722 * ch(c[2]); };
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 
 test('Every minute of the day, the hero\'s words hold on its sky', () => {
-  for (const dark of [false, true]) for (let m = 0; m < 1440; m++) {
-    const s = paint(m, dark), when = (dark ? 'dark ' : 'light ') + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
-    if (dark) assert.deepEqual(s.ink, [253, 246, 238], 'the dark scheme is a night sky with cream ink at ' + when);
-    // The wall's 8:1, at every point of the gradient. Each end is held to 8:1 and then rounded to whole RGB values, as
-    // the wall rounds its own, which can cost a few hundredths (7.97:1 at worst).
-    for (let i = 0; i <= 10; i++) {
-      const bg = mix(s.top, s.bottom, i / 10);
-      assert.ok(ratio(s.ink, bg) >= 7.95, 'the ink at ' + when);
-      // Secondary words are the ink at 85%: AA for body text, 4.5:1, at every point of the sky.
-      assert.ok(ratio(mix(bg, s.ink, 0.85), bg) >= 4.5, 'the secondary ink at ' + when);
+  for (const dark of [false, true]) {
+    const paint = sky(dark);
+    for (let m = 0; m < 1440; m++) {
+      const s = paint(m), when = (dark ? 'dark ' : 'light ') + Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+      if (dark) assert.deepEqual(s.ink, [253, 246, 238], 'the dark scheme is a night sky with cream ink at ' + when);
+      // The wall's 8:1, at every point of the gradient. Each end is held to 8:1 and then rounded to whole RGB values, as
+      // the wall rounds its own, which can cost a few hundredths (7.97:1 at worst).
+      for (let i = 0; i <= 10; i++) {
+        const bg = mix(s.top, s.bottom, i / 10);
+        assert.ok(ratio(s.ink, bg) >= 7.95, 'the ink at ' + when);
+        // Secondary words are the ink at 85%: AA for body text, 4.5:1, at every point of the sky.
+        assert.ok(ratio(mix(bg, s.ink, 0.85), bg) >= 4.5, 'the secondary ink at ' + when);
+      }
     }
   }
 });

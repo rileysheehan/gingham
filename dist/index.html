@@ -24,9 +24,14 @@
         <p class="now-temp" id="now-temp"></p>
         <div class="now-text"><p id="now-summary"></p><p class="now-detail" id="now-detail"></p></div>
       </div>
+      <div class="dayline" id="dayline" aria-hidden="true" hidden></div>
       <p class="eyebrow today-label" id="today-label">Today</p>
       <div class="today-list" id="today-list" aria-live="polite"></div>
-      <div class="tomorrow" id="tomorrow" hidden><h2 class="eyebrow" id="tomorrow-label">Tomorrow</h2><div class="tomorrow-list" id="tomorrow-list"></div></div>
+      <div class="tomorrow" id="tomorrow" hidden>
+        <div class="tomorrow-head"><h2 class="eyebrow" id="tomorrow-label">Tomorrow</h2><p class="tomorrow-wx" id="tomorrow-wx" role="img" hidden></p></div>
+        <div class="tomorrow-list" id="tomorrow-list"></div>
+      </div>
+      <button class="dinner" id="dinner" role="checkbox" hidden></button>
       <p class="countdown" id="countdown" hidden></p>
       <p class="sun-line" id="sun-line"></p>
       <p class="stale-line" id="stale-line" role="status" hidden></p>
