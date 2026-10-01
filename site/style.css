@@ -468,6 +468,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-listbody .s-check{width:2.4em;height:2.4em;margin:.05em 1.1em 0 0}
 /* A monogram in a list row: 2rem on a 1.1rem letter, beside a 1.8rem title. */
 .s-listbody .s-owner{font-size:.611em;margin-left:.545em}
+/* As on the wall, a mark in a title follows a space, not a margin, so a narrow column that wraps it starts it on the
+   title's edge. The space is widened to the margin it replaces (the site's Inter space is .275em): .386em of a week title, .333em
+   of a list title, which are the wall's .6rem. */
+.s-title>.s-owner{margin-left:0}
+.s-markgap{word-spacing:.111em}
+.s-listbody .s-markgap{word-spacing:.058em}
 .s-listbody .s-item.done .s-check{opacity:1;background:var(--tick,currentColor);position:relative}
 .s-listbody .s-item.done .s-check::after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--s-card);border-width:0 .2em .2em 0;transform:rotate(42deg)}
 .s-listbody .s-item.done .s-title{text-decoration:line-through;opacity:.55}

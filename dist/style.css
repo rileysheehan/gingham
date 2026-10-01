@@ -441,7 +441,10 @@ button.item:active{opacity:.6}
 .glyph{flex:none;width:1.75rem;height:1.75rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ink-2);color:#fff;font:700 1.05rem/1 var(--text);letter-spacing:0}
 .tabs .label{margin-left:.6rem}
-.item-title .avatar{display:inline-flex;width:1.7rem;height:1.7rem;font-size:.95rem;margin-left:.6rem;vertical-align:.1em}
+.item-title .avatar{display:inline-flex;width:1.7rem;height:1.7rem;font-size:.95rem;vertical-align:.1em}
+.item-title .avatar+.avatar{margin-left:.3rem}
+/* The space before a mark, widened to the .6rem the margin was (Inter's space is .25em). */
+.mark-gap{word-spacing:calc(.6rem - .25em)}
 .today .item-title .avatar,.list-body .item-title .avatar{width:2rem;height:2rem;font-size:1.1rem}
 /* A list short of room is its mark and its count (app.js takes names one at a time); an empty one is its mark alone. */
 .tabs .short .label{display:none}

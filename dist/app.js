@@ -493,7 +493,12 @@
     if (note) title.appendChild(node('span', 'item-note', ' · ' + note));
     body.appendChild(title);
     // On one line the title is cut before the monogram is, so there the monogram follows the title rather than sits in it.
-    if (item.kind === 'task') whoseMarks(item.task, item.inList).forEach(function (mark) { (compact ? body : title).appendChild(mark); });
+    // In a title the mark follows a space, not a margin. When a narrow column wraps it onto a line of its own the space
+    // goes with the break, so the mark starts on the title's own edge; a margin came along and indented it.
+    if (item.kind === 'task') whoseMarks(item.task, item.inList).forEach(function (mark, i) {
+      if (!compact && !i) title.appendChild(node('span', 'mark-gap', ' '));
+      (compact ? body : title).appendChild(mark);
+    });
     el.appendChild(body);
     return el;
   }
