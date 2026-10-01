@@ -19,6 +19,16 @@
   --display:"Bricolage Grotesque","Avenir Next","Segoe UI",Roboto,sans-serif;
   --text:"Inter","Helvetica Neue",Roboto,Arial,sans-serif;
 
+  /* Motion. One easing for everything that settles (a quick start, a long soft landing), one for the two things allowed
+     to pop (a check, the cheer: the wall's own cheer curve), and three durations: quick for a fade or a colour, move for
+     something changing place, settle for an arrival. Only transform and opacity move; colour changes ride the quick
+     duration; layout never animates. With reduced motion every idea has its own still version, not an off switch. */
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --ease-pop:cubic-bezier(.2,1.5,.45,1);
+  --t-quick:.16s;
+  --t-move:.28s;
+  --t-settle:.6s;
+
   /* Mist, not white: the ground the sky fades into. */
   --ground:#f6f8fb;
   --band:#edf1f6;
@@ -114,12 +124,22 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .top.on-sky :focus-visible{outline-color:var(--hero-ink)}
 
 /* ---------- Buttons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:999px;font-weight:600;font-size:1rem;white-space:nowrap;border:1.5px solid transparent}
+/* A button answers the hand: its colour changes in a quick fade, a press gives slightly (a scale, so nothing around it
+   moves), and the keyboard ring settles out from the edge instead of appearing. Links underline in the same quick fade.
+   With reduced motion the colour fades stay (a colour change is not motion); the press and the ring are still. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:999px;font-weight:600;font-size:1rem;white-space:nowrap;border:1.5px solid transparent;
+  transition:border-color var(--t-quick),background-color var(--t-quick),filter var(--t-quick),transform .12s var(--ease)}
+.btn:active{transform:scale(.97)}
 .btn.primary{background:var(--button);color:var(--button-ink)}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.quiet{border-color:var(--line);color:var(--ink)}
 .btn.quiet:hover{border-color:var(--ink-2)}
 .btn.small{height:36px;padding:0 14px;font-size:.875rem}
+.lede a,.cols a,.spec a,.ctas a.text,.foot .made a{transition:text-decoration-color var(--t-quick),border-color var(--t-quick)}
+:focus-visible{transition:outline-offset .12s var(--ease)}
+.btn:focus-visible,.brand:focus-visible{animation:focus-settle .2s var(--ease) backwards}
+@keyframes focus-settle{from{outline-offset:0;outline-color:transparent}}
+@media (prefers-reduced-motion:reduce){.btn:active{transform:none}:focus-visible{transition:none}.btn:focus-visible,.brand:focus-visible{animation:none}}
 
 /* ---------- Hero ---------- */
 /* The sky: from the top of the page, under the header, to its foot by the buttons, then into the mist behind the screen. */
@@ -127,13 +147,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
   background:linear-gradient(to bottom,var(--hero-top) 0,var(--hero-bottom) var(--sky-end,640px),var(--ground) var(--sky-fade,1040px))}
 @media (max-width:767px){.hero{--sky-end:760px;--sky-fade:1030px}}
 .hero::before{content:"";position:absolute;z-index:-1;inset:0 0 auto;height:var(--sky-end,640px);pointer-events:none;background:var(--sky-glow)}
-/* After dark the site's own sky has stars, not dust: fourteen still points of 2-3px with a soft halo, of a few sizes. The two
-   brightest (50-55%) stand clear of the words, outside the text column at any width (in the 20px gutter on a phone);
-   every other one is 30% or fainter, so one that falls behind a letter stays under it. The wall's own stars, which the
-   mock's sky panel shows, are its faint 10-30% and are not these. Placed once over the whole sky, never tiled. */
-.sky-cream .hero::before{--b1:8% 132px;--b2:91.5% 214px;background:
-  radial-gradient(circle 4.5px at var(--b1),rgba(255,255,255,.55) 1.5px,rgba(255,255,255,.143) 2.25px,transparent),
-  radial-gradient(circle 4.2px at var(--b2),rgba(255,255,255,.5) 1.4px,rgba(255,255,255,.13) 2.1px,transparent),
+/* After dark the site's own sky has stars, not dust: fourteen points of 2-3px with a soft halo, of a few sizes. The two
+   brightest (50-55%) stand clear of the words, outside the text column at any width (in the 20px gutter on a phone), and
+   breathe (.twinkle, below); every other one is 30% or fainter and still, so one that falls behind a letter stays under
+   it. The wall's own stars, which the mock's sky panel shows, are its faint 10-30% and are not these. Placed once over
+   the whole sky, never tiled. */
+.sky-cream .hero::before{background:
   radial-gradient(circle 3.5px at 17% 330px,rgba(255,255,255,.3) 1.25px,rgba(255,255,255,.078) 1.88px,transparent),
   radial-gradient(circle 3.5px at 83% 410px,rgba(255,255,255,.28) 1.25px,rgba(255,255,255,.073) 1.88px,transparent),
   radial-gradient(circle 3.4px at 63% 92px,rgba(255,255,255,.26) 1.2px,rgba(255,255,255,.068) 1.8px,transparent),
@@ -147,8 +166,37 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
   radial-gradient(circle 2.8px at 55% 505px,rgba(255,255,255,.18) 1px,rgba(255,255,255,.047) 1.5px,transparent),
   radial-gradient(circle 2.8px at 88% 575px,rgba(255,255,255,.2) 1px,rgba(255,255,255,.052) 1.5px,transparent);
   background-repeat:no-repeat}
-@media (max-width:767px){.sky-cream .hero::before{--b1:2.6% 300px;--b2:97.2% 156px}}
+/* The two bright stars breathe, each between 35% and its full brightness on its own slow period, eased in and out and
+   out of step, so they never move together and neither blinks: the wall twinkles its own stars, and a night sky that is
+   all still reads as a flat picture. Two thin composited layers on opacity, only when the stars show (.sky-cream: the
+   dark scheme, or a light one at night). With reduced motion they hold still at full, as drawn. */
+.twinkle{display:none}
+.sky-cream .twinkle{display:block;position:absolute;z-index:-1;inset:0 0 auto;height:var(--sky-end,640px);pointer-events:none}
+/* Each star is a strip as wide as the sky and 10px tall, its top on a whole pixel 5px above the star, with the star drawn
+   at the field's own x% and 5px down: so it lands on exactly the fraction of a pixel it did in the field, at any width. */
+.twinkle i{position:absolute;left:0;width:100%;top:calc(var(--y) - 5px);height:10px;animation:twinkle 4.6s ease-in-out -1.3s infinite alternate}
+.twinkle i:nth-child(1){--x:8%;--y:132px;background:radial-gradient(circle 4.5px at var(--x) 5px,rgba(255,255,255,.55) 1.5px,rgba(255,255,255,.143) 2.25px,transparent)}
+.twinkle i:nth-child(2){--x:91.5%;--y:214px;background:radial-gradient(circle 4.2px at var(--x) 5px,rgba(255,255,255,.5) 1.4px,rgba(255,255,255,.13) 2.1px,transparent);animation-duration:6.1s;animation-delay:-8s}
+@media (max-width:767px){.twinkle i:nth-child(1){--x:2.6%;--y:300px}.twinkle i:nth-child(2){--x:97.2%;--y:156px}}
+@keyframes twinkle{from{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.twinkle i{animation:none}}
 .hero .wrap{display:flex;flex-direction:column;align-items:center}
+/* Arriving. The sky is already painted (sky.js runs in the head), so what settles into it is the rest: the name, the
+   headline, the lede and the buttons rise 12px as they fade in, one after another; the screen follows; and the sun glow
+   by day, or the stars after dark, comes up last. Everything is still by two seconds and nothing moves again; the week
+   rail is drawn as the product draws it, a state. With reduced motion the words and the screen fade in once, in place,
+   and the sky is simply there. It is CSS alone, so a page without its script arrives the same way. */
+.hero .name,.hero .h1,.hero .lede,.hero .ctas{animation:hero-in var(--t-settle) var(--ease) backwards}
+.hero .h1{animation-delay:.06s}
+.hero .lede{animation-delay:.14s}
+.hero .ctas{animation-delay:.22s}
+.hero .stage{animation:hero-in .8s var(--ease) .3s backwards}
+.hero::before,.sky-cream .twinkle{animation:s-fade 1.6s ease .4s backwards}
+@keyframes hero-in{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){
+  .hero .name,.hero .h1,.hero .lede,.hero .ctas,.hero .stage{animation:s-fade .4s ease backwards}
+  .hero::before,.sky-cream .twinkle{animation:none}
+}
 .hero .name{font-weight:500;color:var(--hero-ink-2)}
 .hero .h1{margin-top:14px;max-width:22ch}
 .hero .lede{margin-top:22px;max-width:46ch;color:var(--hero-ink-2)}
@@ -200,6 +248,21 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .crop.right>.s-ahead{position:absolute;inset:0;font-size:calc(100cqw / 80.4)}
 .crop.left{aspect-ratio:39.6/67.5}
 .crop.left>.s-today{position:absolute;inset:0;flex:none;font-size:calc(100cqw / 39.6)}
+/* A crop comes alive once, as it scrolls into view (script.js): its check is made with the hero's pop and tick, its toast
+   rises 250 ms later, June's cheer lands on the wall's own fade and spring. Each crop is complete as written; .wound is the
+   moment before, set only by a script that is about to play it, so without one (or with reduced motion) a crop is simply
+   what it shows. */
+.crop.wound .s-item.done .s-check{background:none;opacity:.6}
+.crop.wound .s-item.done .s-check::after{display:none}
+.crop.wound .s-item.done .s-title{text-decoration:none;opacity:1}
+.crop.wound .s-toast,.crop.wound .s-cheer{opacity:0}
+.crop.played .s-check{transition:background-color var(--t-quick),opacity var(--t-quick)}
+.crop.played .s-title{transition:opacity var(--t-quick)}
+.crop.played .s-item.done .s-check{animation:s-pop .34s var(--ease-pop)}
+.crop.played .s-item.done .s-check::after{animation:s-tick .22s var(--ease) .06s backwards}
+.crop.played .s-toast{animation:s-rise var(--t-move) var(--ease) .25s backwards}
+.crop.played .s-cheer{animation:s-fade .35s ease .1s backwards,cheer-in .5s var(--ease-pop) .1s backwards}
+@keyframes cheer-in{from{transform:translate(-50%,-50%) scale(.4)}}
 /* A crop of the sky window at noon keeps its noon sky whatever the page does; it is a different moment, not a theme. */
 /* Monday noon, overcast: the product drains the day sky 50% toward grey and draws four clouds, and no sun. */
 .crop.noon{--sky-top:#a5bfd8;--sky-bottom:#dde9f5;--sky-ink:#0b2545;--cloud:rgba(255,255,255,.62);--sunglow:0;--stars:0;--cloud-op:.75}
@@ -271,6 +334,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .foot .fine{display:grid;gap:6px;font-size:.875rem;color:var(--ink-2)}
 @media (min-width:768px){.foot .fine{text-align:right}}
 .foot .clock{font-variant-numeric:tabular-nums;color:var(--ink)}
+/* The minute turns in a fade (script.js sets .tick each time the words change), as the first reading fades in. With
+   reduced motion the words simply change. */
+.foot .clock.tick{animation:s-fade var(--t-settle) var(--ease)}
+@media (prefers-reduced-motion:reduce){.foot .clock.tick{animation:none}}
 
 /* =====================================================================================
    The wall screen. A faithful recreation of the 1920 × 1080 display in its own design language.
@@ -397,6 +464,19 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-ahead{flex:1;min-width:0;display:flex;flex-direction:column;padding:2.25em 2.75em 1.5em}
 .s-view{flex:1;min-height:0;display:flex;flex-direction:column}
 .s-view[hidden]{display:none}
+/* In the hero a view a tab brings in rises and fades in while the one it replaces fades out where it was (script.js
+   holds it out of the flow, in the pane's own padding, until its fade ends), so the pane is never empty between two
+   views. Photos arrive as the wall's first slide does: the blurred fill at once, the picture fading up over it in 1.2 s. */
+.screen .s-ahead{position:relative}
+.s-view.s-arrive{animation:s-arrive var(--t-move) var(--ease) .06s backwards}
+.s-view.s-leave{position:absolute;left:2.75em;right:2.75em;top:2.25em;bottom:6.75em;pointer-events:none;animation:s-fade-out var(--t-quick) ease both}
+.s-view.s-arrive .s-photo .pic{animation:s-fade 1.2s ease backwards}
+@keyframes s-arrive{from{opacity:0;transform:translateY(.4em)}}
+@keyframes s-fade{from{opacity:0}}
+@keyframes s-fade-out{to{opacity:0}}
+/* Reduced motion: the view arrives in a plain quick fade, the one leaving goes at once, and the photo is simply there, as
+   the wall shows it with animations off. */
+@media (prefers-reduced-motion:reduce){.s-view.s-arrive{animation-name:s-fade;animation-duration:var(--t-quick);animation-delay:0s}.s-view.s-leave{display:none}.s-view.s-arrive .s-photo .pic{animation:none}}
 .s-head{display:flex;align-items:center;height:3.5em;margin-bottom:1.5em}
 /* A view's title: Bricolage 600 at 3.25rem. The month keeps the longest month's width (16.5rem) so the rail stays put. */
 .s-head .s-h{font:600 3.25em/1 var(--display);letter-spacing:-.02em;font-variation-settings:"opsz" 40;margin-right:.769em;white-space:nowrap}
@@ -474,9 +554,29 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-title>.s-owner{margin-left:0}
 .s-markgap{word-spacing:.111em}
 .s-listbody .s-markgap{word-spacing:.058em}
-.s-listbody .s-item.done .s-check{opacity:1;background:var(--tick,currentColor);position:relative}
-.s-listbody .s-item.done .s-check::after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--s-card);border-width:0 .2em .2em 0;transform:rotate(42deg)}
-.s-listbody .s-item.done .s-title{text-decoration:line-through;opacity:.55}
+/* Checked off, as the product draws it wherever a ring is (.item.done): the ring filled, a tick in the card's colour (the
+   sky's, on the sky), the title struck. */
+.s-item.done .s-check{opacity:1;background:var(--tick,currentColor);position:relative}
+.s-item.done .s-check::after{content:"";position:absolute;left:30%;top:14%;width:28%;height:52%;border:solid var(--s-card);border-width:0 .2em .2em 0;transform:rotate(42deg)}
+.s-today .s-item.done .s-check::after{border-color:var(--sky-bottom)}
+.s-item.done .s-title{text-decoration:line-through;opacity:.55}
+/* In the hero every row with a ring is the wall's own tap (script.js). The ring fills in a quick fade; checked just now
+   (.just) it pops once on the pop easing while the tick draws in, then is still. A press dims the row at once, as the
+   wall's button.item:active does, and lets go in a quick fade; under a mouse an open ring brightens. With reduced motion
+   the ring simply fills and the title is struck. */
+.screen .s-check{transition:background-color var(--t-quick),border-color var(--t-quick),opacity var(--t-quick)}
+.screen .s-title{transition:opacity var(--t-quick)}
+.screen .s-item[data-task]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity var(--t-quick)}
+.screen .s-item[data-task]:active{opacity:.6;transition-duration:0s}
+@media (hover:hover){.screen .s-ahead .s-item[data-task]:not(.done):hover .s-check{opacity:.85}}
+.screen .s-item[data-task]:focus-visible{outline:.2em solid var(--s-accent);outline-offset:.2em}
+.screen .s-today .s-item[data-task]:focus-visible{outline-color:currentColor}
+@media (max-width:600px){.screen .s-item[data-task]{pointer-events:none}}
+.s-item.just .s-check{animation:s-pop .34s var(--ease-pop)}
+.s-item.just .s-check::after{animation:s-tick .22s var(--ease) .06s backwards}
+@keyframes s-pop{from{transform:scale(.82)}}
+@keyframes s-tick{from{transform:rotate(42deg) scale(.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.s-item.just .s-check,.s-item.just .s-check::after{animation:none}}
 .s-listbody .s-group{font:600 1.15em/1.2 var(--text);text-transform:uppercase;letter-spacing:.06em;color:var(--s-ink-2);padding:.609em 0 .478em}
 .s-listbody.kid .s-item{min-height:5.6em;padding:1.1em 0}
 .s-listbody.kid .s-check{width:3.2em;height:3.2em;margin-right:1.3em}
@@ -496,6 +596,21 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-toast span{padding:.6em 0}
 .s-toast b{margin-left:1em;height:2.267em;padding:0 1.067em;border-radius:1.133em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
 .s-cheer{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);font-size:14em;line-height:1}
+/* In the hero the toast and the cheer are live (script.js), in the right pane where the wall puts them. The toast rises
+   0.6 em as it fades in and fades out when its ten seconds are up; Undo is a real button. The cheer lands on the wall's
+   own transition (.35 s fade, .5 s on its spring) and goes after 1.1 s. The status line around the toast is always
+   there, so a screen reader hears it arrive. With reduced motion the toast fades in where it sits and the cheer fades in
+   at full size. */
+.s-live{position:absolute;inset:0;pointer-events:none}
+.s-live .s-toast{pointer-events:auto;animation:s-rise var(--t-move) var(--ease) backwards}
+.s-live .s-toast[hidden]{display:none}
+.s-live .s-toast.leaving{animation:s-fade-out var(--t-quick) ease both}
+.s-toast .s-undo{margin-left:1em;height:2.267em;padding:0 1.067em;border-radius:1.133em;font-weight:600;background:var(--s-surface);color:var(--s-ink);display:flex;align-items:center}
+.s-toast .s-undo:focus-visible{outline:.133em solid var(--s-surface);outline-offset:.133em;border-radius:1.133em}
+.screen .s-cheer{opacity:0;transform:translate(-50%,-50%) scale(.4);pointer-events:none;transition:opacity .35s ease,transform .5s var(--ease-pop)}
+.screen .s-cheer.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+@keyframes s-rise{from{opacity:0;transform:translate(-50%,.6em)}}
+@media (prefers-reduced-motion:reduce){.s-live .s-toast{animation-name:s-fade}.screen .s-cheer{transform:translate(-50%,-50%);transition:opacity .35s ease}}
 
 /* When a photo was taken is a caption, not a title: Inter 500 at 1.6rem in the header's secondary ink (the product's W-11).
    The 2.5rem after it, in the caption's own em. */
@@ -514,6 +629,18 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 .s-tabs button b{font-weight:600;font-size:1.036em;font-variant-numeric:tabular-nums;margin-left:.379em;color:var(--s-ink)}
 .s-tabs button[aria-pressed="true"]{background:var(--s-selected);color:var(--s-ink);box-shadow:0 .08em .25em var(--s-shade)}
 .s-tabs button:focus-visible{outline:.2em solid var(--s-accent);outline-offset:.1em}
+/* In the hero the dock is a control. A tap gives under the finger; the labels recolour as the selected pill slides from
+   the tab that was on to the one tapped, the wall's segmented dock in motion. The pill is drawn only for the slide
+   (script.js); at rest each pressed tab draws its own, so the resting dock is the one above. With reduced motion the
+   pill does not slide and nothing scales: the dock changes at once, as it always did. */
+.screen .s-tabs{position:relative}
+.screen .s-tabs button{position:relative;transition:color var(--t-move) var(--ease),transform .12s var(--ease)}
+.screen .s-tabs button:active{transform:scale(.96)}
+.s-tabs .s-pill{display:none;position:absolute;top:50%;left:0;height:2.43em;margin-top:-1.215em;border-radius:1.21em;font-size:1.4em;background:var(--s-selected);box-shadow:0 .08em .25em var(--s-shade);pointer-events:none;
+  transition:transform var(--t-move) var(--ease),width var(--t-move) var(--ease)}
+.s-tabs.sliding .s-pill{display:block}
+.s-tabs.sliding button[aria-pressed="true"]{background:none;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.screen .s-tabs button{transition:none}.screen .s-tabs button:active{transform:none}}
 /* One tab is a plain label, as the product draws it: no track, no pill. */
 .s-tabs.lone{background:none;padding:0}
 .s-tabs.lone button{padding:0;background:none;box-shadow:none;color:var(--s-ink-2)}

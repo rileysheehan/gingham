@@ -86,6 +86,7 @@
 <main id="main">
 
   <section class="hero">
+    <div class="twinkle" aria-hidden="true"><i></i><i></i></div>
     <div class="wrap">
       <p class="name">Gingham, a family wall display</p>
       <h1 class="h1">Bring your own screen.</h1>
@@ -99,7 +100,7 @@
       <div class="stage">
         <div class="bezel">
           <div class="screen-box">
-          <div class="screen" id="screen" role="group" aria-label="The wall display of an invented household, the Ashbys. The tabs in its dock switch what the right side shows.">
+          <div class="screen" id="screen" role="group" aria-label="The wall display of an invented household, the Ashbys. The tabs in its dock switch what the right side shows, and its rings check things off, with Undo.">
             <div class="s-today">
               <div class="s-sky" aria-hidden="true"><i class="s-stars"></i><i class="s-sun"></i><i class="s-cloud c1"></i><i class="s-cloud c2"></i></div>
               <p class="s-weekday">Thursday</p>
@@ -119,7 +120,7 @@
                    size this screen is drawn it does not, and there the product drops a place whole rather than cut it
                    (app.js wholePlaces), so the row is the time alone. Checked against the product at 1920 and 1060 wide. -->
               <div class="s-item event happening" style="--rail:#d9782f"><div><span class="s-meta">Now, until 7:30 PM</span><span class="s-title">Soccer practice</span></div></div>
-              <div class="s-item chore compact"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span></div></div>
+              <div class="s-item chore compact" data-task="trash" data-list="chores"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span></div></div>
               <p class="s-countdown">2 sleeps until June’s birthday</p>
               <p class="s-sunline">Sunset 7:04 PM</p>
             </div>
@@ -142,7 +143,7 @@
                     <div class="s-dayname"><span class="s-eyebrow">Tomorrow</span><b>9</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-sun"/></svg></span><b>81°</b>62°</div>
                     <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-meta">12:30 PM</span><span class="s-title">Early release</span></div></div>
-                    <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Pizza night</span></div></div>
+                    <div class="s-item chore" data-task="pizza" data-list="chores"><i class="s-check"></i><div><span class="s-title">Pizza night</span></div></div>
                   </div>
                   <div class="s-day weekend">
                     <div class="s-dayname"><span class="s-eyebrow">Sat</span><b>10</b></div>
@@ -163,7 +164,7 @@
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-cloud"/></svg></span><b>77°</b>61°</div>
                     <div class="s-item event busy" style="--rail:#8a63c9"><div><span class="s-meta">1 PM</span><span class="s-title busy">Busy</span></div></div>
                     <div class="s-item event" style="--rail:#3f9a6e"><div><span class="s-meta">3:15 PM</span><span class="s-title">Dentist</span></div></div>
-                    <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-markgap"> </span><span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></span></div></div>
+                    <div class="s-item chore" data-task="water-tomatoes" data-list="chores"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-markgap"> </span><span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></span></div></div>
                   </div>
                   <div class="s-day">
                     <div class="s-dayname"><span class="s-eyebrow">Tue</span><b>13</b></div>
@@ -174,7 +175,7 @@
                     <div class="s-dayname"><span class="s-eyebrow">Wed</span><b>14</b></div>
                     <div class="s-forecast"><span class="wxcol"><svg class="s-wx" aria-hidden="true"><use href="#wx-partly"/></svg></span><b>74°</b>57°</div>
                     <div class="s-item event" style="--rail:#4a8fd9"><div><span class="s-meta">6 PM</span><span class="s-title">Parent night</span></div></div>
-                    <div class="s-item chore"><i class="s-check"></i><div><span class="s-title">Recycling</span></div></div>
+                    <div class="s-item chore" data-task="recycling" data-list="chores"><i class="s-check"></i><div><span class="s-title">Recycling</span></div></div>
                   </div>
                 </div>
                 <div class="s-later">
@@ -192,9 +193,9 @@
                 <div class="s-card s-listbody">
                   <div class="s-cols">
                     <div class="s-set">
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Book the campsite</span><span class="s-meta">Fri, Oct 16</span></div></div>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Return the library books</span></div></div>
-                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Hang the porch light</span></div></div>
+                      <div class="s-item" data-task="campsite" data-list="family"><i class="s-check"></i><div><span class="s-title">Book the campsite</span><span class="s-meta">Fri, Oct 16</span></div></div>
+                      <div class="s-item" data-task="library-books" data-list="family"><i class="s-check"></i><div><span class="s-title">Return the library books</span></div></div>
+                      <div class="s-item last" data-task="porch-light" data-list="family"><i class="s-check"></i><div><span class="s-title">Hang the porch light</span></div></div>
                     </div>
                   </div>
                 </div>
@@ -205,10 +206,10 @@
                 <div class="s-card s-listbody">
                   <div class="s-cols">
                     <div class="s-set">
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Thu, Oct 8 · repeats</span></div></div>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Fri, Oct 9 · repeats</span></div></div>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-markgap"> </span><span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></span><span class="s-meta">Mon, Oct 12</span></div></div>
-                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Recycling</span><span class="s-meta">Wed, Oct 14 · repeats</span></div></div>
+                      <div class="s-item" data-task="trash" data-list="chores"><i class="s-check"></i><div><span class="s-title">Trash to the curb</span><span class="s-meta">Thu, Oct 8 · repeats</span></div></div>
+                      <div class="s-item" data-task="pizza" data-list="chores"><i class="s-check"></i><div><span class="s-title">Pizza night</span><span class="s-meta">Fri, Oct 9 · repeats</span></div></div>
+                      <div class="s-item" data-task="water-tomatoes" data-list="chores"><i class="s-check"></i><div><span class="s-title">Water the tomatoes<span class="s-markgap"> </span><span class="s-owner" style="--who:#8a63c9" role="img" aria-label="Theo">T</span></span><span class="s-meta">Mon, Oct 12</span></div></div>
+                      <div class="s-item last" data-task="recycling" data-list="chores"><i class="s-check"></i><div><span class="s-title">Recycling</span><span class="s-meta">Wed, Oct 14 · repeats</span></div></div>
                     </div>
                   </div>
                 </div>
@@ -220,21 +221,21 @@
                   <div class="s-cols">
                     <div class="s-set">
                       <p class="s-group">Produce</p>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Tomatoes</span></div></div>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Limes</span></div></div>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Cilantro</span></div></div>
-                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">A big bag of apples</span></div></div>
+                      <div class="s-item" data-task="tomatoes" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Tomatoes</span></div></div>
+                      <div class="s-item" data-task="limes" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Limes</span></div></div>
+                      <div class="s-item" data-task="cilantro" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Cilantro</span></div></div>
+                      <div class="s-item last" data-task="apples" data-list="grocery"><i class="s-check"></i><div><span class="s-title">A big bag of apples</span></div></div>
                     </div>
                     <div class="s-set">
                       <p class="s-group">Dairy</p>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Milk</span></div></div>
-                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Butter</span></div></div>
+                      <div class="s-item" data-task="milk" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Milk</span></div></div>
+                      <div class="s-item last" data-task="butter" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Butter</span></div></div>
                     </div>
                     <div class="s-set">
                       <p class="s-group">Party</p>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Balloons</span></div></div>
-                      <div class="s-item"><i class="s-check"></i><div><span class="s-title">Sprinkles</span></div></div>
-                      <div class="s-item last"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
+                      <div class="s-item" data-task="balloons" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Balloons</span></div></div>
+                      <div class="s-item" data-task="sprinkles" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Sprinkles</span></div></div>
+                      <div class="s-item last" data-task="paper-plates" data-list="grocery"><i class="s-check"></i><div><span class="s-title">Paper plates</span></div></div>
                     </div>
                   </div>
                 </div>
@@ -245,9 +246,9 @@
                 <div class="s-card s-listbody kid">
                   <div class="s-cols">
                     <div class="s-set">
-                      <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🦷</span><div><span class="s-title">Brush teeth</span></div></div>
-                      <div class="s-item"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🧸</span><div><span class="s-title">Tidy up</span></div></div>
-                      <div class="s-item last"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">📚</span><div><span class="s-title">Pick a book</span></div></div>
+                      <div class="s-item" data-task="brush-teeth" data-list="june"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🦷</span><div><span class="s-title">Brush teeth</span></div></div>
+                      <div class="s-item" data-task="tidy-up" data-list="june"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">🧸</span><div><span class="s-title">Tidy up</span></div></div>
+                      <div class="s-item last" data-task="pick-a-book" data-list="june"><i class="s-check" style="--tick:#e2a83a"></i><span class="s-emoji" aria-hidden="true">📚</span><div><span class="s-title">Pick a book</span></div></div>
                     </div>
                   </div>
                 </div>
@@ -262,6 +263,11 @@
                 </div>
               </div>
 
+              <!-- What a check-off brings, as on the wall: the toast with Undo for ten seconds, and on June's list a cheer.
+                   Empty and still until a ring is tapped (script.js); the status line is always there, so a screen reader
+                   hears the toast arrive. -->
+              <div class="s-live" role="status"><p class="s-toast" hidden><span></span><button type="button" class="s-undo">Undo</button></p></div>
+              <span class="s-cheer" aria-hidden="true"></span>
               <div class="s-dock" role="group" aria-label="Views on the wall">
                 <div class="s-tabs">
                   <button type="button" data-tab="calendar" aria-pressed="true">Calendar</button>
