@@ -74,7 +74,14 @@
         b.onclick = function () { act('calendar-edit', { id: c.id, private: pair[0] }, b, function () { toast('Saved'); }); };
         options.appendChild(b);
       });
-      li.className = 'wrap'; li.appendChild(options);
+      // Hidden is not removed: the calendar stays connected and set up here, and nothing of it reaches the wall.
+      var wall = el('div', 'options'); wall.appendChild(el('span', 'sub', 'On the wall'));
+      [[true, 'Shown'], [false, 'Hidden']].forEach(function (pair) {
+        var b = el('button', 'chip', pair[1]); b.setAttribute('aria-pressed', String(c.shown === pair[0]));
+        b.onclick = function () { act('calendar-edit', { id: c.id, shown: pair[0] }, b, function () { toast(pair[0] ? 'Showing ' + c.name : 'Hid ' + c.name + ' from the wall'); }); };
+        wall.appendChild(b);
+      });
+      li.className = 'wrap'; li.appendChild(wall); li.appendChild(options);
     });
 
     var dl = $('cd-list'); dl.textContent = '';

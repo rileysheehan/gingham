@@ -46,7 +46,7 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
     return {
       household: {id: home.id, name: place.name, timezone: place.timezone, place: place.label},
       countdowns: (sources.countdowns || []).filter(c => c && validDay(c.date)).map(c => { const today = dayIn(home.place().timezone, Date.now()), next = c.yearly ? nextYearly(c.date, today) : c.date; return {id: c.id, name: c.name, date: next, yearly: !!c.yearly, word: c.word === 'days' ? 'days' : 'sleeps', passed: next < today}; }),
-      calendars: (sources.calendars || []).map(c => ({id: c.id, name: c.name, color: c.color, private: ['show', 'hide'].includes(c.private) ? c.private : 'busy', kind: c.source === 'ics' ? 'link' : 'google', connected: c.source === 'ics' ? !!(secrets.ics || {})[c.id] : !!(secrets.google || {}).refresh_token})),
+      calendars: (sources.calendars || []).map(c => ({id: c.id, name: c.name, color: c.color, private: ['show', 'hide'].includes(c.private) ? c.private : 'busy', shown: c.hidden !== true, kind: c.source === 'ics' ? 'link' : 'google', connected: c.source === 'ics' ? !!(secrets.ics || {})[c.id] : !!(secrets.google || {}).refresh_token})),
       todoist: {connected: !!(secrets.todoist || {}).token},
       caldav: (c => ({connected: !!c.password, server: c.url ? (() => { try { return new URL(c.url).host; } catch (e) { return ''; } })() : '', username: c.username || ''}))(secrets.caldav || {}),
       homeassistant: (c => ({connected: !!c.token, server: c.url ? (() => { try { return new URL(c.url).host; } catch (e) { return ''; } })() : ''}))(secrets.homeassistant || {}),
@@ -86,8 +86,9 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
       update(home, s => { (s.calendars = s.calendars || []).push({id, name, color: color(body.color, PALETTE.find(p => !used.includes(p)) || PALETTE[0]), source: 'ics'}); });
       return {found};
     },
+    // Hiding a calendar takes it off the wall and keeps it here, connected and as it was set up; removing forgets it.
     async 'calendar-edit'(home, body) {
-      update(home, s => { const c = (s.calendars || []).find(c => c.id === body.id); if (!c) throw fail(404, 'No such calendar.'); if (text(body.name, 40)) c.name = text(body.name, 40); c.color = color(body.color, c.color); if (['busy', 'show', 'hide'].includes(body.private)) c.private = body.private; });
+      update(home, s => { const c = (s.calendars || []).find(c => c.id === body.id); if (!c) throw fail(404, 'No such calendar.'); if (text(body.name, 40)) c.name = text(body.name, 40); c.color = color(body.color, c.color); if (['busy', 'show', 'hide'].includes(body.private)) c.private = body.private; if (body.shown === true) delete c.hidden; else if (body.shown === false) c.hidden = true; });
     },
     // Something the household is counting down to. The frame shows the nearest one, as sleeps or as days.
     async 'countdown-add'(home, body) {

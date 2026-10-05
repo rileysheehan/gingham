@@ -4,6 +4,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var UNDO_MS = 5000, REFRESH_MS = 30000;
   var data = null, current = null, pending = {};      // pending: task id -> timer, checked off but not yet sent
+  var refocus = null;                                  // the row a key just toggled, focused again once it is redrawn
   try { current = localStorage.getItem('lists.current'); } catch (e) {}
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
   function toast(text) { var t = $('toast'); t.textContent = text; t.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(function () { t.hidden = true; }, 3200); }
@@ -44,6 +45,7 @@
     box.textContent = '';
     tasks.forEach(function (t) { var s = t.section || ''; if (!by[s]) { by[s] = []; sections.push(s); } by[s].push(t); });
     if (!tasks.length) { box.appendChild(el('p', 'note', 'Nothing on this list')); return; }
+    var again = null;
     sections.forEach(function (s) {
       if (s) box.appendChild(el('h2', 'eyebrow section', s));
       var ul = el('ul', 'rows checks');
@@ -54,11 +56,20 @@
         var sub = pending[t.id] ? 'Tap again to undo' : [assignee(t), due(t.due)].filter(Boolean).join(' · ');
         if (sub) grow.appendChild(el('div', 'sub', sub));
         li.appendChild(grow);
+        // A row is a checkbox to a screen reader and to a keyboard as well as to a thumb: its words are the checkbox, the
+        // circle beside them is only the picture of one, and the row stays a list item.
+        grow.setAttribute('role', 'checkbox'); grow.setAttribute('aria-checked', String(!!pending[t.id])); grow.tabIndex = 0;
+        li.firstChild.setAttribute('aria-hidden', 'true');
         li.onclick = function () { toggle(t); };
+        grow.onkeydown = function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); refocus = t.id; toggle(t); } };
         ul.appendChild(li);
+        if (refocus === t.id) again = grow;
       });
       box.appendChild(ul);
     });
+    // Only once it is on the page can the row a key just toggled take the focus back.
+    if (again) again.focus();
+    refocus = null;
   }
 
   // A check-off waits a few seconds before it is sent, so a thumb that lands on the wrong row costs nothing.

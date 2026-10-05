@@ -800,6 +800,30 @@ test('A kid\'s emoji is the row\'s picture in her list, and gone from every row 
   assert.ok(cake.$('strip').querySelectorAll('.item').some(el => cake.row(el).title === '🎂 Bake: the cake'));
 });
 
+test('A list\'s subhead is its description or nothing: the circle on each row is the instruction', () => {
+  const base = require('./fixtures').stress.tasks, open = (w, name) => w.$('tabs').children.find(el => el.textContent.includes(name)).click();
+  const w = load({now: '2026-09-23T15:40:00'});
+  open(w, 'Grocery');
+  assert.equal(w.$('list-status').textContent, 'The shopping list, by aisle');
+  // No description, with items and without: no words stand in for one, and the rows are the checkboxes they were.
+  const bare = {...base, lists: base.lists.map(l => l.name === 'Grocery' ? {...l, description: ''} : l)};
+  const full = load({now: '2026-09-23T15:40:00', overrides: {'/api/tasks': bare}});
+  open(full, 'Grocery');
+  assert.equal(full.$('list-status').textContent, '');
+  assert.equal(full.$('list-title').textContent, 'Grocery');
+  const rows = full.$('list-body').querySelectorAll('.item');
+  assert.equal(rows.length, 33);
+  for (const el of rows) { assert.equal(el.tagName, 'BUTTON'); assert.equal(el.getAttribute('role'), 'checkbox'); assert.equal(el.getAttribute('aria-checked'), 'false'); assert.ok(el.querySelector('.check')); }
+  const none = load({now: '2026-09-23T15:40:00', overrides: {'/api/tasks': {...bare, tasks: bare.tasks.filter(t => t.project !== 'Grocery')}}});
+  open(none, 'Grocery');
+  assert.equal(none.$('list-status').textContent, '');
+  assert.equal(none.$('list-body').querySelector('.list-empty').textContent, 'Nothing on this list');
+  // A list that could not be refreshed still says so there.
+  const stale = load({now: '2026-09-24T10:00:00', overrides: {'/api/tasks': {...bare, stale: true}}});
+  open(stale, 'Grocery');
+  assert.match(stale.$('list-status').textContent, /^Can’t refresh this list\. It is from /);
+});
+
 test('Offline, the note sits in the middle of the card, and Today says when the lists are down too (W-05)', () => {
   const w = load({fixture: 'offline', now: '2026-09-23T09:10:00'});
   assert.equal(w.$('today-list').textContent, 'Can’t reach the calendar or the lists');

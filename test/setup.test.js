@@ -57,6 +57,17 @@ test('A calendar link is tried before it is kept, sealed when kept, and never gi
   assert.equal(calendar.private, 'busy');
   assert.equal((await w.call(owner, 'POST', '/api/setup/calendar-edit', {id: calendar.id, private: 'hide'})).body.setup.calendars[0].private, 'hide');
   assert.equal((await w.call(owner, 'POST', '/api/setup/calendar-edit', {id: calendar.id, private: 'everything'})).body.setup.calendars[0].private, 'hide');
+  // Shown unless the household hides it. Hidden keeps the calendar, its link, name, color and private choice.
+  assert.equal(calendar.shown, true, 'a new calendar is shown');
+  const hid = (await w.call(owner, 'POST', '/api/setup/calendar-edit', {id: calendar.id, shown: false})).body.setup.calendars[0];
+  assert.deepEqual([hid.shown, hid.name, hid.color, hid.private, hid.connected], [false, 'Mara', calendar.color, 'hide', true]);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(home, 'sources.json'), 'utf8')).calendars[0].hidden, true, 'kept on disk, hidden');
+  assert.equal(w.households.vault.read(path.join(home, 'credentials.json'), 'alpha').ics[calendar.id], link, 'its link is kept');
+  assert.equal((await w.call(owner, 'POST', '/api/setup/calendar-edit', {id: calendar.id, private: 'show'})).body.setup.calendars[0].shown, false, 'another change leaves it hidden');
+  assert.equal((await w.call(owner, 'POST', '/api/setup/calendar-edit', {id: calendar.id, shown: 'yes'})).body.setup.calendars[0].shown, false, 'only true or false');
+  const back = (await w.call(owner, 'POST', '/api/setup/calendar-edit', {id: calendar.id, shown: true})).body.setup.calendars[0];
+  assert.deepEqual([back.shown, back.name, back.private, back.connected], [true, 'Mara', 'show', true], 'shown again with nothing to re-enter');
+  assert.ok(!('hidden' in JSON.parse(fs.readFileSync(path.join(home, 'sources.json'), 'utf8')).calendars[0]));
   const removed = await w.call(owner, 'POST', '/api/setup/calendar-remove', {id: calendar.id});
   assert.equal(removed.body.setup.calendars.length, 0);
   assert.deepEqual(w.households.vault.names(w.households.vault.read(path.join(home, 'credentials.json'), 'alpha')), [], 'and its link goes with it');

@@ -28,8 +28,9 @@ function page(script, answers) {
   };
   const respond = url => { const key = Object.keys(answers).find(k => url.startsWith(k)); return key ? {status: 200, body: answers[key]} : {status: 404, body: {}}; };
   const fetch = url => { const r = respond(url); return Promise.resolve({status: r.status, json: () => Promise.resolve(r.body)}); };
+  // A browser never names a timer 0, and the lists page keeps a check-off's timer as the mark that it is pending.
   const window = {document, fetch, location: {search: '', hash: '', pathname: '/'}, history: {}, navigator: {}, localStorage: {getItem: () => null, setItem() {}},
-    setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, addEventListener() {}, console};
+    setTimeout: () => 1, clearTimeout() {}, setInterval: () => 0, addEventListener() {}, console};
   window.window = window;
   vm.createContext(window);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'dist', script), 'utf8'), window, {filename: 'dist/' + script});
@@ -55,4 +56,21 @@ test('The lists page shows no zero counts and always has something in the add bo
   assert.equal(p.$('add-input').placeholder, 'Add to Grocery');
   // The markup's own placeholder covers the page before any list has loaded (offline, or still loading).
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'dist', 'lists.html'), 'utf8'), /id="add-input" placeholder="Add something"/);
+});
+
+test('A row on the lists page is a checkbox to a screen reader and a keyboard, and a key checks it off as a tap does', async () => {
+  const tasks = {projects: ['Grocery'], tasks: [{id: 't1', title: 'Limes', project: 'Grocery', section: '', due: ''}]};
+  const p = page('lists-page.js', {'/api/tasks': tasks, '/api/household': {name: 'The Ashbys'}});
+  await p.settle(); await p.settle();
+  const row = () => p.$('items').children[0].children[0].children.find(c => c.className === 'grow');
+  assert.equal(row().getAttribute('role'), 'checkbox');
+  assert.equal(row().getAttribute('aria-checked'), 'false');
+  assert.equal(row().tabIndex, 0);
+  let prevented = false;
+  row().onkeydown({key: ' ', preventDefault() { prevented = true; }});
+  assert.ok(prevented, 'the space bar does not scroll the page');
+  assert.equal(row().getAttribute('aria-checked'), 'true');
+  assert.equal(p.$('items').children[0].children[0].className, 'done');
+  row().onkeydown({key: 'Enter', preventDefault() {}});
+  assert.equal(row().getAttribute('aria-checked'), 'false', 'a second press undoes it, as a second tap does');
 });

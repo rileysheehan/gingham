@@ -1072,8 +1072,9 @@
     var project = mode.slice(5), body = $('list-body'), groups = {}, order = [], style = listOf(project);
     var items = tasks.tasks.filter(function (t) { return t.project === project; });
     var heading = $('list-title'); heading.textContent = ''; heading.appendChild(listMark(project)); heading.appendChild(document.createTextNode(project));
-    // The subhead says what the list is for, from its Todoist description; a stale list says so instead.
-    $('list-status').textContent = tasksProblem || tasks.stale ? 'Can’t refresh this list. It is from ' + since(tasks.updatedAt) + '.' : listOf(project).description || 'Tap to check off';
+    // The subhead says what the list is for, from its Todoist description; a stale list says so instead. With no
+    // description it says nothing: the empty circle on each row already says the row can be checked off.
+    $('list-status').textContent = tasksProblem || tasks.stale ? 'Can’t refresh this list. It is from ' + since(tasks.updatedAt) + '.' : listOf(project).description || '';
     body.textContent = ''; body.className = 'list-body' + (style.kid ? ' kid' : '');
     // The card scrolls; the columns inside it grow with the list, so nothing can end up in a column off to the side.
     var columns = node('div', 'list-columns');

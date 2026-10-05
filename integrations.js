@@ -66,9 +66,14 @@ function create({api=createClient(),config=()=>JSON.parse(fs.readFileSync(path.j
     if(cache.size>40)cache.delete(cache.keys().next().value);
     return entry.pending;
   }
-  async function calendar(from,to){range(from,to);return cached('calendar:'+from+':'+to,async()=>{
-    const cfg=config(),zone=validZone(cfg.timezone)?cfg.timezone:'UTC',problems=[];let failed=0;
-    const results=await Promise.all((cfg.calendars||[]).map(async c=>{
+  // A calendar the household has hidden stays in sources.json with everything it was set up with, so it can be shown
+  // again with a tap, but it is never asked for and nothing of it leaves the server: not its events, not its name in
+  // the legend. What was remembered before it was hidden is filtered on the way out too.
+  async function calendar(from,to){range(from,to);
+    const hidden=new Set((config().calendars||[]).filter(c=>c.hidden===true).map(c=>c.id));
+    const data=await cached('calendar:'+from+':'+to,async()=>{
+    const cfg=config(),zone=validZone(cfg.timezone)?cfg.timezone:'UTC',problems=[],shown=(cfg.calendars||[]).filter(c=>c.hidden!==true);let failed=0;
+    const results=await Promise.all(shown.map(async c=>{
       try{
         let events;
         if(c.source==='ics'){
@@ -84,10 +89,11 @@ function create({api=createClient(),config=()=>JSON.parse(fs.readFileSync(path.j
       }
     }));
     // Every calendar failing with nothing remembered is an outage, and is reported as one.
-    if((cfg.calendars||[]).length&&failed===cfg.calendars.length)throw Error('No calendar could be read');
+    if(shown.length&&failed===shown.length)throw Error('No calendar could be read');
     const seen=new Set();const events=results.flat().filter(e=>{const key=e.uid+'|'+e.start;if(seen.has(key))return false;seen.add(key);return true;});
-    return {mode:'live',calendars:(cfg.calendars||[]).map(({id,name,color})=>({id,name,color})),events,from,to,...(problems.length?{problems}:{})};
-  });}
+    return {mode:'live',calendars:shown.map(({id,name,color})=>({id,name,color})),events,from,to,...(problems.length?{problems}:{})};
+  });
+    return hidden.size?{...data,calendars:data.calendars.filter(c=>!hidden.has(c.id)),events:data.events.filter(e=>!hidden.has(e.calendar))}:data;}
   // One list failing (Todoist down, a token revoked) must not take the household's other lists with it: it falls back
   // to what it last gave and is named as a problem. Lists kept here never fail this way.
   const lastList=new Map();

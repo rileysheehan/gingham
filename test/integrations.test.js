@@ -81,3 +81,29 @@ test('Todoist being down does not take the household\'s own lists with it',async
   await assert.rejects(onlyTodoist.tasks(),'with nothing at all to show, it is an outage and says so');
 });
 
+test('A hidden calendar is kept as it was set up but is never asked for, and nothing of it reaches the wall',async()=>{
+  // The shared calendar and two personal ones; the surname is in all three, so nothing may be matched by name.
+  let calendars=[{id:'family@group.calendar.google.com',name:'Rivera',color:'#38977b'},{id:'mara@example.com',name:'Mara Rivera',color:'#4793e0',hidden:true,private:'show'},{id:'theo@example.com',name:'Theo Rivera',color:'#b37dcc',hidden:true}];
+  const asked=[];
+  const h=create({cacheDir:null,config:()=>({timezone:'America/Chicago',calendars,projects:[]}),
+    api:{pages:async loader=>(await loader('')).items,google:async route=>{asked.push(decodeURIComponent(route.split('/')[1]));return {items:[{id:'e-'+asked.length,summary:'From '+route.split('/')[1],start:{date:'2026-09-25'},end:{date:'2026-09-26'}}]};}}});
+  const first=await h.calendar('2026-09-23','2026-10-21');
+  assert.deepEqual(asked,['family@group.calendar.google.com'],'only the shown calendar is fetched');
+  assert.deepEqual(first.calendars.map(c=>c.name),['Rivera'],'the legend names only what is shown');
+  assert.deepEqual([...new Set(first.events.map(e=>e.calendar))],['family@group.calendar.google.com']);
+  assert.ok(!/mara@|theo@|Mara Rivera|Theo Rivera/.test(JSON.stringify(first)),'not a word of a hidden calendar reaches the wall');
+  assert.equal(first.problems,undefined,'a hidden calendar is not a problem');
+  // Shown again: no re-entry, and its events come back.
+  calendars=calendars.map(c=>c.name==='Mara Rivera'?{...c,hidden:false}:c);
+  const again=await create({cacheDir:null,config:()=>({timezone:'America/Chicago',calendars,projects:[]}),api:{pages:async loader=>(await loader('')).items,google:async route=>({items:[{id:'x',summary:'From '+route.split('/')[1],start:{date:'2026-09-25'},end:{date:'2026-09-26'}}]})}}).calendar('2026-09-23','2026-10-21');
+  assert.deepEqual(again.calendars.map(c=>c.name),['Rivera','Mara Rivera']);
+  // Hidden while the wall still holds a minute-old answer: filtered on the way out, not left to the next sync.
+  let late=[{id:'a',name:'Rivera',color:'#38977b'},{id:'b',name:'Theo Rivera',color:'#b37dcc'}];
+  const k=create({cacheDir:null,config:()=>({calendars:late,projects:[]}),api:{pages:async loader=>(await loader('')).items,google:async route=>({items:[{id:route,summary:'Secret plans',start:{date:'2026-09-25'},end:{date:'2026-09-26'}}]})}});
+  assert.equal((await k.calendar('2026-09-23','2026-10-21')).events.length,2);
+  late=[late[0],{...late[1],hidden:true}];
+  const cached=await k.calendar('2026-09-23','2026-10-21');
+  assert.deepEqual([cached.calendars.map(c=>c.id),cached.events.map(e=>e.calendar)],[['a'],['a']]);
+  // Every calendar hidden is an empty wall, not an outage.
+  assert.deepEqual((await create({cacheDir:null,config:()=>({calendars:[{id:'b',name:'Theo Rivera',hidden:true}],projects:[]}),api:{}}).calendar('2026-09-23','2026-10-21')).events,[]);
+});
