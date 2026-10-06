@@ -655,14 +655,25 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 /* On a phone the hero screen is a picture, so its live controls step back. */
 @media (max-width:600px){.s-tabs button{pointer-events:none}}
 
-/* On a phone the bezel runs edge to edge, and the whole screen would be three pixels to the em: show it at twice the
-   width, cropped to its left edge, so the sky window is whole and the first days of the week follow it. */
+/* On a phone the bezel runs edge to edge, and the whole screen would be three pixels to the em: show it larger, cropped
+   to its left edge, so the sky window is whole and the first days of the week follow it. A crop never cuts a word: the
+   edge falls where Saturday's column ends, 67.3 of the screen's 120em (the sky's 39.6, the pane's 2.75 of padding and
+   two of the card's six days), which is also after the week rail's second mark and before any Later title. The dock is
+   the one row with nothing whole to end on there, so the tabs from Chores on, which that edge would cut, are not drawn. */
 @media (max-width:767px){.hero .stage{align-self:stretch;width:auto;margin-inline:-20px}.bezel{border-radius:0;padding-inline:0;box-shadow:none}.bezel .screen{border-radius:0}.stage-caption .hint{display:none}}
-@media (max-width:600px){.bezel{overflow:hidden}.bezel>.screen-box{width:200%}}
-@media (max-width:600px){.crop.right{aspect-ratio:62/67.5}.crop.right>.s-ahead{right:auto;width:80.4em;font-size:calc(100cqw / 62)}}
-/* The Welcome card is the one crop whose words are the content, and they sit at the right, beside the code. On a phone
-   it is anchored to its right edge instead, so the instructions are whole and the code is cut, not the words. */
-@media (max-width:600px){.setup .crop.right>.s-ahead{left:auto;right:0}}
+@media (max-width:600px){.bezel{overflow:hidden}.bezel>.screen-box{width:calc(100% * 120 / 67.3)}.screen .s-tabs button:nth-of-type(n+3){visibility:hidden}}
+/* The right-side crops show the dock whole: its six tabs end at 64.6em, and the crop at 67.4, the pane's own 2.75em
+   margin after them. What is past that (Add, the arrows, Settings) is wholly outside. */
+@media (max-width:600px){.crop.right{aspect-ratio:67.4/67.5}.crop.right>.s-ahead{right:auto;width:80.4em;font-size:calc(100cqw / 67.4)}}
+/* The Welcome card is the one crop that cannot be cut: its code and its words are both the content, and a code with its
+   edge missing reads as a broken page. On a phone it is shown whole instead, the code stacked above the words, in a crop
+   as tall as that takes. The scale stops at 8px to the em, so on a wide phone the card gains margins, not size. */
+@media (max-width:600px){
+  .setup .crop.right{aspect-ratio:auto}
+  .setup .crop.right>.s-ahead{position:relative;inset:auto;width:auto;font-size:min(calc(100cqw / 50),8px)}
+  .setup .welcome{flex-direction:column;align-items:flex-start}
+  .setup .qr-plate{margin:0 0 3em}
+}
 
 /* A space between the time and PM for anyone listening; it takes no room on the wall. */
 .screen .s-gap,.crop .s-gap{font-size:0;font-style:normal}
