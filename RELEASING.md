@@ -9,6 +9,12 @@
 3. Tag and push: `git tag v<version> && git push origin v<version>`. The workflow builds the three signed APKs,
    `SHA256SUMS` and the container image, and publishes the release with those notes (or, with no notes file,
    GitHub's list of changes).
+4. The bump to the next patch rides in the next PR to `main`, whatever that PR is, with no notes yet: a PR of its
+   own would be a second review and a second go for one line. Any build that is not a release calls itself its
+   version's dev build (`0.2.1-dev.70`), which sorts before that release. One made after the release while
+   `package.json` still names it would be offered the release it came after: an older app, which Android refuses to
+   install over it. So **no dev build goes onto a frame while `package.json` names a version that is already
+   released.**
 
 ## What a release promises
 

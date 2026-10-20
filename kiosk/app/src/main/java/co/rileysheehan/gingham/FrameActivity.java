@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -26,6 +27,8 @@ import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
+import android.webkit.SslErrorHandler;
+import android.webkit.ValueCallback;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -55,13 +58,14 @@ import java.net.URL;
  */
 public class FrameActivity extends Activity {
     private static final String PREFS = "frame", KEY_URL = "url";
-    private static final long RETRY_MS = 20_000, CORNER_HOLD_MS = 4_000;
+    private static final long RETRY_MS = 20_000, PEEK_MS = 2_000, CORNER_HOLD_MS = 4_000;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private FrameLayout root;
     private WebView web;
     private TextView notice;
-    private boolean failed;
+    /** Whether the wall is on screen, and what to do while it is not (LoadMath). A new one for each WebView. */
+    private LoadMath.Wall load = new LoadMath.Wall();
     /** The wall's address as last loaded; read from the page's bridge thread, so volatile. */
     private volatile String wallUrl;
     /** While the play page is up: its address, and how long without a touch before the wall comes back. */
@@ -150,13 +154,20 @@ public class FrameActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String finished) {
                 CookieManager.getInstance().flush();
-                if (!failed) hideNotice();
+                // Finished is not loaded: Chromium's error page finishes too. The page says which it is.
+                if (view == web && load.ask()) askPage();
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) retryLater();
+                if (view == web && request.isForMainFrame()) act(load.error());
             }
             @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
-                if (request.isForMainFrame() && response.getStatusCode() >= 500) retryLater();
+                if (view == web && request.isForMainFrame() && response.getStatusCode() >= 500) act(load.error());
+            }
+            // A certificate the WebView will not take, most often because the frame's clock is not set yet. Refused, as
+            // it would be anyway, and counted here as a failed load: a WebView may report it nowhere else.
+            @Override public void onReceivedSslError(WebView view, SslErrorHandler ssl, SslError error) {
+                ssl.cancel();
+                if (view == web && error.getUrl() != null && sameHost(url, Uri.parse(error.getUrl()))) act(load.error());
             }
             @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 handler.post(new Runnable() { @Override public void run() { start(); } });   // rebuild the WebView rather than crash
@@ -168,14 +179,15 @@ public class FrameActivity extends Activity {
         });
         root.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         notice = new TextView(this);
+        notice.setText("Can’t reach the frame’s server\nTrying again every few seconds");
         notice.setTextColor(Color.WHITE);
         notice.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         notice.setGravity(Gravity.CENTER);
         notice.setBackgroundColor(Color.BLACK);
         notice.setVisibility(View.GONE);
         root.addView(notice, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        failed = false;
-        web.loadUrl(url);
+        load = new LoadMath.Wall();
+        loadWall();
         watchNetwork();
         handler.removeCallbacks(saveCookies);
         handler.postDelayed(saveCookies, 30_000);
@@ -254,7 +266,7 @@ public class FrameActivity extends Activity {
     private void showPlayPage(final String address, int minutes) {
         CookieManager.getInstance().flush();
         handler.removeCallbacks(retry);
-        failed = false;
+        handler.removeCallbacks(peek);
         hideNotice();
         if (web != null) { root.removeView(web); web.destroy(); }
         playUrl = address;
@@ -371,15 +383,64 @@ public class FrameActivity extends Activity {
         return host != null && host.equals(other.getHost());
     }
 
-    /** The page did not load. Say so plainly and keep trying; a frame must never need someone to press reload. */
-    private void retryLater() {
-        failed = true;
-        notice.setText("Can’t reach the frame’s server\nTrying again every few seconds");
-        notice.setVisibility(View.VISIBLE);
-        handler.removeCallbacks(retry);
-        handler.postDelayed(retry, RETRY_MS);
+    /*
+     * The wall loads, and goes on being loaded until it is the wall: a frame must never need someone to press reload.
+     * LoadMath has the rules and why they are what they are. Every load is the wall's own address asked for afresh
+     * (never reload(), which asks again for whatever is on screen, and that may be Chromium's error page), and a wait
+     * is always running until the page on screen has said a server answered it. Until then the notice stays up.
+     */
+    private void loadWall() {
+        if (web == null || playUrl != null) return;
+        load.begin();
+        web.loadUrl(wallUrl);
+        retryIn(RETRY_MS);
+        handler.removeCallbacks(peek);
+        handler.postDelayed(peek, PEEK_MS);
     }
-    private final Runnable retry = new Runnable() { @Override public void run() { if (web != null) { failed = false; web.reload(); } } };
+
+    private void retryIn(long ms) {
+        handler.removeCallbacks(retry);
+        handler.postDelayed(retry, ms);
+    }
+
+    /** The wait ran out. A load nothing has spoken against is asked once where it is; any other is started again. */
+    private final Runnable retry = new Runnable() { @Override public void run() {
+        if (web == null || playUrl != null || load.up()) return;
+        if (load.tick()) loadWall(); else { retryIn(RETRY_MS); askPage(); }
+    } };
+
+    /**
+     * A look every few seconds while the load is in its first wait: Chromium's error page can be on screen long before
+     * the WebView says anything, if it ever does, and the notice should not wait for the wait (LoadMath.Wall.peek).
+     */
+    private final Runnable peek = new Runnable() { @Override public void run() {
+        if (web == null || playUrl != null || !load.peeking()) return;
+        final WebView page = web;
+        final LoadMath.Wall wall = load;
+        final int attempt = wall.attempt();
+        page.evaluateJavascript("location.href", new ValueCallback<String>() { @Override public void onReceiveValue(String href) {
+            if (page == web && wall == load && playUrl == null && wall.peek(attempt, href) && notice != null) notice.setVisibility(View.VISIBLE);
+        } });
+        handler.postDelayed(this, PEEK_MS);
+    } };
+
+    /** Ask the page on screen for its own address, which is the one thing Chromium's error page cannot pass off. */
+    private void askPage() {
+        final WebView page = web;
+        final LoadMath.Wall wall = load;
+        final int attempt = wall.attempt();
+        page.evaluateJavascript("location.href", new ValueCallback<String>() { @Override public void onReceiveValue(String href) {
+            if (page == web && wall == load && playUrl == null) act(wall.answer(attempt, href));
+        } });
+    }
+
+    /** What LoadMath answered: the wall is up, or it is not and the notice says so plainly while the app keeps trying. */
+    private void act(int next) {
+        if (next == LoadMath.Wall.NOTHING || playUrl != null) return;
+        if (next == LoadMath.Wall.UP) { handler.removeCallbacks(retry); handler.removeCallbacks(peek); hideNotice(); return; }
+        if (notice != null) notice.setVisibility(View.VISIBLE);
+        if (next == LoadMath.Wall.AGAIN) loadWall(); else retryIn(RETRY_MS);
+    }
     private void hideNotice() { if (notice != null) notice.setVisibility(View.GONE); }
 
     private void watchNetwork() {
@@ -387,7 +448,8 @@ public class FrameActivity extends Activity {
         if (cm == null || networkCallback != null) return;
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override public void onAvailable(Network network) {
-                handler.post(new Runnable() { @Override public void run() { if (failed) { handler.removeCallbacks(retry); retry.run(); } } });
+                // The network is back while the wall is failing: do not sit out the rest of the wait.
+                handler.post(new Runnable() { @Override public void run() { if (load.failing()) loadWall(); } });
             }
         };
         try { cm.registerDefaultNetworkCallback(networkCallback); } catch (RuntimeException e) { networkCallback = null; }
