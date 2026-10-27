@@ -6,7 +6,7 @@ const at = 'https://frame.test', p = (path, method = 'GET') => policy(method, at
 
 test('What the frame may keep for a bad day, and what it never keeps', () => {
   for (const path of ['/api/calendar?from=2026-09-20&to=2026-10-18', '/api/tasks', '/api/weather', '/api/household', '/api/settings', '/api/photos']) assert.equal(p(path), 'data', path);
-  for (const path of ['/', '/app.js', '/style.css', '/fonts/inter-4.1-var.woff2', '/lists', '/lists-page.js']) assert.equal(p(path), 'shell', path);
+  for (const path of ['/', '/app.js', '/style.css', '/fonts/inter-4.1-latin-var.woff2', '/lists', '/lists-page.js']) assert.equal(p(path), 'shell', path);
   assert.equal(p('/photos/up-0123456789abcdef01234567.jpg'), 'photo');
   // Secrets in an address, the pages that change things, and every write stay out of it entirely.
   for (const path of ['/?k=a-frame-secret', '/s/a-one-time-link', '/setup', '/admin', '/photos', '/api/setup', '/api/setup/places?q=x', '/api/admin', '/api/pair/poll', '/api/owner-code', '/healthz']) assert.equal(p(path), 'pass', path);

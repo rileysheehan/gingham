@@ -21,7 +21,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preload" href="fonts/bricolage-grotesque-var.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/inter-4.1-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-4.1-latin-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
   <script src="sky.js"></script>
   <script type="application/ld+json">
@@ -315,8 +315,10 @@
         <h2 class="h2">Lists, at the wall or from a phone.</h2>
         <p class="lede">Kept by Gingham, or in Todoist, Google Tasks, Microsoft To Do, Home Assistant or a CalDAV server such as Nextcloud or Fastmail. Check things off with a moment to undo. A phone reaches Gingham’s own lists on the home Wi‑Fi, or from anywhere when they live on a server with https. The others go wherever their own apps go.</p>
       </div>
+      <!-- A crop is a picture of the wall: its label says what it shows, and what is drawn inside it is inert, so its
+           buttons are never reached or read as buttons. The inert sits inside the picture so the label is still read. -->
       <div class="crop right" role="img" aria-label="The grocery list on the wall, with Cilantro just checked off and a toast reading Checked off Cilantro, with Undo">
-        <div class="s-ahead">
+        <div class="s-ahead" inert>
           <div class="s-view">
             <div class="s-head s-listhead"><p class="s-h"><svg class="s-glyph"><use href="#g-cart"/></svg>Grocery</p><p class="s-sub"></p><span class="s-add">Add</span></div>
             <div class="s-card s-listbody">
@@ -364,7 +366,7 @@
         <p class="lede">Big rows, a picture on each, and a little cheer when something gets done.</p>
       </div>
       <div class="crop right" role="img" aria-label="June’s list on the wall: Brush teeth, Tidy up just checked off with a celebration and a toast offering Undo, Pick a book">
-        <div class="s-ahead">
+        <div class="s-ahead" inert>
           <div class="s-view">
             <div class="s-head s-listhead"><p class="s-h"><span class="s-avatar" style="--who:#e2a83a">J</span>June</p><p class="s-sub">Before bed</p><span class="s-add">Add</span></div>
             <div class="s-card s-listbody kid">
@@ -424,7 +426,7 @@
         <p class="lede">A photo sent from a phone is made smaller and loses its location before it leaves.</p>
       </div>
       <div class="crop right" role="img" aria-label="Photos on the wall: a picture captioned June 2025, shown whole over a blurred copy of itself">
-        <div class="s-ahead">
+        <div class="s-ahead" inert>
           <div class="s-view s-photoview">
             <div class="s-head"><p class="s-h">June 2025</p><span class="s-sub"></span><div class="s-pager"><span class="s-arrow off"><svg><use href="#g-left"/></svg></span><span class="s-arrow"><svg><use href="#g-right"/></svg></span></div></div>
             <div class="s-card s-photo">
@@ -463,7 +465,7 @@
           </ol>
         </div>
         <div class="crop right" role="img" aria-label="The screen before it is set up, headed Welcome: a QR code to scan with a phone, and beside it, for a phone without a camera, the address gingham.local:4173/setup and the code K7W-PX4">
-          <div class="s-ahead">
+          <div class="s-ahead" inert>
             <div class="s-view">
               <div class="s-head"><p class="s-h">Welcome</p></div>
               <div class="s-card s-strip hug"><div class="welcome">

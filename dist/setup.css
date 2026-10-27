@@ -1,5 +1,5 @@
 /* The setup page: the frame's type and colour, laid out for a phone held in one hand. */
-@font-face{font-family:"Inter";src:url(/fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Inter";src:url(/fonts/inter-4.1-latin-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
 /* Colour lives in tokens.css, linked before this file; the theme follows the phone's. */
 :root{--text:"Inter",-apple-system,system-ui,sans-serif;color-scheme:light dark}
 *{box-sizing:border-box;margin:0}

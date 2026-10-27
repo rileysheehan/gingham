@@ -9,7 +9,7 @@
 */
 @font-face{font-family:"Bricolage Grotesque";src:url(/fonts/bricolage-grotesque-var.woff2) format("woff2");font-weight:200 800;font-display:swap}
 /* Inter 4.1 from rsms/inter's own release: Google Fonts' build drops the cv05/cv08 alternates used below. */
-@font-face{font-family:"Inter";src:url(/fonts/inter-4.1-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Inter";src:url(/fonts/inter-4.1-latin-var.woff2) format("woff2");font-weight:100 900;font-display:swap}
 
 :root{
   --display:"Bricolage Grotesque","Avenir Next","Segoe UI",Roboto,sans-serif;
