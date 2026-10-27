@@ -31,13 +31,17 @@
 }
 
 /* The same in both themes. The sky is only a default: app.js paints --sky-* on <html> every minute. --sky-rule is the
-   hairline drawn on the sky: a mid-grey, so it reads on any sky. */
+   hairline drawn on the sky: a mid-grey, so it reads on any sky. --rain is the drops of a rain icon. A monogram on a
+   person's colour takes whichever of the two --mono-on-* inks reads better there (app.js decides, DESIGN.md → Rain and
+   monograms reach 4.8:1). */
 :root{
   --sky-top:var(--sky-day-top);--sky-bottom:var(--sky-day-bottom);--sky-ink:var(--navy-900);--sky-rule:var(--grey-a35);
   --sun:var(--yellow-sun);--rain:var(--blue-rain);--moon:var(--cream-moon);
+  --mono-on-dark:var(--mist-0);--mono-on-light:var(--slate-900);
 }
 
-/* Light. --selected, --shade, --tint and --star are the wall's; --bad and --good are the phone's (the wall has no
+/* Light. --selected, --shade, --tint, --star, --rain-ink (the rain chance as text) and --mono-ink (the letter of a
+   monogram with no colour of its own, on --ink-2) are the wall's; --bad and --good are the phone's (the wall has no
    error colour). The phone's card shadow is its own, rgba(16,38,63,.08) in setup.css, not --shade. */
 :root,.theme-light{
   --surface:var(--mist-100);--card:var(--mist-0);--ink:var(--navy-800);--ink-2:var(--navy-600);--line:var(--mist-300);
@@ -46,6 +50,7 @@
   --selected:var(--mist-0);
   --shade:rgba(16,38,63,.14);--tint:rgba(16,38,63,.028);
   --star:var(--ember-600);--bad:var(--red-600);--good:var(--green-600);
+  --rain-ink:var(--blue-600);--mono-ink:var(--mist-0);
 }
 
 /* Dark, for the phone. Keep in step with .theme-dark below. */
@@ -55,6 +60,7 @@
   --selected:var(--slate-500);
   --shade:rgba(0,0,0,.5);--tint:rgba(255,255,255,.025);
   --star:var(--ember-300);--bad:var(--red-300);--good:var(--green-300);
+  --rain-ink:var(--blue-rain);--mono-ink:var(--slate-900);
 }}
 
 /* Dark, for the wall. Keep in step with the block above. */
@@ -64,4 +70,5 @@
   --selected:var(--slate-500);
   --shade:rgba(0,0,0,.5);--tint:rgba(255,255,255,.025);
   --star:var(--ember-300);--bad:var(--red-300);--good:var(--green-300);
+  --rain-ink:var(--blue-rain);--mono-ink:var(--slate-900);
 }

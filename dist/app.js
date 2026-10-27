@@ -572,10 +572,19 @@
     var found = (tasks && tasks.lists || []).filter(function (l) { return l.name === name; })[0];
     return found || { name: name, icon: 'list', person: false, color: '' };
   }
+  // A person's initial on their colour. The letter takes whichever ink reads better on that colour, white or the night
+  // surface's near-black (--mono-on-dark, --mono-on-light in tokens.css): white on every person colour fell to 2.8:1 on
+  // the palette's orange. With no colour it sits on --ink-2 in --mono-ink.
+  var MONO_ON_DARK = [255, 255, 255], MONO_ON_LIGHT = [12, 17, 29];
+  function monogram(name, color) {
+    var c = /^#[0-9a-f]{6}$/i.test(color || '') ? [1, 3, 5].map(function (i) { return parseInt(color.slice(i, i + 2), 16); }) : null;
+    var a = node('span', c ? 'avatar ' + (contrast(MONO_ON_DARK, c) >= contrast(MONO_ON_LIGHT, c) ? 'on-dark' : 'on-light') : 'avatar', name.charAt(0).toUpperCase());
+    if (c) a.style.backgroundColor = color;
+    return a;
+  }
   // A person, as their initial in the color their calendar uses: the mark their own list carries.
   function personMark(name, color, label) {
-    var a = node('span', 'avatar', name.charAt(0).toUpperCase());
-    if (color) a.style.backgroundColor = color;
+    var a = monogram(name, color);
     a.setAttribute('title', name); a.setAttribute('aria-label', label);
     return a;
   }
@@ -593,7 +602,7 @@
   }
   function listMark(name) {
     var l = listOf(name), svg;
-    if (l.person) { var a = node('span', 'avatar', l.name.charAt(0).toUpperCase()); if (l.color) a.style.backgroundColor = l.color; a.setAttribute('aria-hidden', 'true'); return a; }
+    if (l.person) { var a = monogram(l.name, l.color); a.setAttribute('aria-hidden', 'true'); return a; }
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'glyph'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
     (GLYPHS[l.icon] || GLYPHS.list).forEach(function (d) { var p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); svg.appendChild(p); });
     return svg;

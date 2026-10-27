@@ -833,3 +833,19 @@ test('Offline, the note sits in the middle of the card, and Today says when the 
   // With the lists answering, Today names only the calendar.
   assert.equal(load({fixture: 'empty', now: '2026-09-23T09:10:00', overrides: {'/api/calendar': null}}).$('today-list').textContent, 'Can’t reach the calendar');
 });
+
+test('A monogram\'s letter takes the ink that reads on its person\'s colour, and the rain chance has its own ink', () => {
+  // Mara on the palette's indigo, the one colour white still wins on; June on its orange, which takes the near-black; and
+  // Theo with no colour at all, who sits on --ink-2 in --mono-ink.
+  const base = require('./fixtures').stress.tasks;
+  const tasks = {...base, people: {'1': {name: 'Mara', color: '#5b6ee1'}, '2': {name: 'Theo', color: ''}}};
+  const w = load({now: '2026-09-23T15:40:00', overrides: {'/api/tasks': tasks}});
+  const marks = [...w.document.querySelectorAll('.avatar')];
+  const ink = letter => [...new Set(marks.filter(a => a.textContent === letter).map(a => a.classes.filter(c => /^on-/.test(c)).join(' ') || 'none'))];
+  assert.deepEqual(ink('M'), ['on-dark'], 'white on #5b6ee1');
+  assert.deepEqual(ink('J'), ['on-light'], 'near-black on June\'s #e0823d');
+  assert.deepEqual(ink('T'), ['none'], 'no colour: --mono-ink on --ink-2');
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '../dist/style.css'), 'utf8');
+  assert.match(css, /\.forecast small,\.agenda-wx small\{[^}]*color:var\(--rain-ink\)/, 'the rain chance is text in --rain-ink');
+  assert.match(css, /\.wx-icon \.drop\{stroke:var\(--rain\)\}/, 'the drops keep --rain');
+});
