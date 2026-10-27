@@ -319,7 +319,7 @@ body[data-rest] .photo-card{border-radius:0}
 .forecast{display:flex;align-items:center;height:3.2rem;margin:.7rem 0 1.1rem;padding-bottom:1rem;box-sizing:content-box;border-bottom:.0625rem solid var(--line);font-size:1.45rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .forecast .wx,.agenda-wx .wx{flex:none;width:2.6rem;margin-right:.6rem;display:flex;flex-direction:column;align-items:center}
 .forecast .wx-icon,.agenda-wx .wx-icon{width:2.4rem;height:2.4rem;color:var(--ink-2)}
-.forecast small,.agenda-wx small{font-size:1.05rem;line-height:1;font-weight:600;color:var(--rain);margin-top:-.1rem}
+.forecast small,.agenda-wx small{font-size:1.05rem;line-height:1;font-weight:600;color:var(--rain-ink);margin-top:-.1rem}
 .forecast b{color:var(--ink);font-weight:600;margin-right:.45rem}
 .day-items{flex:1;min-height:0;overflow:hidden}
 .day .item{margin-bottom:calc(1.15rem*var(--ts))}
@@ -440,7 +440,8 @@ button.item:active{opacity:.6}
 .day .candle{width:.511em;height:.876em;margin-right:.36em;vertical-align:-.073em}
 /* A list's mark: a glyph for a household list, a monogram in the person's color for a person's list. */
 .glyph{flex:none;width:1.75rem;height:1.75rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ink-2);color:#fff;font:700 1.05rem/1 var(--text);letter-spacing:0}
+.avatar{flex:none;display:flex;align-items:center;justify-content:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ink-2);color:var(--mono-ink);font:700 1.05rem/1 var(--text);letter-spacing:0}
+.avatar.on-dark{color:var(--mono-on-dark)}.avatar.on-light{color:var(--mono-on-light)}
 .tabs .label{margin-left:.6rem}
 .item-title .avatar{display:inline-flex;width:1.7rem;height:1.7rem;font-size:.95rem;vertical-align:.1em}
 .item-title .avatar+.avatar{margin-left:.3rem}
