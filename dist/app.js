@@ -21,7 +21,7 @@
   var calProblem = false, tasksProblem = false;
   var page = 0, mode = 'calendar', themeChoice = 'auto';
   // Household preferences from the Settings view, stored on the server. These defaults are used until they load.
-  var PREFS = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto', calendarView: 'week', textSize: 'standard' };
+  var PREFS = { rest: 'photos', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', clock: 'auto', temperature: 'auto', calendarView: 'week', textSize: 'standard' };
   var prefs = withDefaults({});
   // What the server sends, over these defaults, so a setting it does not send yet still has its value.
   function withDefaults(data) { var out = {}, k; for (k in PREFS) out[k] = PREFS[k]; for (k in data) out[k] = data[k]; return out; }
@@ -87,6 +87,13 @@
     } catch (e) {}
     return (clockConvention[country] = uses24);
   }
+  // Fahrenheit or Celsius, as Settings says; on Automatic, as the household's country: Fahrenheit in the US and the few
+  // places that still use it, Celsius everywhere else. A household whose country is not known yet keeps the Fahrenheit
+  // it always had. The server always asks Open-Meteo in Fahrenheit, so its cache and the fixtures stay one thing.
+  var FAHRENHEIT = ['US', 'BS', 'BZ', 'KY', 'LR', 'PW', 'FM', 'MH'];
+  function celsius() { return prefs.temperature === 'C' || (prefs.temperature !== 'F' && /^[A-Z]{2}$/.test(household.country || '') && FAHRENHEIT.indexOf(household.country) < 0); }
+  // A temperature from the server, in °F, as a whole number in the unit shown. (+ 0 turns a rounded -0 into 0.)
+  function deg(f) { return Math.round(celsius() ? (f - 32) * 5 / 9 : f) + 0; }
   // "4 PM", "4:30 PM" or "16:00", "16:30": the 12-hour form drops :00 as people say it, the 24-hour form never does.
   function clockTime(d) { var h = d.getHours(), m = d.getMinutes(); return hours24() ? pad(h) + ':' + pad(m) : (h % 12 || 12) + (m ? ':' + pad(m) : '') + (h < 12 ? ' AM' : ' PM'); }
   // When something was last true, for a time that may be from another day: "5:39 PM" today, then "yesterday 5:39 PM",
@@ -346,13 +353,13 @@
     $('now').hidden = false;
     var t = now().getTime(), sun = sunTimes(now());
     drawIcon($('now-icon'), weather.code, t < sun.rise || t > sun.set);
-    $('now-temp').textContent = Math.round(weather.temperature) + '°';
+    $('now-temp').textContent = deg(weather.temperature) + '°';
     $('now-summary').textContent = describe(weather.code);
     // Apple's form: H and L first, then the one extra that matters today (rain, or a big feels-like gap). "H:104°" has
     // no space inside it to break at, so a label never wraps away from its number.
-    var feels = Math.round(weather.feelsLike), detail = 'H:' + Math.round(weather.high) + '° L:' + Math.round(weather.low) + '°';
+    var feels = deg(weather.feelsLike), detail = 'H:' + deg(weather.high) + '° L:' + deg(weather.low) + '°';
     if (weather.rain >= 20) detail += ' · ' + weather.rain + '% rain';
-    else if (Math.abs(feels - Math.round(weather.temperature)) >= 4) detail += ' · Feels like ' + feels + '°';
+    else if (Math.abs(feels - deg(weather.temperature)) >= (celsius() ? 2 : 4)) detail += ' · Feels like ' + feels + '°';
     $('now-detail').textContent = detail + (weather.stale ? ' · not updating' : '');
   }
   // A day's forecast in one short row: the icon, with the chance of rain under it where weather apps put it (so a wet day
@@ -364,8 +371,8 @@
     drawIcon(svg, fc.code); wx.appendChild(svg);
     if (fc.rain >= 30) wx.appendChild(node('small', '', fc.rain + '%'));
     row.appendChild(wx);
-    row.appendChild(node('b', '', Math.round(fc.high) + '°')); row.appendChild(node('span', '', Math.round(fc.low) + '°'));
-    row.setAttribute('aria-label', describe(fc.code) + ', high ' + Math.round(fc.high) + ', low ' + Math.round(fc.low) + (fc.rain >= 30 ? ', ' + fc.rain + ' percent chance of rain' : ''));
+    row.appendChild(node('b', '', deg(fc.high) + '°')); row.appendChild(node('span', '', deg(fc.low) + '°'));
+    row.setAttribute('aria-label', describe(fc.code) + ', high ' + deg(fc.high) + ', low ' + deg(fc.low) + (fc.rain >= 30 ? ', ' + fc.rain + ' percent chance of rain' : ''));
     return row;
   }
   function forecastFor(day) {
@@ -724,8 +731,8 @@
     if (!wx.hidden) {
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), rain = tomorrowSky.rain >= 30 ? ' · ' + tomorrowSky.rain + '% rain' : '';
       svg.setAttribute('class', 'wx-icon'); svg.setAttribute('viewBox', '0 0 64 64'); svg.setAttribute('aria-hidden', 'true'); drawIcon(svg, tomorrowSky.code);
-      wx.textContent = ''; wx.appendChild(svg); wx.appendChild(node('b', '', Math.round(tomorrowSky.high) + '°')); wx.appendChild(node('span', '', Math.round(tomorrowSky.low) + '°' + rain));
-      wx.setAttribute('aria-label', describe(tomorrowSky.code) + ', high ' + Math.round(tomorrowSky.high) + ', low ' + Math.round(tomorrowSky.low) + (rain ? ', ' + tomorrowSky.rain + ' percent chance of rain' : ''));
+      wx.textContent = ''; wx.appendChild(svg); wx.appendChild(node('b', '', deg(tomorrowSky.high) + '°')); wx.appendChild(node('span', '', deg(tomorrowSky.low) + '°' + rain));
+      wx.setAttribute('aria-label', describe(tomorrowSky.code) + ', high ' + deg(tomorrowSky.high) + ', low ' + deg(tomorrowSky.low) + (rain ? ', ' + tomorrowSky.rain + ' percent chance of rain' : ''));
     }
     var nodes = coming.map(function (item) {
       var el = itemNode(item, false);
@@ -1161,6 +1168,7 @@
     photoEvery: [[30, '30 sec'], [60, '1 min'], [120, '2 min'], [300, '5 min']],
     appearance: [['auto', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']],
     clock: [['auto', 'Automatic'], ['12', '12-hour'], ['24', '24-hour']],
+    temperature: [['auto', 'Automatic'], ['F', '°F'], ['C', '°C']],
     calendarView: [['week', 'Week'], ['agenda', 'Agenda']],
     textSize: [['smaller', 'Smaller'], ['standard', 'Standard'], ['larger', 'Larger']],
     screen: [['auto', 'With the sun'], ['bright', 'Bright'], ['dim', 'Dim']]
