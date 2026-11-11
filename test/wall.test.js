@@ -849,3 +849,21 @@ test('A monogram\'s letter takes the ink that reads on its person\'s colour, and
   assert.match(css, /\.forecast small,\.agenda-wx small\{[^}]*color:var\(--rain-ink\)/, 'the rain chance is text in --rain-ink');
   assert.match(css, /\.wx-icon \.drop\{stroke:var\(--rain\)\}/, 'the drops keep --rain');
 });
+
+test('Temperatures are in °F or °C as the household\'s country uses, or as Settings says', () => {
+  const house = country => ({'/api/household': {name: '', timezone: 'America/Chicago', place: 'Somewhere', ...(country ? {country} : {})}});
+  const settings = temperature => ({'/api/settings': {rest: 'calendar', restAfter: 5, mornings: 0, photoEvery: 60, appearance: 'auto', screen: 'auto', clock: 'auto', temperature}});
+  // The stress fixture is 101°F now, a high of 104°F and a low of 79°F, with an 80% chance of rain.
+  const shown = w => [w.$('now-temp').textContent, w.$('now-detail').textContent];
+  // An American household, and one whose country is not known yet, keep Fahrenheit.
+  for (const country of ['US', '']) assert.deepEqual(shown(load({now: '2026-09-23T10:00:00', overrides: house(country)})), ['101°', 'H:104° L:79° · 80% rain']);
+  // A British household, on Automatic, is in Celsius, and so is the week's forecast.
+  let w = load({now: '2026-09-23T10:00:00', overrides: house('GB')});
+  assert.deepEqual(shown(w), ['38°', 'H:40° L:26° · 80% rain']);
+  assert.ok(!/1\d\d°/.test(w.document.body.textContent), 'no Fahrenheit left anywhere on the wall');
+  // Settings overrides the country either way, and offers the three choices.
+  assert.equal(load({now: '2026-09-23T10:00:00', overrides: {...house('US'), ...settings('C')}}).$('now-temp').textContent, '38°');
+  assert.equal(load({now: '2026-09-23T10:00:00', overrides: {...house('GB'), ...settings('F')}}).$('now-temp').textContent, '101°');
+  const choices = w.document.querySelectorAll('[data-setting]').find(el => el.getAttribute('data-setting') === 'temperature');
+  assert.deepEqual(choices.children.map(b => b.textContent), ['Automatic', '°F', '°C']);
+});

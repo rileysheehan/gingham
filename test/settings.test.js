@@ -54,6 +54,16 @@ test('Text size is a household setting: Standard unless chosen, one of three, ke
   assert.equal(settings.update({textSize: 'larger'}).textSize, 'larger');
 });
 
+test('Temperature is a household setting: Automatic unless chosen, °F or °C once chosen, kept across a restart', () => {
+  const file = tempFile(), settings = createSettings({file});
+  assert.equal(settings.read().temperature, 'auto');
+  assert.equal(settings.update({temperature: 'K'}).temperature, 'auto', 'only the three choices are accepted');
+  assert.equal(settings.update({temperature: 'c'}).temperature, 'auto', 'and exactly as written');
+  assert.equal(settings.update({temperature: 'C'}).temperature, 'C');
+  assert.equal(createSettings({file}).read().temperature, 'C', 'survives a restart');
+  assert.equal(settings.update({temperature: 'F'}).temperature, 'F');
+});
+
 // The play page (DESIGN.md → "A play page, for one household"): set only in the household's settings.json, never through
 // the API, and dropped unless it is a plain https address.
 const {cleanPlayPage} = require('../settings');
