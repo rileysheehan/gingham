@@ -22,6 +22,7 @@ copy holds that copy's secrets.
 - **Photos** from an iCloud shared album, straight from a phone, or from a folder.
 - **Text sized for the room.** Smaller, Standard or Larger, for the rows and the lists; the clock and the layout stay
   as they are.
+- **°F or °C** as the household's country uses, or as you choose in Settings.
 - **It behaves itself.** Brightness follows sunrise and sunset. After a while it drifts to photos and comes back. After a
   power cut, or with the internet down, it shows the last good screen and says from when.
 
