@@ -136,9 +136,10 @@
     loadHousehold();
   }
   setInterval(firstRunStep, 5000);
-  function post(url, body, done) {
+  function post(url, body, done, headers) {
     var xhr = new XMLHttpRequest(); xhr.open('POST', url); xhr.timeout = 20000;
     xhr.setRequestHeader('X-Gingham', '1'); xhr.setRequestHeader('Content-Type', 'application/json');
+    for (var h in headers || {}) xhr.setRequestHeader(h, headers[h]);
     xhr.onload = function () { var data = null; try { data = JSON.parse(xhr.responseText); } catch (e) {} done(xhr.status, data || {}); };
     xhr.onerror = xhr.ontimeout = function () { done(0, {}); };
     xhr.send(JSON.stringify(body || {}));
@@ -175,10 +176,11 @@
   function checkVersion(v) {
     if (!v) return;
     if (version === null) { version = v; return; }
-    if (v !== version && !undo && !dialogOpen() && Date.now() - lastTouch > 10000) location.reload();
+    if (v !== version && !undo && !screenUndo && !dialogOpen() && Date.now() - lastTouch > 10000) location.reload();
   }
   // Any sheet or dialog up means someone is in the middle of something: a half-typed grocery item, a PIN, a day's chores.
-  function dialogOpen() { return !$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden || !$('legend-dialog').hidden; }
+  // Screen time unlocked is the same: a grown-up is at the wall, behind the PIN.
+  function dialogOpen() { return !$('event-dialog').hidden || !$('day-dialog').hidden || !$('manage-dialog').hidden || !$('add-dialog').hidden || !$('legend-dialog').hidden || !!manage; }
 
   /* ---------- Sky ---------- */
   var SKY = {
@@ -1054,6 +1056,14 @@
       // alone. The open list keeps its name.
       if (mode !== 'list:' + project) named.push({ tab: b, rank: style.person ? 0 : GLYPHS[style.icon] && style.icon !== 'list' ? 1 : 2 });
     });
+    // Screen time is a view like a list, with its glyph and no count: a count is work to be done, and minutes left are not.
+    if (screenPerson()) {
+      var st = node('button', 'list-tab'); st.appendChild(glyphNode(TIMER_GLYPH)); st.appendChild(node('span', 'label', 'Screen time'));
+      st.setAttribute('aria-pressed', String(mode === 'screen'));
+      st.onclick = function () { setMode(mode === 'screen' ? 'calendar' : 'screen'); };
+      tabs.appendChild(st);
+      if (mode !== 'screen') named.push({ tab: st, rank: 1 });
+    }
     // Photos is a view like the lists, so it lives in the same row with its count.
     if (photos.length) {
       var p = node('button', '', 'Photos');
@@ -1137,15 +1147,18 @@
     $('status-weather').textContent = weather ? 'Open-Meteo, updated ' + since(weather.fetchedAt) + (weather.stale ? ', not updating now' : '') : 'Not loaded yet';
     $('status-photos').textContent = !photoInfo.configured ? 'No album connected' : !photos.length ? 'The album is empty' : photos.length + ' photos' + (photoInfo.syncedAt ? ', updated ' + since(photoInfo.syncedAt) : '') + (photoInfo.error ? ', can’t reach the album now' : '');
   }
-  function render() { paintSky(); renderNow(); renderToday(); renderLegend(); renderRail(); renderStrip(); renderTabs(); renderList(); renderNotice(); if (sheetDay && !$('day-dialog').hidden) fillDay(); }
+  function render() { paintSky(); renderNow(); renderToday(); renderLegend(); renderRail(); renderStrip(); renderTabs(); renderList(); renderScreen(); renderNotice(); if (sheetDay && !$('day-dialog').hidden) fillDay(); }
 
   /* ---------- Modes ---------- */
   function setMode(next) {
     if (next === 'photos' && !photos.length) next = 'calendar';
+    if (next === 'screen' && !screenPerson() && !manage) next = 'calendar';
     var leaving = mode;
     mode = next;
+    // Leaving screen time locks it: unlocked is for the grown-up standing at it, not for whoever comes next.
+    if (leaving === 'screen' && mode !== 'screen') lockScreen();
     $('view-calendar').hidden = mode !== 'calendar'; $('view-list').hidden = mode.indexOf('list:') !== 0;
-    $('view-photos').hidden = mode !== 'photos'; $('view-settings').hidden = mode !== 'settings';
+    $('view-photos').hidden = mode !== 'photos'; $('view-settings').hidden = mode !== 'settings'; $('view-screen').hidden = mode !== 'screen';
     $('settings-button').setAttribute('aria-pressed', String(mode === 'settings'));
     if (mode === 'settings') { fadeIfScrolls(document.querySelector('.settings-card')); if (leaving !== 'settings') { loadUpdates(); pollInstall(); showUpdateIfDue(); } }
     if (mode === 'photos' && leaving !== 'photos') startSlides();
@@ -1177,7 +1190,7 @@
         box.appendChild(b);
       });
     })(groups[i]);
-    renderRepair();
+    renderRepair(); renderScreenSetting();
   }
   // Fixing the frame at the wall, so nobody needs a computer for the usual trouble. Reloading always works; restarting
   // the browser or the frame needs Fully Kiosk's website integration (Settings → Advanced Web Settings), and those
@@ -1348,6 +1361,394 @@
     });
   }
 
+  /* ---------- Screen time ---------- */
+  // A person's minutes for today (rewards.js on the server, DESIGN.md → Screen time): a ring with what is left, the day's
+  // sum, its record, and a timer anyone may start or stop. Adding, taking away, removing from the record and who has it
+  // need the household PIN: the server hands this page a token for it, kept in this variable and nowhere else (no cookie,
+  // no storage, no address), and refuses every such change without one. A record, not a monitor: it counts only while the
+  // timer is on, and says so. Time is the server's, so a frame with a wrong clock still counts right.
+  var screen = null;          // /api/rewards: {day, now, people, pinSet}
+  var screenAt = 0;           // Date.now() when it arrived; the server's time since is screen.now plus what has passed here
+  var screenProblem = false;  // the last ask failed: show what we had, said so, with its controls off
+  var manage = null;          // {token} while a grown-up has screen time unlocked
+  var screenUndo = null;      // {run, timer}: the Undo in the toast, for a screen time change
+  var manageChoice = { sign: 1, minutes: 10, reason: null }, setupAllowance = 30, confirmOff = null;
+  var screenName = null;      // the name being typed to turn it on, kept across a redraw
+  var REASONS = { chores: 'Chores', reading: 'Reading', helping: 'Helping', other: 'Other' };
+  var TIMER_GLYPH = ['M12 21a8 8 0 1 0 0-16a8 8 0 1 0 0 16z', 'M12 9v4l2.5 2', 'M10 2.5h4'];
+  var MINUS = '−';
+  // The person the wall draws. One for now; the ring is a component so that more can stand side by side later.
+  function screenPerson() { var on = screen ? screen.people.filter(function (p) { return p.on; }) : []; return on[0] || null; }
+  function passed() { return screen ? Math.max(0, Date.now() - screenAt) : 0; }
+  // What is left and used, in seconds, counted on from the server's answer while a timer runs, and never past zero: there
+  // the server stops the timer.
+  function live(p) { var run = p.timer ? Math.min(Math.max(0, p.left), Math.floor(passed() / 1000)) : 0; return { left: p.left - run, used: p.used + run }; }
+  // When time ran out, as an instant on the server's clock, while nothing is left: the stop time's up made (the newest
+  // timer in the record), or, in the moment before the server's answer says so, where a running timer reached zero.
+  // Zero when the day simply has no time left.
+  function upAt(p, now) {
+    if (now.left > 0) return 0;
+    if (p.timer) return screen.now + Math.max(0, p.left) * 1000;
+    for (var i = 0; i < p.entries.length; i++) if (p.entries[i].kind === 'timer' && !p.entries[i].removed) return p.entries[i].timeUp ? p.entries[i].at : 0;
+    return 0;
+  }
+  function timerRunning() { var p = screenPerson(); return !!(p && p.timer); }
+  function mins(n) { return n + ' min'; }
+  function signed(n) { return n > 0 ? '+' + mins(n) : n < 0 ? MINUS + mins(-n) : mins(0); }
+  function usedText(seconds) { return seconds > 0 && seconds < 30 ? 'under a minute' : mins(Math.round(seconds / 60)); }
+  function entryLabel(e) {
+    if (e.kind === 'timer') return 'Timer';
+    if (e.kind === 'earn') return 'Earned for ' + (REASONS[e.reason] || 'Other').toLowerCase();
+    return e.minutes > 0 ? 'Added' : 'Taken away';
+  }
+  function entryAmount(e) { return e.kind === 'timer' ? (e.seconds < 30 ? 'under a minute' : MINUS + mins(Math.round(e.seconds / 60))) : signed(e.minutes); }
+  function glyphNode(paths) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'glyph'); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+    paths.forEach(function (d) { var p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); svg.appendChild(p); });
+    return svg;
+  }
+  // The person's mark: their own list's colour, if they have one, as everywhere else on the wall.
+  function screenMark(name) { var l = listOf(name), a = monogram(name, l.person ? l.color : ''); a.setAttribute('aria-hidden', 'true'); return a; }
+
+  function loadRewards() {
+    get('/api/rewards', applyRewards, function () { screenProblem = true; renderScreen(); });
+  }
+  function applyRewards(data) {
+    if (!data || !data.people) return;
+    var hadTab = !!screenPerson();
+    screen = data; screenAt = Date.now(); screenProblem = false;
+    heardTimeUp();
+    if (mode === 'screen' && !screenPerson() && !manage) setMode('calendar');
+    else { if (hadTab !== !!screenPerson()) renderTabs(); renderScreen(); renderScreenSetting(); }
+  }
+  // A change, with the manage token when it needs one. A 403 that says "locked" means the token is gone (two quiet minutes,
+  // or the server restarted): the page forgets it too and says so.
+  function screenPost(action, body, done, guarded) {
+    var headers = guarded && manage ? { 'X-Gingham-Manage': manage.token } : null;
+    post('/api/rewards/' + action, body, function (status, data) {
+      if (status === 200) { applyRewards(data); if (done) done(data); return; }
+      if (status === 403 && data.locked) { manage = null; renderScreen(); toast('Locked. Enter the household PIN to change screen time.', false); return; }
+      toast(data.error || 'Can’t reach the frame’s server. Nothing changed.', false);
+      if (status === 0) { screenProblem = true; renderScreen(); }
+    }, headers);
+  }
+  function screenToast(text, undoFn) {
+    if (undo) commit();
+    dropScreenUndo();
+    toast(text, !!undoFn);
+    if (!undoFn) return;
+    screenUndo = { run: function () { dropScreenUndo(); $('toast').hidden = true; undoFn(); }, timer: setTimeout(function () { screenUndo = null; $('toast').hidden = true; }, UNDO_MS) };
+  }
+  function dropScreenUndo() { if (screenUndo) { clearTimeout(screenUndo.timer); screenUndo = null; } }
+
+  function startTimer(p) {
+    screenPost('start', { person: p.id }, function (data) {
+      if (data.changed) screenToast('Timer on for ' + p.name, function () { screenPost('cancel-start', { person: p.id }); });
+    });
+  }
+  function stopTimer(p) {
+    screenPost('stop', { person: p.id }, function (data) {
+      var entry = data.changed && data.changed.entry, made = entry && personIn(data, p.id).entries.filter(function (e) { return e.id === entry; })[0];
+      if (made) screenToast('Timer off. ' + usedText(made.seconds).replace(/^u/, 'U') + ' used', function () { screenPost('resume', { person: p.id, entry: entry }); });
+    });
+  }
+  function personIn(data, id) { return data.people.filter(function (x) { return x.id === id; })[0] || { entries: [] }; }
+  function adjustTime(p) {
+    var minutes = manageChoice.sign * manageChoice.minutes, reason = manageChoice.sign > 0 ? manageChoice.reason : null;
+    screenPost('adjust', { person: p.id, minutes: minutes, reason: reason }, function (data) {
+      var entry = data.changed && data.changed.entry;
+      manageChoice.reason = null; renderScreen();
+      screenToast((minutes > 0 ? 'Added ' + mins(minutes) : 'Took away ' + mins(-minutes)) + (reason ? ' for ' + REASONS[reason].toLowerCase() : ''), entry && function () { screenPost('remove', { person: p.id, entry: entry }, null, true); });
+    }, true);
+  }
+  function removeEntry(p, e) {
+    screenPost('remove', { person: p.id, entry: e.id }, function () {
+      screenToast('Removed ' + entryLabel(e).charAt(0).toLowerCase() + entryLabel(e).slice(1) + ', ' + entryAmount(e), function () { screenPost('restore', { person: p.id, entry: e.id }, null, true); });
+    }, true);
+  }
+  function restoreEntry(p, e) { screenPost('restore', { person: p.id, entry: e.id }, function () { screenToast('Put back ' + entryAmount(e), null); }, true); }
+  function setAllowance(p, value) {
+    screenPost('person', { id: p.id, allowance: value }, function () { screenToast('From tomorrow, each day starts at ' + mins(value), null); }, true);
+  }
+  function turnOff(p) {
+    screenPost('person', { id: p.id, on: false }, function () { screenToast('Screen time is off for ' + p.name + '. Its record is kept.', null); }, true);
+  }
+  function turnOn(body) {
+    screenPost('person', body, function () { screenToast('Screen time is on', null); }, true);
+  }
+
+  // Time's up, heard (MER-2089). The server stops the timer at zero whether or not anything plays; the chime is for the
+  // person in the room. This page chimes when it sees its timer reach zero, or when it loads within two minutes of a
+  // stop that time's up made. Each timer is chimed for once, by its start, and never one from before.
+  var chimed = {}, askedAt = null, UP_CHIME_MS = 120000;
+  function timeUp(p, from) {
+    if (chimed[from]) return;
+    chimed[from] = true;
+    chime(function (played) { screenToast(played ? 'Time’s up for ' + p.name : 'Time’s up. This frame couldn’t play its chime.', null); });
+  }
+  // Once a second: a running timer at zero here is asked about once, so the server's stop arrives without a polling loop.
+  function watchTimeUp() {
+    var p = screenPerson();
+    if (!p || !p.timer || live(p).left > 0 || askedAt === p.timer.since) return;
+    askedAt = p.timer.since;
+    timeUp(p, p.timer.since);
+    loadRewards();
+  }
+  function heardTimeUp() {
+    screen.people.forEach(function (p) {
+      if (p.on) p.entries.forEach(function (e) { if (e.timeUp && !e.removed && screen.now - e.at <= UP_CHIME_MS) timeUp(p, e.from); });
+    });
+  }
+  // Three soft rising tones, twice, about three seconds in all, made here with Web Audio: no file to fetch. `done(true)`
+  // once it plays, and `done(false)` when this page can't make a sound: no Web Audio, a context the browser keeps
+  // suspended (its resume() never settling is the same), or an error.
+  var audio = null, CHIME = [523.25, 659.25, 783.99];
+  function chime(done) {
+    var said = false, Context = window.AudioContext || window.webkitAudioContext;
+    function answer(played) { if (!said) { said = true; done(played); } }
+    function play() {
+      try {
+        var t0 = audio.currentTime + 0.05;
+        for (var pass = 0; pass < 2; pass++) for (var i = 0; i < CHIME.length; i++) {
+          var at = t0 + pass * 1.5 + i * 0.4, tone = audio.createOscillator(), gain = audio.createGain();
+          tone.type = 'sine'; tone.frequency.value = CHIME[i];
+          gain.gain.setValueAtTime(0.0001, at); gain.gain.exponentialRampToValueAtTime(0.25, at + 0.03); gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.7);
+          tone.connect(gain); gain.connect(audio.destination); tone.start(at); tone.stop(at + 0.75);
+        }
+        answer(true);
+      } catch (e) { answer(false); }
+    }
+    try {
+      if (!Context) return answer(false);
+      if (!audio) audio = new Context();
+      if (audio.state === 'running') return play();
+      var resumed = audio.resume ? audio.resume() : null;
+      if (!resumed || !resumed.then) return audio.state === 'running' ? play() : answer(false);
+      resumed.then(function () { if (audio.state === 'running') play(); else answer(false); }, function () { answer(false); });
+      setTimeout(function chimeWait() { answer(false); }, 1500);
+    } catch (e) { answer(false); }
+  }
+  function testChime() { chime(function (played) { if (!played) toast('This frame couldn’t play its chime. Check that its sound is on.', false); }); }
+
+  // The household's PIN, on the keypad the phone's way in uses. With no PIN set, the wall says where to set one and offers
+  // no other way in.
+  function openScreenPin() {
+    if (manage) { setMode('screen'); return; }
+    openKeypad('screen');
+    $('manage-eyebrow').textContent = 'Screen time';
+    if (screen && !screen.pinSet) {
+      $('manage-title').textContent = 'No household PIN yet';
+      $('manage-note').textContent = 'Set a household PIN on the setup page to manage screen time here.';
+      $('keypad').hidden = true; $('pin-dots').hidden = true;
+    }
+  }
+  function unlockScreen() {
+    if (pinSoFar.length < 4) { $('manage-note').textContent = 'A PIN is at least four digits.'; return; }
+    post('/api/rewards/unlock', { pin: pinSoFar }, function (status, data) {
+      pinSoFar = ''; drawPin();
+      if (status !== 200 || !data.token) { $('manage-note').textContent = data.error || 'Can’t reach the frame’s server. Try again.'; return; }
+      manage = { token: data.token }; confirmOff = null;
+      closeManage(); setMode('screen');
+    });
+  }
+  function lockScreen() {
+    if (!manage) return;
+    post('/api/rewards/lock', {}, function () {}, { 'X-Gingham-Manage': manage.token });
+    manage = null; confirmOff = null;
+    if (mode === 'screen' && !screenPerson()) setMode('calendar'); else renderScreen();
+  }
+
+  function screenButton(cls, label, action, disabled) {
+    var b = node('button', cls, label); b.onclick = action; if (disabled) b.disabled = true; return b;
+  }
+  function segmented(choices, current, pick, disabled) {
+    var box = node('div', 'choices');
+    choices.forEach(function (c) {
+      var b = node('button', '', c[1]); b.setAttribute('aria-pressed', String(current === c[0])); b.disabled = !!disabled;
+      b.onclick = function () { pick(c[0]); renderScreen(); }; box.appendChild(b);
+    });
+    return box;
+  }
+  // A count of seconds as a timer shows it: "24:37", "0:42", "1:04:37". Never rounded up, so it never shows a second
+  // that is not there.
+  function countText(seconds) {
+    var s = Math.max(0, Math.floor(seconds)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    return (h ? h + ':' + pad(m) : String(m)) + ':' + pad(s % 60);
+  }
+  // What the ring says, from one instant: a running timer counts down in seconds, and at zero it is time's up, with
+  // nothing counted past it; stopped on a whole minute it is the big minutes, and stopped between minutes it keeps the
+  // seconds that are left.
+  function readout(p, now) {
+    if (upAt(p, now)) return { up: true };
+    if (p.timer || now.left > 0 && now.left % 60) return { number: countText(now.left), unit: 'left' };
+    return { number: String(Math.max(0, Math.floor(now.left / 60))), unit: 'min left' };
+  }
+  // The readout is sized by how many characters it has, so "24:37" fits the ring's inner circle as "25" does.
+  function numberClass(text) { return 'ring-number' + (text.length > 2 ? ' n' + Math.min(text.length, 7) : ''); }
+  // The ring: the arc is what is left of the day's total seconds (allowance, earned and added). The number is the glance
+  // layer; what it counts is said under it in words. While a timer runs, tickRing moves both once a second.
+  var ringParts = null;       // {arc, number, total}: the nodes a tick changes, and nothing else
+  var RING_C = 2 * Math.PI * 88;
+  function arcAt(arc, left, total) {
+    var share = total > 0 ? Math.max(0, Math.min(1, left / (total * 60))) : 0;
+    arc.setAttribute('stroke-dashoffset', (RING_C * (1 - share)).toFixed(2));
+    // An empty arc would still draw its round end as a dot.
+    arc.setAttribute('visibility', share > 0 ? 'visible' : 'hidden');
+  }
+  function ringNode(p, now) {
+    var total = p.allowance + p.earned + p.adjusted, say = readout(p, now), minutes = Math.floor(Math.max(0, now.left) / 60);
+    var box = node('div', 'ring'), NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 200 200'); svg.setAttribute('aria-hidden', 'true');
+    var track = document.createElementNS(NS, 'circle'); track.setAttribute('class', 'ring-track'); track.setAttribute('cx', '100'); track.setAttribute('cy', '100'); track.setAttribute('r', '88'); svg.appendChild(track);
+    var arc = document.createElementNS(NS, 'circle'); arc.setAttribute('class', 'ring-arc'); arc.setAttribute('cx', '100'); arc.setAttribute('cy', '100'); arc.setAttribute('r', '88');
+    arc.setAttribute('stroke-dasharray', RING_C.toFixed(2)); arc.setAttribute('transform', 'rotate(-90 100 100)'); arcAt(arc, now.left, total);
+    svg.appendChild(arc);
+    box.appendChild(svg);
+    var inside = node('div', 'ring-text'), number = null;
+    // The label is the minute, said once a minute (renderScreen redraws on it); the seconds are for the eye only.
+    if (say.up) {
+      inside.appendChild(node('p', 'ring-up', 'Time’s up'));
+      box.setAttribute('aria-label', 'Time’s up. No time left of ' + total + ' today');
+    } else {
+      number = inside.appendChild(node('p', numberClass(say.number), say.number));
+      inside.appendChild(node('p', 'ring-unit', say.unit));
+      var spoken = minutes + (minutes === 1 ? ' minute' : ' minutes'), secs = Math.max(0, now.left) % 60;
+      if (!p.timer && secs) spoken += ' ' + secs + (secs === 1 ? ' second' : ' seconds');
+      box.setAttribute('aria-label', spoken + ' left of ' + total + ' today');
+    }
+    box.setAttribute('role', 'img');
+    box.appendChild(inside);
+    ringParts = p.timer && !say.up ? { arc: arc, number: number, total: total } : null;
+    return box;
+  }
+  // Once a second while a timer runs: the arc's offset and the number's text, in place. No button, focus, scroll or
+  // typed name is touched, and nothing is announced: the ring's label moves with the minute, in renderScreen.
+  function tickRing(p, now) {
+    if (!ringParts) return;
+    var say = readout(p, now);
+    arcAt(ringParts.arc, now.left, ringParts.total);
+    if (!say.up && ringParts.number) {
+      ringParts.number.firstChild.data = say.number;
+      if (ringParts.number.className !== numberClass(say.number)) ringParts.number.className = numberClass(say.number);
+    }
+  }
+  function sumNode(p, now) {
+    var dl = node('dl', 'screen-sum');
+    [['Daily', mins(p.allowance)], ['Earned', signed(p.earned)], ['Added or taken', signed(p.adjusted)], ['Used', usedText(now.used)]].forEach(function (row) {
+      var d = node('div'); d.appendChild(node('dt', '', row[0])); d.appendChild(node('dd', '', row[1])); dl.appendChild(d);
+    });
+    return dl;
+  }
+  function recordNode(p, unlocked) {
+    var box = node('div', 'screen-record'), rows = [];
+    if (p.timer) rows.push({ running: true, from: p.timer.since });
+    p.entries.forEach(function (e) { rows.push(e); });
+    if (!rows.length) { box.appendChild(node('p', 'screen-empty', 'Nothing yet today')); return box; }
+    rows.forEach(function (e) {
+      var row = node('div', 'screen-row' + (e.removed ? ' removed' : ''));
+      row.appendChild(node('span', 'when', clockTime(houseTime(e.kind === 'timer' || e.running ? e.from : e.at))));
+      var what = node('span', 'what'); what.appendChild(node('span', 'label', e.running ? 'Timer' : entryLabel(e)));
+      if (e.removed) what.appendChild(node('span', 'meta', 'Removed ' + clockTime(houseTime(e.removed))));
+      row.appendChild(what);
+      row.appendChild(node('span', 'amount', e.running ? 'running' : entryAmount(e)));
+      if (unlocked && !e.running) row.appendChild(screenButton('quiet', e.removed ? 'Put back' : 'Remove', function () { if (e.removed) restoreEntry(p, e); else removeEntry(p, e); }, screenProblem));
+      box.appendChild(row);
+    });
+    return box;
+  }
+  // Unlocked: add or take away, with an optional reason for time earned; the allowance days start with; and off.
+  function manageNode(p) {
+    var box = node('div', 'screen-manage-panel'), off = screenProblem;
+    box.appendChild(segmented([[1, 'Add'], [-1, 'Take away']], manageChoice.sign, function (v) { manageChoice.sign = v; if (v < 0) manageChoice.reason = null; }, off));
+    box.appendChild(segmented([[5, '5'], [10, '10'], [15, '15'], [30, '30']].map(function (c) { return [c[0], c[1] + ' min']; }), manageChoice.minutes, function (v) { manageChoice.minutes = v; }, off));
+    if (manageChoice.sign > 0) box.appendChild(segmented([['chores', 'Chores'], ['reading', 'Reading'], ['helping', 'Helping'], ['other', 'Other']], manageChoice.reason, function (v) { manageChoice.reason = manageChoice.reason === v ? null : v; }, off));
+    box.appendChild(screenButton('screen-go', (manageChoice.sign > 0 ? 'Add ' : 'Take away ') + mins(manageChoice.minutes), function () { adjustTime(p); }, off));
+    var daily = node('div', 'screen-daily');
+    daily.appendChild(node('p', '', 'Each day'));
+    daily.appendChild(screenButton('step', MINUS, function () { setAllowance(p, p.nextAllowance - 5); }, off || p.nextAllowance <= 0)).setAttribute('aria-label', 'Five minutes less each day');
+    daily.appendChild(node('span', 'setting-value', mins(p.nextAllowance)));
+    daily.appendChild(screenButton('step', '+', function () { setAllowance(p, p.nextAllowance + 5); }, off || p.nextAllowance >= 240)).setAttribute('aria-label', 'Five minutes more each day');
+    if (p.nextAllowance !== p.allowance) daily.appendChild(node('span', 'setting-hint', 'From tomorrow'));
+    box.appendChild(daily);
+    var offButton = screenButton('quiet screen-off', confirmOff === p.id ? 'Tap again to turn off' : 'Turn off screen time', function () {
+      if (confirmOff === p.id) { confirmOff = null; turnOff(p); return; }
+      confirmOff = p.id; renderScreen(); setTimeout(function () { if (confirmOff === p.id) { confirmOff = null; renderScreen(); } }, 6000);
+    }, off);
+    offButton.setAttribute('aria-pressed', String(confirmOff === p.id));
+    box.appendChild(offButton);
+    return box;
+  }
+  // Unlocked with nobody on: whose it is and how long their days are. Someone turned off before comes back with their record.
+  function setupNode(typed) {
+    var box = node('div', 'screen-setup');
+    box.appendChild(node('h2', '', 'Turn on screen time'));
+    box.appendChild(node('p', 'screen-setup-note', 'A daily allowance and a timer, kept here on the wall. It counts only while someone starts its timer; it never measures a device.'));
+    var before = screen ? screen.people.filter(function (p) { return !p.on; }) : [];
+    if (before.length) {
+      var again = node('div', 'screen-again');
+      before.forEach(function (p) { var b = screenButton('quiet', '', function () { turnOn({ id: p.id, on: true }); }, screenProblem); b.appendChild(screenMark(p.name)); b.appendChild(node('span', '', 'Turn on for ' + p.name)); again.appendChild(b); });
+      box.appendChild(again);
+    }
+    var row = node('div', 'add-row'), input = screenName = node('input'); input.id = 'screen-name'; input.type = 'text'; input.maxLength = 30; input.setAttribute('autocomplete', 'off'); input.setAttribute('autocapitalize', 'words'); input.setAttribute('aria-label', 'Their name'); input.placeholder = 'Their name';
+    input.value = typed || '';
+    row.appendChild(input); box.appendChild(row);
+    var daily = node('div', 'screen-daily');
+    daily.appendChild(node('p', '', 'Each day'));
+    daily.appendChild(screenButton('step', MINUS, function () { setupAllowance = Math.max(0, setupAllowance - 5); renderScreen(); }, setupAllowance <= 0)).setAttribute('aria-label', 'Five minutes less each day');
+    daily.appendChild(node('span', 'setting-value', mins(setupAllowance)));
+    daily.appendChild(screenButton('step', '+', function () { setupAllowance = Math.min(240, setupAllowance + 5); renderScreen(); }, setupAllowance >= 240)).setAttribute('aria-label', 'Five minutes more each day');
+    box.appendChild(daily);
+    box.appendChild(screenButton('screen-go', 'Turn on', function () {
+      var name = input.value.replace(/^\s+|\s+$/g, '');
+      if (!name) { input.focus(); return; }
+      turnOn({ name: name, allowance: setupAllowance });
+    }, screenProblem));
+    return box;
+  }
+  // Drawn whole whenever what it shows changes: a new answer, a lock, and once a minute while a timer runs (the clock's
+  // own once-a-second timer asks, and nothing is redrawn until the minute moves, or time runs out). Between those, the
+  // same tick steps the ring and its seconds in place (tickRing). Nothing here animates.
+  var screenShown = '';
+  function renderScreen(force) {
+    if (mode !== 'screen') { screenShown = ''; ringParts = null; return; }
+    var p = screenPerson(), card = $('screen-card'), now = p ? live(p) : null;
+    var key = JSON.stringify([screenAt, screenProblem, !!manage, manageChoice, setupAllowance, confirmOff, now && Math.floor(now.left / 60), !!(p && p.timer && now.left <= 0), now && Math.round(now.used / 60), prefs.clock]);
+    $('screen-manage').textContent = manage ? 'Lock' : 'Manage';
+    $('screen-manage').disabled = screenProblem && !manage;
+    $('screen-note').textContent = screenProblem && screen ? 'Can’t reach the frame’s server. Showing the balance from ' + since(screen.now) + '.' : 'Counts only while the timer is on';
+    if (!force && key === screenShown) { tickRing(p, now); return; }
+    screenShown = key; ringParts = null;
+    var keepScroll = card.querySelector('.screen-record'), scroll = keepScroll ? keepScroll.scrollTop : 0, typed = screenName ? screenName.value : '';
+    screenName = null;
+    card.textContent = ''; card.className = 'screen-card';
+    if (!p) { if (manage) { card.className = 'screen-card hug'; card.appendChild(setupNode(typed)); } return; }
+    var who = node('div', 'screen-person');
+    var name = node('p', 'screen-who'); name.appendChild(screenMark(p.name)); name.appendChild(node('span', '', p.name)); who.appendChild(name);
+    who.appendChild(ringNode(p, now));
+    var up = upAt(p, now), empty = now.left <= 0 && (!p.timer || !!up);
+    who.appendChild(node('p', 'screen-line', up ? 'Timer stopped at ' + clockTime(houseTime(up)) : p.timer ? 'Timer on since ' + clockTime(houseTime(p.timer.since)) : empty ? 'No time left today' : ''));
+    var act = node('div', 'screen-actions');
+    act.appendChild(p.timer && !up ? screenButton('screen-go stop', 'Stop', function () { stopTimer(p); }, screenProblem) : screenButton('screen-go', 'Start', function () { startTimer(p); }, screenProblem || empty));
+    if (empty) act.appendChild(node('p', 'screen-hint', 'A grown-up can add time'));
+    who.appendChild(act);
+    card.appendChild(who);
+    var side = node('div', 'screen-side');
+    if (manage) side.appendChild(manageNode(p));
+    else side.appendChild(sumNode(p, now));
+    side.appendChild(node('h2', 'eyebrow', 'Record'));
+    var record = recordNode(p, !!manage); side.appendChild(record);
+    card.appendChild(side);
+    record.scrollTop = scroll; fadeIfScrolls(record);
+    record.addEventListener('scroll', function () { fadeIfScrolls(record); }, { passive: true });
+  }
+  function renderScreenSetting() {
+    var on = screen ? screen.people.filter(function (p) { return p.on; }) : [], box = $('screen-open');
+    $('screen-who').textContent = !screen ? 'Not loaded yet' : on.length ? on.map(function (p) { return p.name; }).join(', ') : 'Nobody yet';
+    box.textContent = '';
+    if (screen) box.appendChild(screenButton('', on.length ? 'Manage' : 'Set up', openScreenPin, screenProblem));
+    $('screen-chime-row').hidden = !on.length;
+  }
+
   // Adding to a list at the wall, whichever kind of list it is. The dialog sits at the top of the screen so the
   // keyboard, which takes the bottom half of a wall display, never covers what is being typed; it stays open,
   // because a grocery list is rarely one thing.
@@ -1371,8 +1772,10 @@
   // slides up over a wall display.
   var pinSoFar = '';
   function drawPin() { var dots = ''; for (var i = 0; i < pinSoFar.length; i++) dots += '●'; $('pin-dots').textContent = dots || ' '; }
-  function openManage() {
+  // The same keypad unlocks screen time (openScreenPin): `purpose` says which door OK knocks on.
+  function openKeypad(purpose) {
     pinSoFar = ''; drawPin();
+    $('manage-eyebrow').textContent = 'Manage from a phone';
     $('manage-title').textContent = 'Enter the household PIN'; $('manage-note').textContent = 'Set on your household’s setup page.';
     $('keypad').hidden = false; $('pin-dots').hidden = false; $('manage-code').hidden = true; $('manage-qr').hidden = true; $('manage-typed').hidden = true;
     var pad = $('keypad'); pad.textContent = '';
@@ -1380,7 +1783,7 @@
       var b = node('button', key === 'OK' ? 'key go' : 'key', key);
       b.onclick = function () {
         if (key === '⌫') pinSoFar = pinSoFar.slice(0, -1);
-        else if (key === 'OK') { askForCode(); return; }
+        else if (key === 'OK') { if (purpose === 'screen') unlockScreen(); else askForCode(); return; }
         else if (pinSoFar.length < 8) pinSoFar += key;
         drawPin();
       };
@@ -1388,6 +1791,7 @@
     });
     $('manage-dialog').hidden = false;
   }
+  function openManage() { openKeypad('phone'); }
   function askForCode() {
     if (pinSoFar.length < 4) { $('manage-note').textContent = 'A PIN is at least four digits.'; return; }
     post('/api/owner-code', { pin: pinSoFar }, function (status, data) {
@@ -1434,6 +1838,8 @@
   function loadSettings() { get('/api/settings', function (data) { if (data.rest) { prefs = withDefaults(data); applyPrefs(); } }, function () {}); }
   // Where the frame settles when no one is using it: the week on a morning if that is set, otherwise the chosen view.
   function restingView() {
+    // A running timer holds its view, as a list holds the screen while cooking: the time left stays readable across the room.
+    if (timerRunning()) return 'screen';
     var hour = now().getHours(), morning = prefs.mornings && hour >= 4 && hour < prefs.mornings;
     return prefs.rest === 'photos' && photos.length && !morning && !query.nophotos ? 'photos' : 'calendar';
   }
@@ -1444,6 +1850,7 @@
   function toggleTask(task) {
     if (pending[task.id]) { if (undo && undo.task.id === task.id) cancelUndo(); return; }
     if (undo) commit();
+    dropScreenUndo();
     pending[task.id] = true;
     undo = { task: task, timer: setTimeout(commit, UNDO_MS) };
     if (listOf(task.project).kid) cheer();
@@ -1608,7 +2015,9 @@
   $('previous').onclick = function () { if (page > 0) { page--; renderStrip(); } };
   $('next').onclick = pageNext;
   $('back-today').onclick = function () { page = 0; renderStrip(); };
-  $('toast-undo').onclick = function () { if (undo) cancelUndo(); };
+  $('toast-undo').onclick = function () { if (undo) cancelUndo(); else if (screenUndo) screenUndo.run(); };
+  $('screen-manage').onclick = function () { if (manage) lockScreen(); else openScreenPin(); };
+  $('screen-chime').onclick = testChime;
   $('close-dialog').onclick = closeEvent;
   $('close-legend').onclick = closeLegend;
   $('legend-dialog').onclick = function (e) { if (e.target === $('legend-dialog')) closeLegend(); };
@@ -1687,19 +2096,22 @@
 
   var lastMinute = -1;
   setInterval(function () {
-    var t = now(), idle = Date.now() - lastTouch, busy = dialogOpen() || !!undo || installing();
-    tickSky();
+    var t = now(), idle = Date.now() - lastTouch, busy = dialogOpen() || !!undo || !!screenUndo || installing();
+    tickSky(); watchTimeUp();
     if (t.getMinutes() !== lastMinute) {
       lastMinute = t.getMinutes();
       if (loadedDay && loadedDay !== iso(t)) loadCalendar(); // midnight: slide the whole window forward
+      if (screen && screen.day !== iso(t)) loadRewards();    // and a new day of screen time, which the server starts
       render();
     }
+    renderScreen();
     // Quiet for two minutes: a list, Settings or a paged-ahead week goes back to this week. Quiet for the time set in
     // Settings: the resting view (photos, or the week on a morning), which also follows the morning hours as they pass.
     // An open day or event used to suspend every timer, so the frame could sit on a dialog all night.
-    if (idle > HOME_AFTER_MS && dialogOpen()) { closeEvent(); closeDay(); closeManage(); closeAdd(); closeLegend(); busy = !!undo || installing(); }
-    var onList = mode.indexOf('list:') === 0, hold = onList ? LIST_AFTER_MS : HOME_AFTER_MS;
-    if (!busy && idle > hold && mode !== 'photos' && (mode !== 'calendar' || page !== 0)) { page = 0; setMode('calendar'); }
+    if (idle > HOME_AFTER_MS && dialogOpen()) { closeEvent(); closeDay(); closeManage(); closeAdd(); closeLegend(); lockScreen(); busy = !!undo || !!screenUndo || installing(); }
+    // While a timer runs, "home" is screen time rather than this week.
+    var onList = mode.indexOf('list:') === 0, hold = onList ? LIST_AFTER_MS : HOME_AFTER_MS, home = timerRunning() ? 'screen' : 'calendar';
+    if (!busy && idle > hold && mode !== 'photos' && (home === 'screen' ? mode !== 'screen' : mode !== 'calendar' || page !== 0)) { page = 0; setMode(home); }
     if (!busy && idle > Math.max(prefs.restAfter * 60000, onList ? LIST_AFTER_MS : 0) && (mode !== restingView() || page !== 0)) { page = 0; setMode(restingView()); }
     // Photo mode goes bare a few seconds after the last touch, however it was reached: nobody wants a shrunken photo
     // with a dock under it, and the dock is only there to leave by. A touch brings it back. Night: dim rather than
@@ -1717,8 +2129,8 @@
   if (query.tab) { mode = 'list:' + query.tab; $('view-calendar').hidden = true; $('view-list').hidden = false; }
   // Layout is measured to fit whole items, so measure again once the web fonts have arrived.
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(); });
-  renderSettings(); render(); loadHousehold(); loadSettings(); loadCalendar(); loadTasks(); loadWeather(); loadPhotos(); loadUpdates(); pollInstall();
-  setInterval(loadUpdates, 600000); setInterval(loadHousehold, 600000); setInterval(loadCalendar, 60000); setInterval(loadTasks, 60000); setInterval(loadWeather, 900000); setInterval(loadPhotos, 60000); setInterval(loadSettings, 60000);
-  window.addEventListener('online', function () { loadCalendar(); loadTasks(); loadWeather(); });
+  renderSettings(); render(); loadHousehold(); loadSettings(); loadCalendar(); loadTasks(); loadWeather(); loadPhotos(); loadUpdates(); loadRewards(); pollInstall();
+  setInterval(loadUpdates, 600000); setInterval(loadHousehold, 600000); setInterval(loadCalendar, 60000); setInterval(loadTasks, 60000); setInterval(loadWeather, 900000); setInterval(loadPhotos, 60000); setInterval(loadSettings, 60000); setInterval(loadRewards, 60000);
+  window.addEventListener('online', function () { loadCalendar(); loadTasks(); loadWeather(); loadRewards(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { loadCalendar(); loadTasks(); } });
 })();

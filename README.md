@@ -20,6 +20,8 @@ copy holds that copy's secrets.
   Tasks or Microsoft To Do (those two need an app registered for the server). Add at the wall or from a phone; check things off with a moment to undo. A young child's
   list has big rows and a picture on each.
 - **Photos** from an iCloud shared album, straight from a phone, or from a folder.
+- **Screen time.** A child's minutes for the day in a ring, with a timer that stops at zero and chimes; adding or
+  taking away time takes the household PIN. Off until a grown-up turns it on.
 - **Text sized for the room.** Smaller, Standard or Larger, for the rows and the lists; the clock and the layout stay
   as they are.
 - **It behaves itself.** Brightness follows sunrise and sunset. After a while it drifts to photos and comes back. After a

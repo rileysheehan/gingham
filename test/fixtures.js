@@ -97,3 +97,35 @@ module.exports = {
 };
 // The packed day again, with tonight's dinner written as a chore, the way a household writes "Verb: object".
 module.exports.dinner = {...module.exports.stress, tasks: {...module.exports.stress.tasks, tasks: [task('Chores', 'Dinner: tacos al pastor', '2026-09-23'), ...stressTasks]}};
+// Screen time (rewards.js) for June, the Ashbys' youngest, on the fixtures' Wednesday at 5:40 PM: a 30-minute day, 15 minutes
+// earned, 5 taken away and a ten-minute timer, so 30 are left. The other states change only the timer: one running since
+// 5:25 PM, one started at 5 PM that time's up stopped at 5:30 (the server stops it on reading), and a day used up. "screen-newday" is five past midnight, after a timer that
+// was still running at midnight. The server keeps these in memory on the fixture's own clock (server.js).
+const st = (time, day = '09-23') => '2026-' + day + 'T' + time + ':00-05:00';
+const juneDay = extra => ({allowance: 30, timer: null, ...extra, entries: [
+  {id: 'e1', at: st('15:00'), kind: 'earn', minutes: 10, reason: 'chores'},
+  {id: 'e2', at: st('15:30'), kind: 'earn', minutes: 5, reason: 'reading'},
+  {id: 'e3', at: st('16:00'), kind: 'adjust', minutes: -5},
+  {id: 'e4', at: st('16:20'), kind: 'timer', seconds: 600, from: st('16:10')},
+  ...((extra && extra.entries) || [])]});
+const screenTime = (day, clock) => ({clock, data: {people: [{id: 'june', name: 'June', on: true, allowance: 30, days: day}]}});
+module.exports.screen = {...module.exports.stress, rewards: screenTime({'2026-09-23': juneDay()})};
+module.exports['screen-running'] = {...module.exports.stress, rewards: screenTime({'2026-09-23': juneDay({timer: {since: st('17:25')}})})};
+module.exports['screen-over'] = {...module.exports.stress, rewards: screenTime({'2026-09-23': juneDay({timer: {since: st('17:00')}})})};
+module.exports['screen-none'] = {...module.exports.stress, rewards: screenTime({'2026-09-23': juneDay({entries: [{id: 'e5', at: st('17:10'), kind: 'timer', seconds: 1800, from: st('16:40')}]})})};
+// A day the build before time's up let run past its total: a 50-minute timer against 40, kept as it was recorded.
+module.exports['screen-oldover'] = {...module.exports.stress, rewards: screenTime({'2026-09-23': juneDay({entries: [{id: 'e5', at: st('17:31'), kind: 'timer', seconds: 3000, from: st('16:41')}]})})};
+module.exports['screen-newday'] = {...module.exports.stress, rewards: screenTime({'2026-09-23': juneDay({timer: {since: st('23:40')}})}, st('00:05', '09-24'))};
+// The seconds on the ring (MER-2089), each on a still clock at 5:40 PM: a timer on for 30:00, 24:37, 0:42 and, with 35
+// minutes more earned, 1:04:37 left; one that time's up stopped 1:12 ago (so a page loading now chimes); and stopped
+// at 24:37 and on a whole 25.
+const sec = time => '2026-09-23T' + time + '-05:00';
+const stillDay = (extra, entries = []) => ({...module.exports.stress, rewards: {still: true, data: {people: [{id: 'june', name: 'June', on: true, allowance: 30, days: {'2026-09-23': {...juneDay({...extra, entries}), allowance: 30}}}]}}});
+const earnedMore = [{id: 'e6', at: st('17:00'), kind: 'earn', minutes: 35, reason: 'chores'}];
+module.exports['screen-s3000'] = stillDay({timer: {since: sec('17:40:00')}});
+module.exports['screen-s2437'] = stillDay({timer: {since: sec('17:34:37')}});
+module.exports['screen-s0042'] = stillDay({timer: {since: sec('17:10:42')}});
+module.exports['screen-s10437'] = stillDay({timer: {since: sec('17:39:37')}}, earnedMore);
+module.exports['screen-sover'] = stillDay({timer: {since: sec('17:08:48')}});
+module.exports['screen-stop2437'] = stillDay({}, [{id: 'e7', at: st('17:30'), kind: 'timer', seconds: 323, from: sec('17:24:37')}]);
+module.exports['screen-stop25'] = stillDay({}, [{id: 'e7', at: st('17:30'), kind: 'timer', seconds: 300, from: st('17:25')}]);

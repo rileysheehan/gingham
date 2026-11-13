@@ -719,7 +719,8 @@ test('Play page: the wall trusts only an https address, and Settings says nothin
   }
   const w = playWall(PLAY);
   w.$('settings-button').click(); w.server.flush();
-  assert.doesNotMatch(w.document.body.textContent, /example\.com|play/i);
+  // Screen time's "Play the chime" is the one other "play" on the page.
+  assert.doesNotMatch(w.document.body.textContent.replace(/Play the chime/g, ''), /example\.com|play/i);
 });
 
 test('Play page: the browser\'s own long press is held back only where there is a play page', () => {

@@ -1,6 +1,6 @@
 // One deployment serves several households. Each is a folder under data/households/<id>/ holding everything that is
 // theirs: sources.json (calendars, lists, album, people, place), credentials.json (their Google and Todoist
-// authorizations), settings.json, photos/ and cache/. Nothing is shared between folders, so a bug that mixes
+// authorizations), settings.json, rewards.json (screen time, once someone turns it on), photos/ and cache/. Nothing is shared between folders, so a bug that mixes
 // households has to cross a directory boundary to do it.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -17,6 +17,7 @@ const {createMicrosoft} = require('./microsoft');
 const {createCalDav} = require('./caldav');
 const {createHomeAssistant} = require('./homeassistant');
 const {createGoogleTasks} = require('./googletasks');
+const {createRewards} = require('./rewards');
 
 const validId = id => /^[a-z0-9][a-z0-9-]{0,39}$/.test(id || '');
 
@@ -91,6 +92,8 @@ function createHouseholds({root = path.join(__dirname, 'data/households'), log =
       },
       calendar: service.calendar, tasks: service.tasks, closeTask: service.closeTask, addTask: service.addTask, lists: local,
       settings,
+      // Screen time (rewards.js), in the household's own time zone. No file until someone turns it on.
+      rewards: createRewards({file: path.join(dir, 'rewards.json'), zone: () => household.place().timezone}),
       // The album's photos and the ones added from a phone, as one set. Added ones come first: whoever just sent
       // a picture is standing there waiting to see it.
       photoManifest() {
