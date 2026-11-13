@@ -13,7 +13,13 @@
               settings, Larger text, and the week with the tablet itself in dark mode); each other one gets the week
               in day and night. The phone pages are shown with the first.
   --only      take only the screenshots whose names match, e.g. --only 'week|phone-lists'.
-  --set       "moments" takes the wall's moments of the day instead of the set above (20 screenshots, --fixtures ignored):
+  --set       "screen" takes screen time's states (DESIGN.md → Screen time) by day and by night: off, resting, a timer
+              running, time's up (the timer stopped at zero), a day an older build let run over, Settings with Play the
+              chime, nothing left, a new day, the server out of reach, the PIN pad with and without a household
+              PIN, unlocked, a change with its Undo, and turning it on; then the ring's seconds: running at 30:00, 24:37,
+              0:42 and 1:04:37, time's up 1:12 ago, stopped at 24:37 and at 25, and unlocked while running. Its PIN is made up for the run and handed to the
+              fixture server as a hash (FRAME_FIXTURE_PIN_HASH), so no PIN is ever written down.
+              "moments" takes the wall's moments of the day instead of the set above (20 screenshots, --fixtures ignored):
               the evening handoff, the day line from dawn to night, the moon through a month (and south of the
               equator), dinner by day and night, and birthdays in Today, the week, Later and the agenda. The sky
               follows each state's own clock. Its "evening" and "dinner" fixtures are newer than some checkouts; to take
@@ -56,7 +62,7 @@ const [FIRST_PORT, LAST_PORT] = (args.ports || '4550-4599').split('-').map(Numbe
 const FIXTURES = (args.fixtures || 'stress,quiet,offline').split(',').filter(Boolean);
 const ONLY = args.only ? new RegExp(args.only) : null;
 const SET = args.set || 'default';
-if (!/^(default|moments)$/.test(SET)) { console.error('--set is "default" or "moments"'); process.exit(2); }
+if (!/^(default|moments|screen)$/.test(SET)) { console.error('--set is "default", "moments" or "screen"'); process.exit(2); }
 if (!(FIRST_PORT > 0 && LAST_PORT >= FIRST_PORT)) { console.error('--ports is a range, like 4550-4599'); process.exit(2); }
 if (!fs.existsSync(path.join(ROOT, 'server.js'))) { console.error(ROOT + ' has no server.js'); process.exit(2); }
 fs.mkdirSync(OUT, {recursive: true});
@@ -71,10 +77,10 @@ const CHROME_FLAGS = ['--disable-gpu', '--disable-gpu-rasterization', '--disable
 
 let nextPort = FIRST_PORT;
 const running = new Set();
-async function fresh(fixture) {
+async function fresh(fixture, env = {}) {
   if (nextPort > LAST_PORT) throw Error('Out of ports: widen --ports');
   const port = nextPort++;
-  const srv = spawn(process.execPath, ['server.js'], {cwd: ROOT, env: {...process.env, FRAME_FIXTURE: fixture, PORT: String(port), HOST: '127.0.0.1'}, stdio: 'ignore'});
+  const srv = spawn(process.execPath, ['server.js'], {cwd: ROOT, env: {...process.env, FRAME_FIXTURE: fixture, PORT: String(port), HOST: '127.0.0.1', ...env}, stdio: 'ignore'});
   const gone = new Promise(resolve => srv.once('exit', resolve));
   running.add(srv);
   const stop = async () => { if (srv.exitCode === null && srv.signalCode === null) srv.kill(); await gone; running.delete(srv); };
@@ -109,9 +115,9 @@ const openSetting = async (p, choice) => { await p.click('#settings-button'); aw
 
 // `sky` forces the sky ("day", "night"); left out, the sky follows `now` as it does on the wall. `south` places the
 // household south of the equator.
-async function wall(browser, {fixture, now, sky, name, setup, scheme = 'light', south = false}) {
+async function wall(browser, {fixture, now, sky, name, setup, scheme = 'light', south = false, env}) {
   if (ONLY && !ONLY.test(name)) return;
-  const server = await fresh(fixture);
+  const server = await fresh(fixture, env);
   try {
     const ctx = await contextFor(browser, {viewport: {width: 1920, height: 1080}, colorScheme: scheme});
     if (south) await ctx.route(/^http:\/\/127\.0\.0\.1:\d+\/api\/household$/, async r => { const answer = await r.fetch(); r.fulfill({json: {...await answer.json(), south: true}}); });
@@ -158,10 +164,39 @@ async function moments(browser) {
   await shot('birthday-agenda', 'stress', '2026-09-23T17:40:00', {setup: p => openSetting(p, 'Agenda')});
 }
 
+// Screen time's states. The PIN is new for each run, typed on the wall's own keypad, and only its hash reaches the server.
+async function screenStates(browser) {
+  const pin = String(require('node:crypto').randomInt(100000, 1000000));
+  const env = {FRAME_FIXTURE_PIN_HASH: require(path.join(ROOT, 'vault.js')).hashPin(pin)};
+  const tab = p => clickText(p, '.dock button', 'Screen time');
+  const unlock = async p => { await p.click('#screen-manage'); await p.waitForTimeout(300); for (const d of pin) await p.locator('#keypad .key', {hasText: d}).first().click(); await p.locator('#keypad .key', {hasText: 'OK'}).click(); await p.waitForTimeout(600); };
+  for (const [mode, sky] of [['day', 'day'], ['night', 'night']]) {
+    const at = {now: '2026-09-23T17:40:00', sky, env}, shot = (name, extra) => wall(browser, {...at, name: `screen-${name}-${mode}`, ...extra});
+    await shot('off-settings', {fixture: 'stress', setup: p => p.click('#settings-button')});
+    await shot('resting', {fixture: 'screen', setup: tab});
+    await shot('running', {fixture: 'screen-running', setup: tab});
+    await shot('timeup', {fixture: 'screen-over', setup: tab});
+    await shot('oldover', {fixture: 'screen-oldover', setup: tab});
+    await shot('chime-setting', {fixture: 'screen', setup: async p => { await p.click('#settings-button'); await p.waitForTimeout(300); await p.locator('#screen-chime').scrollIntoViewIfNeeded(); }});
+    await shot('none', {fixture: 'screen-none', setup: tab});
+    await shot('newday', {fixture: 'screen-newday', now: '2026-09-24T00:05:00', setup: tab});
+    await shot('offline', {fixture: 'screen', setup: async p => { await tab(p); await p.route(/\/api\/rewards$/, r => r.abort()); await p.evaluate(() => window.dispatchEvent(new Event('online'))); }});
+    await shot('pin', {fixture: 'screen', setup: async p => { await tab(p); await p.click('#screen-manage'); for (const d of '12') await p.locator('#keypad .key', {hasText: d}).first().click(); }});
+    await shot('no-pin', {fixture: 'screen', env: {}, setup: async p => { await tab(p); await p.click('#screen-manage'); }});
+    await shot('unlocked', {fixture: 'screen', setup: async p => { await tab(p); await unlock(p); await clickText(p, '.screen-manage-panel button', 'Chores'); }});
+    await shot('changed', {fixture: 'screen', setup: async p => { await tab(p); await unlock(p); await clickText(p, '.screen-manage-panel button', 'Chores'); await p.click('.screen-manage-panel .screen-go'); }});
+    // The seconds on the ring, each on a still clock (test/fixtures.js), so the shot shows the second it names.
+    for (const name of ['s3000', 's2437', 's0042', 's10437', 'sover', 'stop2437', 'stop25']) await shot('seconds-' + name, {fixture: 'screen-' + name, setup: tab});
+    await shot('seconds-unlocked', {fixture: 'screen-s2437', setup: async p => { await tab(p); await unlock(p); }});
+    await shot('setup', {fixture: 'stress', setup: async p => { await p.click('#settings-button'); await p.waitForTimeout(300); await p.click('#screen-open button'); for (const d of pin) await p.locator('#keypad .key', {hasText: d}).first().click(); await p.locator('#keypad .key', {hasText: 'OK'}).click(); await p.waitForTimeout(600); await p.fill('#screen-name', 'June'); }});
+  }
+}
+
 (async () => {
   const browser = await chromium.launch({...(process.env.CHROME ? {executablePath: process.env.CHROME} : {channel: 'chrome'}), headless: true, args: CHROME_FLAGS});
   try {
     if (SET === 'moments') { await moments(browser); return; }
+    if (SET === 'screen') { await screenStates(browser); return; }
     const [first, ...others] = FIXTURES;
     const times = [['day', '2026-09-23T17:40:00', 'day'], ['night', '2026-09-23T19:16:00', 'night']];
     for (const [mode, now, sky] of times) {

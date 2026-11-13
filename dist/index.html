@@ -70,6 +70,11 @@
         <div class="photo-card" id="photo-card"><div class="slide-fill" id="slide-fill"></div><img id="slide-a" class="slide" alt=""><img id="slide-b" class="slide" alt=""></div>
       </section>
 
+      <section class="view screen-view" id="view-screen" hidden aria-label="Screen time">
+        <header class="ahead-head"><h1>Screen time</h1><p class="view-note" id="screen-note"></p><button id="screen-manage" class="quiet">Manage</button></header>
+        <div class="screen-card" id="screen-card"></div>
+      </section>
+
       <section class="view settings-view" id="view-settings" hidden aria-label="Settings">
         <header class="ahead-head"><h1>Settings</h1><p class="view-note">Changes take effect right away.</p><button id="manage-button" class="quiet">Manage from a phone</button></header>
         <div class="settings-card">
@@ -83,6 +88,12 @@
           <section class="setting-group">
             <h2 class="eyebrow">Photos</h2>
             <div class="setting"><p>Change every</p><div class="choices" data-setting="photoEvery"></div></div>
+          </section>
+          <section class="setting-group">
+            <h2 class="eyebrow">Screen time</h2>
+            <div class="setting"><p>Who has it</p><span class="setting-value" id="screen-who"></span><div class="choices update-now" id="screen-open"></div></div>
+            <div class="setting" id="screen-chime-row" hidden><p>When time’s up</p><span class="setting-value">A chime sounds</span><div class="choices update-now"><button id="screen-chime">Play the chime</button></div></div>
+            <p class="setting-note">A daily allowance and a timer, kept on the wall. Turning it on and changing time take the household&nbsp;PIN.</p>
           </section>
           <section class="setting-group">
             <h2 class="eyebrow">Appearance</h2>

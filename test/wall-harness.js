@@ -199,7 +199,7 @@ function makeServer(fixture, overrides) {
   return server;
 }
 
-function load({fixture = 'stress', now, clock, overrides, bridge, origin = 'http://127.0.0.1'} = {}) {
+function load({fixture = 'stress', now, clock, overrides, bridge, audio, origin = 'http://127.0.0.1'} = {}) {
   const document = makeDocument(), server = makeServer(fixture, overrides), timers = [];
   // The device clock: real unless `clock` fixes it, and either way it can be moved on with `advance(ms)`.
   let fixed = clock ? Date.parse(clock) : null, offset = 0;
@@ -222,6 +222,8 @@ function load({fixture = 'stress', now, clock, overrides, bridge, origin = 'http
   window.window = window;
   // A device bridge (`fully`): Fully Kiosk's, or Gingham's own app's, as a test fakes it.
   if (bridge) window.fully = bridge;
+  // Web Audio, when a test gives the page one (an AudioContext class it records); without it the page has none.
+  if (audio) window.AudioContext = audio;
   // The frame remembers its household's zone from the last start; so does this one.
   window.localStorage.setItem('frame.household', JSON.stringify({name: 'Household', timezone: 'America/Chicago', place: 'Austin'}));
   vm.createContext(window);

@@ -311,13 +311,18 @@ function createSetup({households, grants, feed = safeFetchText, fetchImpl = fetc
       return page(200, 'Google Tasks is connected.', back + '#google-connected');
     } catch (e) { return page(e.status && e.status < 500 ? e.status : 502, e.status ? e.message : 'Google didn’t finish signing in. Try again.'); }
   }
+  // The household's PIN, checked: a 409 when it has none, a 403 when this is not it. Never says anything about the PIN.
+  function checkHouseholdPin(home, pin, none = 'Set a frame PIN on the setup page first.') {
+    const stored = (held(home).frame || {}).pin;
+    if (!stored) throw fail(409, none);
+    if (!checkPin(pin, stored)) throw fail(403, 'That is not the PIN.');
+  }
+  const hasPin = home => !!(held(home).frame || {}).pin;
   // Asked by a paired frame: a code that lets a phone in, if the household has a PIN and this is it.
   function ownerCode(home, pin) {
-    const stored = (held(home).frame || {}).pin;
-    if (!stored) throw fail(409, 'Set a frame PIN on the setup page first.');
-    if (!checkPin(pin, stored)) throw fail(403, 'That is not the PIN.');
+    checkHouseholdPin(home, pin);
     return grants.startClaim(home.id);
   }
-  return {handle, describe, ownerCode, oauthReturn};
+  return {handle, describe, ownerCode, oauthReturn, checkHouseholdPin, hasPin};
 }
 module.exports = {createSetup};

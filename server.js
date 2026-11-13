@@ -2,6 +2,8 @@ const {createHouseholds} = require('./households');
 const {createGrants, mayManage} = require('./grants');
 const {createSetup} = require('./setup');
 const {createSettings} = require('./settings');
+const {createRewards, createManageTokens} = require('./rewards');
+const {checkPin} = require('./vault');
 const {dayIn} = require('./zone');
 const {upcoming} = require('./countdowns');
 const http = require('node:http');
@@ -22,6 +24,13 @@ const fixture = process.env.FRAME_FIXTURE ? require('./test/fixtures')[process.e
 if (process.env.FRAME_FIXTURE && !fixture) throw Error('Unknown fixture ' + process.env.FRAME_FIXTURE);
 // FRAME_FIXTURE_PLAY=https://example.com/ gives the fixture household a play page, to try the long press on the clock.
 const fixtureSettings = createSettings({persist: false, initial: process.env.FRAME_FIXTURE_PLAY ? {playPage: {url: process.env.FRAME_FIXTURE_PLAY}} : {}});
+// The fixture's screen time is kept in memory and runs on the fixture's own clock (its `rewards.clock`, 5:40 PM on the
+// fixtures' Wednesday unless it says), so every state can be photographed the same way each time. Its household PIN is
+// whatever FRAME_FIXTURE_PIN_HASH says (vault.js hashPin's form): test/shots.cjs makes one up for each run, so no PIN is
+// ever written in a file. Without it, the fixture is a household that has not set a PIN. A fixture whose rewards are
+// `still` stops its clock there, so a photograph of a running timer shows the very second the fixture names.
+const fixtureClock = (base => { const started = Date.now(); return fixture && fixture.rewards && fixture.rewards.still ? () => base : () => base + Date.now() - started; })(Date.parse((fixture && fixture.rewards && fixture.rewards.clock) || '2026-09-23T17:40:00-05:00'));
+const fixtureRewards = fixture ? createRewards({persist: false, initial: fixture.rewards ? fixture.rewards.data : null, now: fixtureClock, zone: () => fixturePlace.timezone}) : null;
 
 // Whether a newer Gingham is out (updates.js): asked of GitHub once shortly after start and then once a day, for the
 // whole server, unless Settings or GINGHAM_UPDATE_CHECK=off says not to. Design review never asks GitHub; it is given a
@@ -72,6 +81,21 @@ const onFly = !!process.env.FLY_APP_NAME, trustProxy = process.env.FRAME_TRUST_P
 const clientAddress = req => String((onFly && req.headers['fly-client-ip']) ||
   (trustProxy && String(req.headers['x-forwarded-for'] || '').split(',').pop().trim()) || req.socket.remoteAddress || '').replace(/^::ffff:/, '');
 const spent = new Map(), pinLocks = new Map();
+// Wrong PINs are counted per household, whichever door they were tried at (a code for a phone, or unlocking screen time):
+// five, then a wait of fifteen minutes that doubles each time, up to a day. One count, so two doors never double the guesses.
+function pinWait(id) {
+  const lock = pinLocks.get(id);
+  if (!lock || Date.now() >= lock.until) return '';
+  const wait = Math.ceil((lock.until - Date.now()) / 60000);
+  return 'Too many wrong PINs. Try again in ' + wait + (wait === 1 ? ' minute.' : ' minutes.');
+}
+function pinWrong(id) {
+  const lock = pinLocks.get(id) || {fails: 0, until: 0, locks: 0};
+  lock.fails++;
+  if (lock.fails >= 5) { lock.until = Date.now() + Math.min(24 * 3600000, 15 * 60000 * 2 ** lock.locks); lock.locks++; lock.fails = 0; }
+  pinLocks.set(id, lock);
+}
+const manageTokens = createManageTokens();
 const hasOwner = household => grants.list().some(g => g.household === household && g.scope === 'owner' && !g.revokedAt);
 // One household's connection is one IPv6 /64 (a phone picks a new address in it every day), so that is one ration.
 const rationKey = address => { if (!net.isIPv6(address)) return address; const g = groups(address); return g ? g.slice(0, 4).map(n => n.toString(16)).join(':') + '::/64' : address; };
@@ -198,15 +222,15 @@ async function serve(req,res){
     if (req.method !== 'POST' || !fromOurPages(req)) return json(res,405,{error:'Use POST'});
     const asking = whoIs(req);
     if (!asking.grant || !asking.household) return json(res,401,{error:'This frame is not set up yet.'});
-    const lock = pinLocks.get(asking.household.id) || {fails: 0, until: 0, locks: 0};
-    if (Date.now() < lock.until) { const wait = Math.ceil((lock.until - Date.now()) / 60000); return json(res,429,{error:'Too many wrong PINs. Try again in ' + wait + (wait === 1 ? ' minute.' : ' minutes.')}); }
+    const wait = pinWait(asking.household.id);
+    if (wait) return json(res,429,{error:wait});
     let pin = ''; try { pin = String(JSON.parse(await readBody(req)).pin || ''); } catch(e) {}
     // The very first owner: asked for by the tablet's own screen, while nobody looks after the household, there is
     // no PIN to ask for and nobody who could have set one. The code still has to be read off that screen.
     if (asking.grant.id === 'local' && !hasOwner(asking.household.id)) return json(res,200,grants.startClaim(asking.household.id));
     try { const made = setup.ownerCode(asking.household, pin); pinLocks.delete(asking.household.id); return json(res,200,made); }
     catch(e) {
-      if (e.status === 403) { lock.fails++; if (lock.fails >= 5) { lock.until = Date.now() + Math.min(24 * 3600000, 15 * 60000 * 2 ** lock.locks); lock.locks++; lock.fails = 0; } pinLocks.set(asking.household.id, lock); }
+      if (e.status === 403) pinWrong(asking.household.id);
       return json(res, e.status || 500, {error: e.status ? e.message : 'That did not work. Try again.'});
     }
   }
@@ -301,6 +325,50 @@ async function serve(req,res){
     if (result.retryAt) { const wait = Math.max(1, Math.ceil((result.retryAt - Date.now()) / 60000)); return json(res,429,{...status,retryAt:result.retryAt,error:result.reason === 'too-soon' ? 'Checked a moment ago. Try again in a minute.' : 'GitHub asked for a pause. Try again in ' + (wait < 90 ? wait + (wait === 1 ? ' minute.' : ' minutes.') : Math.round(wait / 60) + ' hours.')}); }
     if (!result.ok) return json(res,502,{...status,error:'Couldn’t reach GitHub. The daily check will try again.'});
     return json(res,200,status);
+  }
+  // Screen time (rewards.js). Any frame of the household sees it, and any paired one may start or stop its timer. Every
+  // other change (adding or taking away time, removing from the record, who has it and their allowance) needs a manage
+  // token in X-Gingham-Manage, and only the household's PIN gets one: the guard is here, not in the wall's buttons. The
+  // PIN is checked once, against its hash, and is never kept, logged or sent back; the token lives in this server's
+  // memory and in a variable on the frame's page, nowhere else (DESIGN.md → Screen time).
+  if (pathname === '/api/rewards' || pathname.startsWith('/api/rewards/')) {
+    const rewards = fixture ? fixtureRewards : home.rewards, householdId = fixture ? 'fixture' : home.id;
+    const failed = e => json(res, e.status || 500, {error: e.status ? e.message : 'Can’t change screen time right now. Try again.'});
+    if (pathname === '/api/rewards') {
+      if (req.method !== 'GET') return json(res,405,{error:'Use GET'});
+      try { return json(res,200,{...rewards.read(), pinSet: fixture ? !!process.env.FRAME_FIXTURE_PIN_HASH : setup.hasPin(home)}); } catch(e) { return failed(e); }
+    }
+    if (req.method !== 'POST' || !fromOurPages(req)) return json(res,405,{error:'Use POST'});
+    const grant = fixture ? {id: 'fixture'} : who.grant;
+    if (!grant || !(grant.id === 'local' || grant.id === 'fixture' || (grant.scope !== 'admin' && grant.household === householdId))) return json(res,403,{error:'Pair this frame first.'});
+    if (rationed(req,'rewards',120,60000)) return json(res,429,{error:'Slow down'});
+    let body = {}; try { body = JSON.parse(await readBody(req) || '{}'); } catch(e) { return json(res,400,{error:'Send JSON'}); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) body = {};
+    const action = pathname.slice('/api/rewards/'.length), token = String(req.headers['x-gingham-manage'] || '');
+    if (action === 'unlock') {
+      const wait = pinWait(householdId);
+      if (wait) return json(res,429,{error:wait});
+      const pin = String(body.pin == null ? '' : body.pin), none = 'Set a household PIN on the setup page to manage screen time here.';
+      try {
+        if (!fixture) setup.checkHouseholdPin(home, pin, none);
+        else if (!process.env.FRAME_FIXTURE_PIN_HASH) throw Object.assign(Error(none), {status: 409});
+        else if (!checkPin(pin, process.env.FRAME_FIXTURE_PIN_HASH)) throw Object.assign(Error('That is not the PIN.'), {status: 403});
+      } catch(e) { if (e.status === 403) pinWrong(householdId); return failed(e); }
+      pinLocks.delete(householdId);
+      return json(res,200,{token: manageTokens.issue(householdId, grant.id), expiresIn: manageTokens.IDLE_MS / 1000});
+    }
+    if (action === 'lock') { manageTokens.revoke(token); return json(res,200,{ok:true}); }
+    const person = String(body.person || ''), entry = String(body.entry || ''), by = grant.id;
+    const open = {start: () => rewards.start(person, by), stop: () => rewards.stop(person, by), 'cancel-start': () => rewards.cancelStart(person), resume: () => rewards.resume(person, entry)};
+    const guarded = {
+      adjust: () => rewards.adjust(person, body.minutes, body.reason == null ? null : body.reason, by),
+      remove: () => rewards.remove(person, entry, by), restore: () => rewards.restore(person, entry, by),
+      person: () => rewards.person({id: body.id == null ? undefined : String(body.id), name: body.name, on: body.on, allowance: body.allowance}, by)
+    };
+    const run = open[action] || guarded[action];
+    if (!run) return json(res,404,{error:'Not found'});
+    if (guarded[action] && !manageTokens.check(token, householdId, grant.id)) return json(res,403,{error:'Locked. Enter the household PIN again.', locked:true});
+    try { return json(res,200,run()); } catch(e) { return failed(e); }
   }
   if (fixture && pathname.startsWith('/api/')) {
     if (/\/close$/.test(pathname)) return json(res,200,{ok:true});

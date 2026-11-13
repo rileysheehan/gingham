@@ -569,6 +569,78 @@ button.item:active{opacity:.6}
 .dialog.manage .qr-plate:not([hidden])+.pair-code{font-size:3rem;margin:1rem 0 .3rem}
 .dialog .wide{margin-top:2.25rem;height:4rem;font-size:1.5rem}
 
+/* ---------- Screen time: a ring for what is left today ----------
+   One card like the lists and Settings. Left, centred: the person, the ring and the one control a passing child needs.
+   Right, read up close: the day's sum and its record, or, unlocked behind the PIN, the grown-up's controls. The ring is the
+   glance layer (Bricolage, the clock's scale); every row and button is Inter. While a timer runs app.js steps the ring
+   and its seconds once a second, as the clock steps; nothing here animates. */
+.screen-card{flex:1;min-height:0;display:flex;background:var(--card);border-radius:1.5rem;box-shadow:0 .1rem .2rem var(--shade);padding:2.5rem 2.75rem}
+.screen-card.hug{justify-content:center}
+.screen-person{flex:0 0 31rem;display:flex;flex-direction:column;align-items:center;margin-right:3.75rem}
+.screen-who{display:flex;align-items:center;font:600 calc(1.9rem*var(--ts))/1.2 var(--text)}
+.screen-who .avatar{width:2.8rem;height:2.8rem;font-size:1.5rem;margin-right:.9rem}
+.ring{position:relative;flex:none;width:30rem;height:30rem;margin-top:1.75rem}
+.ring svg{width:100%;height:100%}
+.ring-track{fill:none;stroke:var(--line);stroke-width:14}
+.ring-arc{fill:none;stroke:var(--accent);stroke-width:14;stroke-linecap:round}
+.ring-text{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ring-number{font:500 10.5rem/1 var(--display);letter-spacing:-.045em;font-variation-settings:"opsz" 96;font-variant-numeric:tabular-nums;margin-top:-.75rem}
+/* A timer's seconds ("0:42", "24:37", "1:04:37") at the size that keeps each inside the ring's inner circle with 1.5rem
+   clear (measured in Chrome at 1920 × 1080); the weight and optical size stay the clock's. */
+.ring-number.n4{font-size:10rem}
+.ring-number.n5{font-size:8.2rem}
+.ring-number.n7{font-size:6.4rem}
+.ring-unit{font:500 calc(1.8rem*var(--ts))/1.2 var(--text);color:var(--ink-2);margin-top:.5rem}
+.ring-up{font:600 4.4rem/1.05 var(--display);letter-spacing:-.025em;font-variation-settings:"opsz" 72}
+.screen-line{min-height:2.2rem;margin-top:1.4rem;font:500 calc(1.6rem*var(--ts))/1.35 var(--text);color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:center}
+.screen-actions{display:flex;flex-direction:column;align-items:center;margin-top:1.2rem}
+.screen-go{height:5rem;min-width:20rem;padding:0 2.5rem;border-radius:2.5rem;background:var(--accent);color:var(--on-accent);font:600 1.9rem/1 var(--text);text-align:center}
+.screen-go.stop{background:var(--ink);color:var(--surface)}
+.screen-go:disabled{background:var(--press);color:var(--ink-2)}
+.screen-go:active:not(:disabled){opacity:.85}
+.screen-hint{margin-top:.8rem;font-size:calc(1.4rem*var(--ts));color:var(--ink-2)}
+.screen-side{flex:1;min-width:0;display:flex;flex-direction:column}
+.screen-side .eyebrow{flex:none;margin-bottom:.4rem}
+.screen-sum{flex:none;margin:0 0 2.25rem}
+.screen-sum div{display:flex;align-items:baseline;padding:.85rem 0;border-bottom:.0625rem solid var(--line)}
+.screen-sum dt{flex:1;font-size:calc(1.7rem*var(--ts));font-weight:500}
+.screen-sum dd{margin:0;font-size:calc(1.7rem*var(--ts));font-variant-numeric:tabular-nums}
+.screen-record{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+.screen-record::-webkit-scrollbar{display:none}
+.screen-record.has-more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 4.5rem),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 4.5rem),transparent)}
+.screen-row{display:flex;align-items:center;min-height:calc(3.9rem*var(--ts));padding:.35rem 0;border-bottom:.0625rem solid var(--line);font-size:calc(1.5rem*var(--ts))}
+.screen-row:last-child{border-bottom:0}
+.screen-row .when{flex:0 0 8.5rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.screen-row .what{flex:1;min-width:0}
+.screen-row .meta{display:block;font-size:calc(1.25rem*var(--ts));color:var(--ink-2)}
+.screen-row .amount{flex:none;margin-left:1rem;font-weight:600;font-variant-numeric:tabular-nums}
+.screen-row.removed .label,.screen-row.removed .amount{text-decoration:line-through;color:var(--ink-2);font-weight:400}
+.screen-row .quiet{flex:none;margin:0 -1.25rem 0 .5rem}
+.screen-empty{padding:.9rem 0;font-size:calc(1.5rem*var(--ts));color:var(--ink-2)}
+/* Unlocked. The segments are Settings' own, sharing the column's width. */
+.screen-manage-panel{flex:none;margin-bottom:1.75rem}
+.screen-manage-panel .choices{margin-bottom:.8rem}
+.screen-manage-panel .choices button{flex:1;min-width:0;padding:0 .6rem}
+.screen-manage-panel .screen-go{display:block;width:100%;margin-top:.2rem}
+.screen-daily{display:flex;align-items:center;margin-top:1.2rem}
+.screen-daily p{flex:1;font-size:calc(1.6rem*var(--ts));font-weight:500}
+.step{flex:none;width:3.5rem;height:3.5rem;border-radius:50%;background:var(--press);text-align:center;font:500 2rem/1 var(--text)}
+.step:active:not(:disabled){background:var(--line)}
+.step:disabled{opacity:.4}
+.screen-daily .setting-value{min-width:7.5rem;text-align:center}
+.screen-daily .setting-hint{margin-left:1rem}
+.screen-off{display:block;margin:.9rem 0 0 -1.25rem}
+.screen-off[aria-pressed=true]{color:var(--bad)}
+/* Turning it on: whose it is and how long their days are, near the top so the keyboard never covers the name. */
+.screen-setup{width:46rem;align-self:flex-start;margin-top:.5rem}
+.screen-setup h2{font:600 3rem/1.1 var(--display);letter-spacing:-.02em;font-variation-settings:"opsz" 40}
+.screen-setup-note{margin-top:.9rem;font-size:calc(1.6rem*var(--ts));line-height:1.4;color:var(--ink-2)}
+.screen-again{display:flex;flex-wrap:wrap;margin-top:1.5rem}
+.screen-again .quiet{display:flex;align-items:center;background:var(--press);color:var(--ink);margin:0 .8rem .8rem 0}
+.screen-again .avatar{margin-right:.7rem}
+.screen-setup .add-row{margin-top:1.75rem}
+.screen-setup .screen-go{display:block;width:100%;margin-top:1.6rem}
+
 /* Photos is a card like the week and the lists: the photo whole, over a blurred copy of itself. */
 .photo-card{flex:1;min-height:0;position:relative;overflow:hidden;border-radius:1.5rem;background:#000;box-shadow:0 .1rem .2rem var(--shade);cursor:pointer}
 /* By day the fill is the photo's own colours, a little dimmed so the photo stays the brightest thing in the card; at .55 a

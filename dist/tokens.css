@@ -41,8 +41,8 @@
 }
 
 /* Light. --selected, --shade, --tint, --star, --rain-ink (the rain chance as text) and --mono-ink (the letter of a
-   monogram with no colour of its own, on --ink-2) are the wall's; --bad and --good are the phone's (the wall has no
-   error colour). The phone's card shadow is its own, rgba(16,38,63,.08) in setup.css, not --shade. */
+   monogram with no colour of its own, on --ink-2) are the wall's; --good is the phone's; --bad is the phone's errors and,
+   on the wall, only screen time's "Tap again to turn off", always in words. The phone's card shadow is its own, rgba(16,38,63,.08) in setup.css, not --shade. */
 :root,.theme-light{
   --surface:var(--mist-100);--card:var(--mist-0);--ink:var(--navy-800);--ink-2:var(--navy-600);--line:var(--mist-300);
   --accent:var(--blue-600);--on-accent:var(--mist-0);--press:var(--mist-200);
